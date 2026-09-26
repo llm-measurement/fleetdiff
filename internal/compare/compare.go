@@ -105,6 +105,10 @@ var counterUnits = map[string]string{
 	"cache_read_input_tokens": "reported-input-subset", "cache_write_input_tokens": "reported-input-subset",
 	"reasoning_output_tokens": "reported-output-subset", "missing_token_usage": "observed-model-spans",
 	"dedup_suppressed": "suppressed-observations", "dedup_key_missing": "observations",
+	"usage_provenance.v1.input.provider_reported": "observations", "usage_provenance.v1.output.provider_reported": "observations",
+	"usage_provenance.v1.input.inferred": "observations", "usage_provenance.v1.output.inferred": "observations",
+	"usage_provenance.v1.input.unavailable": "observations", "usage_provenance.v1.output.unavailable": "observations",
+	"usage_provenance.v1.input.unknown": "observations", "usage_provenance.v1.output.unknown": "observations",
 }
 
 var sketchKinds = map[string]string{
@@ -121,6 +125,20 @@ func Compare(before, after []summary.Envelope, options Options) (Report, error) 
 	}
 	if len(before) == 0 || len(after) == 0 {
 		return Report{}, errors.New("each selected window needs at least one snapshot; missing data is not zero")
+	}
+	if len(before) > MaxFiles || len(after) > MaxFiles {
+		return Report{}, errors.New("invalid summary batch size")
+	}
+	if hasUsageProvenance(before) || hasUsageProvenance(after) {
+		var err error
+		before, err = withUsageProvenance(before)
+		if err != nil {
+			return Report{}, errors.New("before window: " + summaryCause(err))
+		}
+		after, err = withUsageProvenance(after)
+		if err != nil {
+			return Report{}, errors.New("after window: " + summaryCause(err))
+		}
 	}
 	a, err := combineWindow(before, options.Expected)
 	if err != nil {

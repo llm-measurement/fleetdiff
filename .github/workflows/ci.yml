@@ -28,6 +28,11 @@ jobs:
       - run: go vet ./...
       - name: One-command walkthrough
         run: sh examples/demo.sh
+      - name: Single-application investigation and two-stack extension
+        run: |
+          sh examples/investigate.sh
+          sh examples/investigate.sh --missing-usage
+          sh examples/investigate.sh --two-stacks
       - name: Demo chart and arithmetic
         if: runner.os == 'Linux'
         run: |

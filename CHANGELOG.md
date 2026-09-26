@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Add a read-only `investigate` command with token-change questions, tracked
+  contributor shares, and explicit unknown answers for incomplete evidence or
+  unsupported session attribution. Add a single-app demo and two-stack extension
+  using collector-generated synthetic LiteLLM-shaped fixtures.
+- Report optional, versioned usage provenance; compare older exports as unknown
+  provenance without changing their files or relaxing accounting checks.
+
 Notable user-visible changes are recorded here.
 
 ## [0.1.1] - 2026-09-25

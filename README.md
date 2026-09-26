@@ -1,29 +1,41 @@
 # fleetdiff
 
-**See what changed across an agent fleet you don't fully operate, without pooling raw traces.**
+**See what changed in your agent application, using summaries instead of raw traces.**
 
-Your team's agents reported fewer tokens after a deployment. Did the fleet use
-less, or did the work move to a partner's agents? Each team only sees its own
-slice. fleetdiff combines small summary files that each operator exports and
-answers fleet-level questions locally. Keep your existing trace backend. No raw
-prompts, user IDs, or traces change hands. No account, upload, or model API key is
-needed.
-
-![Synthetic demo: your team's reported tokens fall from 800 to 360, while the partner's rise from 400 to 1,440. Fleet totals rise from 1,200 to 1,800. Two requests lack token usage in each window.](docs/media/fleet-usage.png)
-
-[Watch the one-minute terminal walkthrough](docs/media/README.md).
+Did token usage rise because you made more requests, or because each request
+used more tokens? Which tracked contributors changed? Is the comparison missing
+usage data? fleetdiff reads small summary files and answers locally. Start with
+one application; combine compatible exports when you add workers or separately
+operated systems. Keep your existing trace backend. No account, upload, or model
+API key is needed.
 
 ## Try It In A Minute
 
 ```sh
 git clone https://github.com/llm-measurement/fleetdiff.git
 cd fleetdiff
-sh examples/demo.sh
+sh examples/investigate.sh
 ```
 
 Needs Git and [Go](https://go.dev/dl/) 1.25 or 1.26 with a current security patch,
-on Linux or macOS. No Docker. Each run writes its reports to a new directory and
-prints the paths.
+on Linux or macOS. No Docker. The command builds current source and prints a
+single-application report from synthetic collector exports:
+
+```text
+Reported tokens: 200 -> 600
+Requests: 2 -> 3
+Tokens per request: 100.00 -> 200.00
+Request-count contribution: +150.00 tokens
+Tokens-per-request contribution: +250.00 tokens
+```
+
+This is an arithmetic split, not proof of cause. Try
+`sh examples/investigate.sh --missing-usage`: one missing usage field makes the
+explanation `cannot_determine`, not a guessed saving. Add `--two-stacks` to run
+the same investigation over disjoint gateway and direct-call exports.
+See [the example and its limits](examples/single-app/README.md).
+
+`investigate` is available in current source, not the v0.1.1 release below.
 
 ## Install A Binary
 
@@ -37,7 +49,13 @@ before extracting it. Then run `./fleetdiff --version` or compare your exports:
 ./fleetdiff compare --before ./before --after ./after --expected team,partner
 ```
 
-## The Story The Demo Tells
+## Extend To Separately Operated Agents
+
+Run `sh examples/demo.sh` for the existing two-operator walkthrough.
+
+![Synthetic demo: your team's reported tokens fall from 800 to 360, while the partner's rise from 400 to 1,440. Fleet totals rise from 1,200 to 1,800. Two requests lack token usage in each window.](docs/media/fleet-usage.png)
+
+[Watch the one-minute two-operator walkthrough](docs/media/README.md).
 
 A research supervisor delegates to an internal-document specialist your team
 runs and a research specialist a partner runs. This is the supervisor-and-specialists
@@ -65,6 +83,9 @@ or evidence of savings.
 
 | Question | In the demo |
 |---|---|
+| More requests or more tokens per request? | Single-app report: +150 and +250 tokens respectively; refused if usage is incomplete |
+| Which tracked contributors changed? | Prompt-weight delta bounds and shares of recorded sketch weight, not a guaranteed top-k ranking |
+| Can it identify a runaway session? | `cannot_determine`: current exports do not attribute model tokens to sessions |
 | Did total reported usage fall, or just move? | Ours 800 to 360 tokens; fleet 1,200 to 1,800 |
 | Did model activity rise while runs stayed flat? | 6 to 10 model requests; 2 root-agent runs in both windows |
 | Did the workload touch more documents? | About 1 to 4 distinct MCP resources; a shared one counts once |
@@ -111,15 +132,18 @@ go build -o bin/fleetdiff ./cmd/fleetdiff
 1. Each operator enables [summary export](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/SUMMARY_EXCHANGE.md)
    and agrees on time windows, hashing settings, and who observes which requests.
 2. Put one window's files in `before/` and the later window's files in `after/`.
-3. Compare, naming every expected operator, even if one export is missing:
+3. Investigate, naming every expected producer, even if one export is missing:
 
 ```sh
-bin/fleetdiff compare --before ./before --after ./after --expected team,partner
+bin/fleetdiff investigate --before ./before --after ./after --expected app
 ```
 
 Add `--format json` for automation. fleetdiff only reads files; it never modifies
 inputs or makes network requests. Sharing an export still requires
-authorization. Start with the [two-operator trial checklist](docs/TWO_OPERATOR_TRIAL.md).
+authorization. For multiple disjoint producers, use `--expected team,partner`.
+The lower-level `compare` command remains unchanged. See the
+[investigation contract](docs/INVESTIGATION.md) and, for separate operators, the
+[two-operator trial checklist](docs/TWO_OPERATOR_TRIAL.md).
 
 ## What The Numbers Mean, And What They Don't
 
@@ -155,6 +179,7 @@ Run the checks yourself with `go test -race ./...` and `go vet ./...`.
 
 - [FAQ](docs/FAQ.md): inputs, accuracy, privacy, and troubleshooting
 - [Comparison contract](docs/COMPARISON.md)
+- [Investigation questions and JSON API](docs/INVESTIGATION.md)
 - [Operations](docs/OPERATIONS.md): installation verification, offline use, and upgrades
 - [Resource measurements](docs/BENCHMARKS.md): sizing on one machine
 - [Security policy](SECURITY.md) · [Changelog](CHANGELOG.md) · [Releasing](docs/RELEASING.md)
