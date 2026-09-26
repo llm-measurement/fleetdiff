@@ -1,0 +1,1035 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "partner-research"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "fleetdiff.synthetic-research",
+            "version": "1"
+          },
+          "spans": [
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000010",
+              "parentSpanId": "000000000000000f",
+              "name": "specialist invocation",
+              "kind": 2,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000011",
+              "parentSpanId": "0000000000000010",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-1"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_1"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_external-research"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_4"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "200"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "40"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_read.input_tokens",
+                  "value": {
+                    "intValue": "20"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.reasoning.output_tokens",
+                  "value": {
+                    "intValue": "10"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000012",
+              "parentSpanId": "0000000000000010",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_4"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000013",
+              "parentSpanId": "0000000000000010",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_4"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R1"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000014",
+              "parentSpanId": "0000000000000010",
+              "name": "MCP tool call",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_4"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "tools/call"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "web_search"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "timeout"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000016",
+              "parentSpanId": "0000000000000015",
+              "name": "specialist invocation",
+              "kind": 2,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000017",
+              "parentSpanId": "0000000000000016",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-1"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_1"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_external-research"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_5"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "250"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "50"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000018",
+              "parentSpanId": "0000000000000016",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_5"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000019",
+              "parentSpanId": "0000000000000016",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_5"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R2"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "000000000000001a",
+              "parentSpanId": "0000000000000016",
+              "name": "MCP tool call",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_5"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "tools/call"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "web_search"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "timeout"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "000000000000001c",
+              "parentSpanId": "000000000000001b",
+              "name": "specialist invocation",
+              "kind": 2,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "000000000000001d",
+              "parentSpanId": "000000000000001c",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-1"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_1"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_external-research"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_6"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "200"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "40"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "000000000000001e",
+              "parentSpanId": "000000000000001c",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_6"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "000000000000001f",
+              "parentSpanId": "000000000000001c",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_6"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R3"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000020",
+              "parentSpanId": "000000000000001c",
+              "name": "MCP tool call",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_6"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "tools/call"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "fetch_page"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "tool_error"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000022",
+              "parentSpanId": "0000000000000021",
+              "name": "specialist invocation",
+              "kind": 2,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000023",
+              "parentSpanId": "0000000000000022",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-2"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_2"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_external-research"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_7"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "300"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "60"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000024",
+              "parentSpanId": "0000000000000022",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_7"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000025",
+              "parentSpanId": "0000000000000022",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_7"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R4"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000026",
+              "parentSpanId": "0000000000000022",
+              "name": "MCP tool call",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_7"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "tools/call"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "web_search"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "timeout"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000028",
+              "parentSpanId": "0000000000000027",
+              "name": "specialist invocation",
+              "kind": 2,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000029",
+              "parentSpanId": "0000000000000028",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-2"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_2"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_external-research"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_8"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "250"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "50"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000002a",
+              "parentSpanId": "0000000000000028",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_8"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000002b",
+              "parentSpanId": "0000000000000028",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_8"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R1"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000002c",
+              "parentSpanId": "0000000000000028",
+              "name": "MCP tool call",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_8"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "tools/call"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "web_search"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "timeout"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000002e",
+              "parentSpanId": "000000000000002d",
+              "name": "specialist invocation",
+              "kind": 2,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000002f",
+              "parentSpanId": "000000000000002e",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-2"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_2"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_external-research"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_9"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000030",
+              "parentSpanId": "000000000000002e",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_9"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000031",
+              "parentSpanId": "000000000000002e",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_9"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R2"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

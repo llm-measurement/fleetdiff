@@ -1,0 +1,8 @@
+/bin/
+/dist/
+/.cache/
+/docs/local/
+/two-operator-run*/
+go.work
+go.work.sum
+.DS_Store

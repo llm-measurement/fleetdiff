@@ -1,0 +1,31 @@
+fleetdiff: did our research-agent change reduce work?
+A supervisor delegates to company- and partner-operated specialists.
+Synthetic batch jobs. No model calls or raw-trace upload.
+
+1. Did total reported usage fall?
+   Our reported tokens: 800 -> 360 (down 440)
+   Fleet reported tokens: 1200 -> 1800 (up 600)
+
+2. Did model activity rise while runs stayed flat?
+   Model requests: 6 -> 10
+   Observed root-agent runs: 2 -> 2
+   Requests missing token usage: 2 -> 2
+
+3. Did the workload touch more documents?
+   Distinct MCP resources, estimated: 1 -> 4
+   Distinct MCP sessions, estimated: 4 -> 8
+   Distinct users, estimated: 2 -> 2
+
+4. Did particular tool-error signatures increase?
+   item-1: [1, 1] -> [4, 4] occurrences; increased
+   item-2: [0, 0] -> [1, 1] occurrences; increased
+   item-3: [2, 2] -> [2, 2] occurrences; unchanged
+   Bounds are exact in this small fixture; tool identities stay hidden.
+
+5. Is the comparison missing a system?
+   Remove the partner's after-window export:
+   Normal comparison: refused because an expected system is missing.
+   With --allow-partial: marked incomplete, not treated as savings.
+
+Reported work moved and grew; answer quality is outside what fleetdiff measures.
+This does not diagnose retries or prove savings. Missing tokens stay unknown.

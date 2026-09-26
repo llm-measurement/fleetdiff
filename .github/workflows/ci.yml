@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26.8"
+      - run: go test -race ./...
+      - run: go vet ./...
+      - name: One-command walkthrough
+        run: sh examples/demo.sh
+      - name: Demo chart and arithmetic
+        if: runner.os == 'Linux'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/media-venv"
+          "$RUNNER_TEMP/media-venv/bin/python" -m pip install -r docs/media/requirements.txt
+          "$RUNNER_TEMP/media-venv/bin/python" -B -m unittest discover -s docs/media -p 'test_*.py'
+          go run ./examples/walkthrough -out "$RUNNER_TEMP/chart-reports"
+          "$RUNNER_TEMP/media-venv/bin/python" docs/media/plot.py "$RUNNER_TEMP/chart-reports" --out "$RUNNER_TEMP/fleet-usage.png"
+      - name: Example and reproducible fixtures
+        run: |
+          go build -o bin/fleetdiff ./cmd/fleetdiff
+          bin/fleetdiff compare --before examples/two-systems/data/before --after examples/two-systems/data/after --expected owned,partner --format json > report.json
+          sh examples/compare-to-file.sh bin/fleetdiff examples/two-systems/data/before examples/two-systems/data/after owned,partner saved-report.json
+          cmp report.json saved-report.json
+          if sh examples/compare-to-file.sh bin/fleetdiff examples/two-systems/data/before examples/two-systems/data/after invalid-producer saved-report.json; then
+            echo 'invalid input unexpectedly succeeded' >&2
+            exit 1
+          fi
+          cmp report.json saved-report.json
+          go run ./examples/two-systems -out "$RUNNER_TEMP/fleetdiff-fixtures" -otlp-out "$RUNNER_TEMP/research-otlp"
+          diff -r examples/two-systems/data "$RUNNER_TEMP/fleetdiff-fixtures"
+          diff -r examples/two-operators/fixtures "$RUNNER_TEMP/research-otlp"
+      - name: Bounded fuzz smoke
+        run: |
+          go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10s -parallel 2
+          go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10s -parallel 2
+      - name: Two operators through the released collector
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        run: |
+          sh examples/demo.sh --live
+          go test -race -tags integration ./examples/two-operators -count=1 -timeout 4m
+      - name: Dependency vulnerabilities
+        if: runner.os == 'Linux'
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...

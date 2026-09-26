@@ -1,0 +1,676 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "owned-research"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "fleetdiff.synthetic-research",
+            "version": "1"
+          },
+          "spans": [
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000001",
+              "name": "research supervisor",
+              "kind": 1,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "research-supervisor"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000002",
+              "name": "research supervisor",
+              "kind": 1,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "research-supervisor"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000003",
+              "parentSpanId": "0000000000000001",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-1"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_1"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_supervisor"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_0"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "80"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "10"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_read.input_tokens",
+                  "value": {
+                    "intValue": "20"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.reasoning.output_tokens",
+                  "value": {
+                    "intValue": "10"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000004",
+              "parentSpanId": "0000000000000001",
+              "name": "specialist invocation",
+              "kind": 1,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "internal-documents"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000005",
+              "parentSpanId": "0000000000000004",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-1"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_1"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_internal-documents"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_1"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "140"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "40"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000006",
+              "parentSpanId": "0000000000000004",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_1"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000007",
+              "parentSpanId": "0000000000000004",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_1"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R1"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000008",
+              "parentSpanId": "0000000000000004",
+              "name": "MCP tool call",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_1"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "tools/call"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_lookup_document"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "not_found"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000009",
+              "parentSpanId": "0000000000000002",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-2"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_2"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_supervisor"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_2"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "80"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "10"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000000a",
+              "parentSpanId": "0000000000000002",
+              "name": "specialist invocation",
+              "kind": 1,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "internal-documents"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000000b",
+              "parentSpanId": "000000000000000a",
+              "name": "model request",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "demo-model-2"
+                  }
+                },
+                {
+                  "key": "enduser.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_user_2"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.prompt",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_prompt_internal-documents"
+                  }
+                },
+                {
+                  "key": "retrieval.doc_id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_context"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_request_after_3"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000000c",
+              "parentSpanId": "000000000000000a",
+              "name": "MCP initialize",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_3"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "initialize"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000000d",
+              "parentSpanId": "000000000000000a",
+              "name": "MCP resource read",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_3"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "resources/read"
+                  }
+                },
+                {
+                  "key": "mcp.resource.uri",
+                  "value": {
+                    "stringValue": "https://reference.invalid/FC_PRIVATE_R1"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000000e",
+              "parentSpanId": "000000000000000a",
+              "name": "MCP tool call",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "mcp.session.id",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_session_after_3"
+                  }
+                },
+                {
+                  "key": "mcp.method.name",
+                  "value": {
+                    "stringValue": "tools/call"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "FC_PRIVATE_lookup_document"
+                  }
+                },
+                {
+                  "key": "error.type",
+                  "value": {
+                    "stringValue": "not_found"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "000000000000000f",
+              "parentSpanId": "0000000000000001",
+              "name": "delegate research",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "0000000000000015",
+              "parentSpanId": "0000000000000001",
+              "name": "delegate research",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000c9",
+              "spanId": "000000000000001b",
+              "parentSpanId": "0000000000000001",
+              "name": "delegate research",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000021",
+              "parentSpanId": "0000000000000002",
+              "name": "delegate research",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "0000000000000027",
+              "parentSpanId": "0000000000000002",
+              "name": "delegate research",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            },
+            {
+              "traceId": "000000000000000000000000000000ca",
+              "spanId": "000000000000002d",
+              "parentSpanId": "0000000000000002",
+              "name": "delegate research",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000001000000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "invoke_agent"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "external-research"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

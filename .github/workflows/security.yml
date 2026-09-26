@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+name: security
+on:
+  schedule:
+    - cron: '23 7 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.8'
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
+      - name: Redacted history secret scan
+        run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --log-opts=--all --no-banner .
+      - name: Extended malformed-input testing
+        run: |
+          go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 2m -parallel 2
+          go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 2m -parallel 2
+      - run: go test -race ./...

@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+connectors:
+  genaisketch:
+    window_duration: 15s
+    retention_windows: 6
+    max_slices: 1
+    topk: 20
+    hashing: {algo: hmac_sha256_64, secret_env: FLEETDIFF_DEMO_SECRET}
+    mcp: {enabled: true, tool_errors: {enabled: true}}
+    slices:
+      - {name: by_model, keys: [gen_ai.request.model]}
+    summary_export:
+      directory: /summaries
+      producer_id: ${env:FLEETDIFF_DEMO_PRODUCER}
+      scope_id: two-operator-demo
+      key_id: ${env:FLEETDIFF_DEMO_KEY_ID}
+      interval: 1s
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    translation_strategy: UnderscoreEscapingWithoutSuffixes
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics: {level: none}
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [genaisketch]
+    metrics:
+      receivers: [genaisketch]
+      exporters: [prometheus]

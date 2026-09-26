@@ -1,0 +1,49 @@
+{
+  "tool_errors": {
+    "search_timeout": {"tool": "web_search", "error": "timeout"},
+    "lookup_not_found": {"tool": "FC_PRIVATE_lookup_document", "error": "not_found"},
+    "fetch_error": {"tool": "fetch_page", "error": "tool_error"}
+  },
+  "windows": [
+    {
+      "name": "before",
+      "calls": [
+        {"producer": "owned", "agent": "supervisor", "run": 1, "usage": [300, 40], "cache_read": 20, "reasoning": 10},
+        {"producer": "owned", "agent": "internal-documents", "run": 1, "usage": [100, 20], "resources": ["R1"], "errors": ["lookup_not_found"]},
+        {"producer": "owned", "agent": "supervisor", "run": 2, "usage": [300, 40]},
+        {"producer": "owned", "agent": "internal-documents", "run": 2, "resources": ["R1"], "errors": ["lookup_not_found"]},
+        {"producer": "partner", "agent": "external-research", "run": 1, "usage": [300, 100], "cache_read": 20, "reasoning": 10, "resources": ["R1"], "errors": ["search_timeout"]},
+        {"producer": "partner", "agent": "external-research", "run": 2, "resources": ["R1"]}
+      ],
+      "expected": {
+        "owned_tokens": 800,
+        "counters": {"agent_runs": 2, "requests": 6, "input_tokens": 1000, "output_tokens": 200, "missing_token_usage": 2, "cache_read_input_tokens": 40, "cache_write_input_tokens": 0, "reasoning_output_tokens": 20, "dedup_suppressed": 0, "dedup_key_missing": 0},
+        "distinct": {"distinct_users": 2, "distinct_prompts": 3, "distinct_docs": 1, "distinct_mcp_resources": 1, "distinct_mcp_sessions": 4, "distinct_mcp_methods": 3},
+        "prompt_weights": {"supervisor": 680, "internal-documents": 120, "external-research": 400},
+        "tool_errors": {"search_timeout": 1, "lookup_not_found": 2, "fetch_error": 0}
+      }
+    },
+    {
+      "name": "after",
+      "calls": [
+        {"producer": "owned", "agent": "supervisor", "run": 1, "usage": [80, 10], "cache_read": 20, "reasoning": 10},
+        {"producer": "owned", "agent": "internal-documents", "run": 1, "usage": [140, 40], "resources": ["R1"], "errors": ["lookup_not_found"]},
+        {"producer": "owned", "agent": "supervisor", "run": 2, "usage": [80, 10]},
+        {"producer": "owned", "agent": "internal-documents", "run": 2, "resources": ["R1"], "errors": ["lookup_not_found"]},
+        {"producer": "partner", "agent": "external-research", "run": 1, "usage": [200, 40], "cache_read": 20, "reasoning": 10, "resources": ["R1"], "errors": ["search_timeout"]},
+        {"producer": "partner", "agent": "external-research", "run": 1, "usage": [250, 50], "resources": ["R2"], "errors": ["search_timeout"]},
+        {"producer": "partner", "agent": "external-research", "run": 1, "usage": [200, 40], "resources": ["R3"], "errors": ["fetch_error"]},
+        {"producer": "partner", "agent": "external-research", "run": 2, "usage": [300, 60], "resources": ["R4"], "errors": ["search_timeout"]},
+        {"producer": "partner", "agent": "external-research", "run": 2, "usage": [250, 50], "resources": ["R1"], "errors": ["search_timeout"]},
+        {"producer": "partner", "agent": "external-research", "run": 2, "resources": ["R2"]}
+      ],
+      "expected": {
+        "owned_tokens": 360,
+        "counters": {"agent_runs": 2, "requests": 10, "input_tokens": 1500, "output_tokens": 300, "missing_token_usage": 2, "cache_read_input_tokens": 40, "cache_write_input_tokens": 0, "reasoning_output_tokens": 20, "dedup_suppressed": 0, "dedup_key_missing": 0},
+        "distinct": {"distinct_users": 2, "distinct_prompts": 3, "distinct_docs": 1, "distinct_mcp_resources": 4, "distinct_mcp_sessions": 8, "distinct_mcp_methods": 3},
+        "prompt_weights": {"supervisor": 180, "internal-documents": 180, "external-research": 1440},
+        "tool_errors": {"search_timeout": 4, "lookup_not_found": 2, "fetch_error": 1}
+      }
+    }
+  ]
+}
