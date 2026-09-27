@@ -49,6 +49,19 @@ before extracting it. Then run `./fleetdiff --version` or investigate your expor
 ./fleetdiff investigate --before ./before --after ./after --expected app
 ```
 
+## Using LiteLLM?
+
+Did token usage jump after an application change? Send LiteLLM traces to the
+[collector recipe](https://github.com/llm-measurement/otelcol-genai-sketches/tree/main/examples/integrations/litellm),
+then use `fleetdiff investigate` to compare its before-and-after summary exports.
+See whether the increase came from more requests or more recorded tokens per
+request, with missing usage shown. Keep your existing tracing backend.
+
+The recipe documents the tested LiteLLM version and an optional callback that
+preserves missing provider usage for supported non-streaming responses. Streaming
+usage provenance remains unknown: LiteLLM can supply estimates when provider
+counts are absent. The comparison is not invoice reconciliation or proof of savings.
+
 ## Extend To Separately Operated Agents
 
 Run `sh examples/demo.sh` for the existing two-operator walkthrough.
