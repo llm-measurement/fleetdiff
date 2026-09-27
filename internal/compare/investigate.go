@@ -52,10 +52,10 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 	if err != nil {
 		return Investigation{}, err
 	}
-	volume := Question{ID: "volume", Question: "More requests, or more reported tokens per request?", Status: "cannot_determine"}
+	volume := Question{ID: "volume", Question: "More model attempts, or more reported tokens per attempt?", Status: "cannot_determine"}
 	contributors := Question{ID: "contributors", Question: "Which tracked prompt contributors changed?", Status: "cannot_determine", Answer: "No prompt-weight sketch is available; missing measurements are not zero."}
 	sessions := Question{ID: "sessions", Question: "Which sessions need investigation?", Status: "cannot_determine", Answer: "These summaries have no session-level token attribution. Prompt signatures and distinct MCP sessions cannot identify high-consumption sessions or diagnose loops."}
-	coverage := Question{ID: "coverage", Question: "How much of this comparison can I trust?", Status: "observed", Answer: "Observation intervals are complete and every observed model request reports input and output usage. This does not prove complete upstream delivery, unsampled traffic, or provider-reported rather than inferred usage."}
+	coverage := Question{ID: "coverage", Question: "How much of this comparison can I trust?", Status: "observed", Answer: "Observation intervals are complete and every observed model attempt reports input and output usage. This does not prove complete upstream delivery, unsampled traffic, or provider-reported rather than inferred usage."}
 	var input, output *Counter
 	for i := range r.Counters {
 		switch r.Counters[i].Name {
@@ -72,16 +72,16 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 	case a == nil || b == nil || input == nil || output == nil:
 		volume.Answer = "Request, token, or missing-usage counters are unavailable."
 	case a.Missing != 0 || b.Missing != 0:
-		volume.Answer = "Some requests lack input or output usage. Recorded token totals remain visible, but a complete-request average or workload explanation cannot be recovered from these totals."
+		volume.Answer = "Some model attempts lack input or output usage. Recorded token totals remain visible, but a complete-usage average or workload explanation cannot be recovered from these totals."
 	case a.Requests == 0 || b.Requests == 0:
-		volume.Answer = "At least one window has no observed model requests; tokens per request is undefined."
+		volume.Answer = "At least one window has no observed model attempts; tokens per attempt is undefined."
 	default:
 		// Validated counters are each at most MaxInt64, so this uint64 sum fits.
 		x, y := input.Before+output.Before, input.After+output.After
 		n0, n1 := float64(a.Requests), float64(b.Requests)
 		p0, p1 := float64(x)/n0, float64(y)/n1
 		volume.Status = "observed"
-		volume.Answer = "Arithmetic split of observed token change, not a causal explanation. The symmetric split shares the interaction equally between request count and tokens per request; cache and reasoning subsets are not added again."
+		volume.Answer = "Arithmetic split of observed token change, not a causal explanation. The symmetric split shares the interaction equally between attempt count and tokens per attempt; cache and reasoning subsets are not added again. Attempts are matching model spans, including failures and retries, not unique user requests."
 		volume.Volume = &VolumeChange{x, y, a.Requests, b.Requests, p0, p1, (n1 - n0) * (p0 + p1) / 2, (p1 - p0) * (n0 + n1) / 2}
 	}
 	if !r.Complete || a == nil || b == nil || input == nil || output == nil || a.Missing != 0 || b.Missing != 0 {

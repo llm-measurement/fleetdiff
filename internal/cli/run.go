@@ -160,8 +160,8 @@ func renderInvestigation(out io.Writer, r compare.Investigation) {
 	for _, q := range r.Questions {
 		fmt.Fprintf(out, "\n%s [%s]\n%s\n", q.Question, q.Status, q.Answer)
 		if v := q.Volume; v != nil {
-			fmt.Fprintf(out, "  Reported tokens: %d -> %d\n  Requests: %d -> %d\n  Tokens per request: %.2f -> %.2f\n", v.BeforeTokens, v.AfterTokens, v.BeforeRequests, v.AfterRequests, v.BeforeAverage, v.AfterAverage)
-			fmt.Fprintf(out, "  Request-count contribution: %+.2f tokens\n  Tokens-per-request contribution: %+.2f tokens\n", v.RequestContribution, v.TokensPerRequestContribution)
+			fmt.Fprintf(out, "  Reported tokens: %d -> %d\n  Model attempts: %d -> %d\n  Tokens per attempt: %.2f -> %.2f\n", v.BeforeTokens, v.AfterTokens, v.BeforeRequests, v.AfterRequests, v.BeforeAverage, v.AfterAverage)
+			fmt.Fprintf(out, "  Attempt-count contribution: %+.2f tokens\n  Tokens-per-attempt contribution: %+.2f tokens\n", v.RequestContribution, v.TokensPerRequestContribution)
 		}
 		for _, c := range q.Contributors {
 			fmt.Fprintf(out, "  %s", c.Item)
@@ -195,7 +195,7 @@ func renderInvestigation(out io.Writer, r compare.Investigation) {
 		fmt.Fprintf(out, "  Recorded input + output tokens: %d -> %d\n", input.Before+output.Before, input.After+output.After)
 	}
 	if a, b := r.Evidence.Before.Usage, r.Evidence.After.Usage; a != nil && b != nil {
-		fmt.Fprintf(out, "  Requests with both usage fields: %d/%d -> %d/%d\n", a.Complete, a.Requests, b.Complete, b.Requests)
+		fmt.Fprintf(out, "  Model attempts with both usage fields: %d/%d -> %d/%d\n", a.Complete, a.Requests, b.Complete, b.Requests)
 	}
 	fmt.Fprintf(out, "  Missing producers: %d -> %d; partial producers: %d -> %d\n", len(r.Evidence.Before.MissingProducers), len(r.Evidence.After.MissingProducers), len(r.Evidence.Before.PartialProducers), len(r.Evidence.After.PartialProducers))
 	fmt.Fprintln(out, "Use --format json for supporting counters and integer bounds, or compare for the full text report.")
@@ -226,7 +226,7 @@ func renderText(out io.Writer, r compare.Report) {
 		fmt.Fprintf(out, "%s: %s for %s; %d selected snapshots\n", entry.name, time.Unix(0, w.Start).UTC().Format(time.RFC3339Nano), time.Duration(w.Duration), w.SelectedSnapshots)
 		fmt.Fprintf(out, "  Missing producers: %v; partial producers: %v\n", w.MissingProducers, w.PartialProducers)
 		if w.Usage != nil {
-			fmt.Fprintf(out, "  Token coverage: %d complete, %d missing, %d observed model requests\n", w.Usage.Complete, w.Usage.Missing, w.Usage.Requests)
+			fmt.Fprintf(out, "  Token coverage: %d complete, %d missing, %d observed model attempts\n", w.Usage.Complete, w.Usage.Missing, w.Usage.Requests)
 		}
 	}
 	fmt.Fprintln(out, "\nCounters (before -> after; observed delta)")

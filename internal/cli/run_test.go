@@ -103,6 +103,22 @@ func TestCompareTextAndJSON(t *testing.T) {
 	}
 }
 
+func TestInvestigationNamesModelAttempts(t *testing.T) {
+	var out, errout bytes.Buffer
+	args := []string{"investigate", "--before", "../../examples/single-app/data/single/before", "--after", "../../examples/single-app/data/single/after", "--expected", "app"}
+	if Run(args, &out, &errout) != 0 {
+		t.Fatal(errout.String())
+	}
+	for _, want := range []string{"Model attempts: 2 -> 3", "Tokens per attempt: 100.00 -> 200.00", "Attempt-count contribution: +150.00 tokens"} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("missing %q in report: %s", want, out.String())
+		}
+	}
+	if strings.Contains(out.String(), "  Requests:") {
+		t.Fatal("ambiguous request label remains")
+	}
+}
+
 func TestNoPartialOutputOnErrors(t *testing.T) {
 	a, b := inputs(t)
 	for _, args := range [][]string{

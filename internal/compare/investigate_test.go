@@ -128,3 +128,21 @@ func TestInvestigationValidationAndPrivacy(t *testing.T) {
 		t.Fatal("private data in answers")
 	}
 }
+
+func TestRetryLikePatternDoesNotBecomeSavings(t *testing.T) {
+	a := fixture(t, minute, fixtureSource{Producer: "app", Users: []uint64{1}, Prompts: []uint64{2}, Weights: []int64{100}})
+	b := fixture(t, 2*minute, fixtureSource{Producer: "app", Users: []uint64{1}, Prompts: []uint64{2}, Weights: []int64{100}})
+	a.Counters["requests"] = 1
+	b.Counters["requests"] = 4
+	b.Counters["missing_token_usage"] = 3
+	r, err := Investigate([]summary.Envelope{a}, []summary.Envelope{b}, Options{Expected: []string{"app"}, Top: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Questions[0].Status != "cannot_determine" || r.Questions[0].Volume != nil {
+		t.Fatal("retry-like missing usage must not produce a lower-consumption explanation", r.Questions[0])
+	}
+	if r.Evidence.After.Usage.Requests != 4 || r.Evidence.After.Usage.Missing != 3 {
+		t.Fatal("attempts and missing usage must remain visible", r.Evidence.After.Usage)
+	}
+}

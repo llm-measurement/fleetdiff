@@ -23,10 +23,10 @@ single-application report from synthetic collector exports:
 
 ```text
 Reported tokens: 200 -> 600
-Requests: 2 -> 3
-Tokens per request: 100.00 -> 200.00
-Request-count contribution: +150.00 tokens
-Tokens-per-request contribution: +250.00 tokens
+Model attempts: 2 -> 3
+Tokens per attempt: 100.00 -> 200.00
+Attempt-count contribution: +150.00 tokens
+Tokens-per-attempt contribution: +250.00 tokens
 ```
 
 This is an arithmetic split, not proof of cause. Try
@@ -34,6 +34,9 @@ This is an arithmetic split, not proof of cause. Try
 explanation `cannot_determine`, not a guessed saving. Add `--two-stacks` to run
 the same investigation over disjoint gateway and direct-call exports.
 See [the example and its limits](examples/single-app/README.md).
+
+Model attempts are observed model spans, including failures and retries, not
+unique user requests. Existing JSON fields keep their `requests` names.
 
 `investigate` is included in release v0.2.0 and later.
 

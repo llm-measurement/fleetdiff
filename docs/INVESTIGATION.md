@@ -33,7 +33,7 @@ ID `volume`. Requires compatible equal-length windows, complete observation
 intervals, request and input/output counters, an explicit missing-usage counter
 of zero in each window, and nonzero request counts in both windows.
 
-Let N be observed model requests, T recorded input plus output tokens, and A=T/N.
+Let N be observed model attempts, T recorded input plus output tokens, and A=T/N.
 The symmetric decomposition of T1-T0 is:
 
 ```text
@@ -45,11 +45,21 @@ The two contributions sum to the token change, up to floating-point rounding.
 Neither is causal attribution or evidence of useful work. Exact integer counters
 remain in `evidence`. Cache and reasoning subsets are never added again.
 
+An attempt is a matching exported model span, including a failure or retry. It
+is not a unique user request or proof the provider received it. Text reports use
+"model attempts"; JSON v1 retains `requests`, `before_requests`, and the other
+request-named fields for compatibility. Their meaning and arithmetic are unchanged.
+
 If either usage field is missing, the existing summary cannot isolate the token
 total from requests with both fields. Dividing by the complete-request count
 would mix populations. The question therefore returns `cannot_determine`, while
 retaining recorded totals and missingness. Complete upstream sampling/delivery
 and provider-reported versus locally inferred usage cannot be verified here.
+
+Rising attempts, falling recorded tokens per attempt, and rising missing usage
+can suggest failures or retries worth investigating. Instrumentation loss can
+look similar. This is not automatic retry-storm or runaway-agent detection, and
+it does not override the refusal to split volume when usage is missing.
 
 ## Contributors
 
