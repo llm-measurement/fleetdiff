@@ -11,7 +11,7 @@ Declared origin is not authenticated proof. The collector excludes explicitly
 unavailable fields and marks requests missing. Unknown gateway-filled zeros can
 still occur. Arithmetic is not a claim about provider savings.
 
-The current source adds `fleetdiff investigate`. Released v0.1.1 binaries only
+Release v0.2.0 adds `fleetdiff investigate`. Older v0.1.1 binaries only
 provide `compare`. Both commands are local, read-only, and accept the same files
 and validation options. One producer works; multiple stacks are optional.
 

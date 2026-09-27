@@ -13,3 +13,14 @@ test -s "$report"
 jq -e '.version == 1 and .complete_observation_intervals == true and
     ([.counters[] | select(.name == "requests") | .before == 6 and .after == 10] == [true]) and
     ([.concentration[] | select(.name == "top_prompts") | .before_weight == 1200 and .after_weight == 1800] == [true])' "$report" >/dev/null
+"$binary" investigate --before examples/single-app/data/single/before \
+  --after examples/single-app/data/single/after --expected app --format json > "$report"
+jq -e '.version == 1 and
+    ([.questions[] | select(.id == "volume") | .status == "observed" and
+      .volume.before_reported_tokens == 200 and .volume.after_reported_tokens == 600 and
+      .volume.request_count_contribution_tokens == 150 and
+      .volume.tokens_per_request_contribution_tokens == 250] == [true]) and
+    ([.questions[] | select(.id == "usage_source") | .status == "cannot_determine"] == [true])' "$report" >/dev/null
+"$binary" investigate --before examples/single-app/data/single/before \
+  --after examples/single-app/data/missing-usage/after --expected app --format json > "$report"
+jq -e '([.questions[] | select(.id == "volume") | .status == "cannot_determine"] == [true])' "$report" >/dev/null

@@ -35,18 +35,18 @@ explanation `cannot_determine`, not a guessed saving. Add `--two-stacks` to run
 the same investigation over disjoint gateway and direct-call exports.
 See [the example and its limits](examples/single-app/README.md).
 
-`investigate` is available in current source, not the v0.1.1 release below.
+`investigate` is included in release v0.2.0 and later.
 
 ## Install A Binary
 
 No Go compiler is needed to use a release binary. Download the
-[v0.1.1 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.1.1)
+[v0.2.0 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.2.0)
 for Linux or macOS, on AMD64 or ARM64. Follow the
 [download and verification instructions](docs/OPERATIONS.md#install-and-verify)
-before extracting it. Then run `./fleetdiff --version` or compare your exports:
+before extracting it. Then run `./fleetdiff --version` or investigate your exports:
 
 ```sh
-./fleetdiff compare --before ./before --after ./after --expected team,partner
+./fleetdiff investigate --before ./before --after ./after --expected app
 ```
 
 ## Extend To Separately Operated Agents
@@ -184,5 +184,5 @@ Run the checks yourself with `go test -race ./...` and `go vet ./...`.
 - [Resource measurements](docs/BENCHMARKS.md): sizing on one machine
 - [Security policy](SECURITY.md) · [Changelog](CHANGELOG.md) · [Releasing](docs/RELEASING.md)
 
-The `0.1.x` release line provides a local, read-only `compare` command.
+The `0.2.x` release line provides local, read-only `investigate` and `compare` commands.
 Apache-2.0. Code authors: Vijay and Codex.

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.2.0] - 2026-09-26
 
 - Add a read-only `investigate` command with token-change questions, tracked
   contributor shares, and explicit unknown answers for incomplete evidence or
@@ -8,6 +8,8 @@
   using collector-generated synthetic LiteLLM-shaped fixtures.
 - Report optional, versioned usage provenance; compare older exports as unknown
   provenance without changing their files or relaxing accounting checks.
+- Exercise `investigate` and missing-usage handling in every native release-binary
+  smoke test. Existing comparison JSON remains version 1.
 
 Notable user-visible changes are recorded here.
 

@@ -10,7 +10,12 @@ sh examples/investigate.sh --missing-usage
 ```
 
 Run from the repository checkout with Go installed. The script builds the current
-source, not a released binary; `investigate` is not in v0.1.1.
+source. A verified v0.2.0 release binary can read the same sample files directly:
+
+```sh
+fleetdiff investigate --before examples/single-app/data/single/before \
+  --after examples/single-app/data/single/after --expected app
+```
 
 ## Expected Answers
 

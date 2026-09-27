@@ -8,7 +8,7 @@ secret. It does not upload data, check for updates, or send usage telemetry.
 
 The initial supported targets are Linux and macOS on AMD64 and ARM64. Native
 Windows binaries are not provided. Download a binary from the
-[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.1.1).
+[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.2.0).
 Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
@@ -16,7 +16,7 @@ Choose `linux_amd64`, `linux_arm64`, `darwin_amd64` (Intel Mac), or `darwin_arm6
 (Apple Silicon). Run in a new, empty directory:
 
 ```sh
-version=v0.1.1
+version=v0.2.0
 target=linux_amd64
 archive="fleetdiff_${version}_${target}.tar.gz"
 base="https://github.com/llm-measurement/fleetdiff/releases/download/$version"
@@ -154,5 +154,5 @@ and incomplete observation intervals remain partial. A restart never fills in
 missing usage. Key rotations or changed measurement contracts can require new,
 separate comparisons rather than a forced merge.
 
-Security maintenance covers the current `0.1.x` release line, not a production SLA.
+Security maintenance covers the current `0.2.x` release line, not a production SLA.
 See [SECURITY.md](../SECURITY.md) for supported versions and confidential reporting.
