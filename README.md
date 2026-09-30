@@ -9,6 +9,11 @@ one application; combine compatible exports when you add workers or separately
 operated systems. Keep your existing trace backend. No account, upload, or model
 API key is needed.
 
+Inputs are summary exports from
+[otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
+or [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit), not raw traces,
+vendor dashboards, or bills.
+
 ## Try It In A Minute
 
 ```sh
@@ -38,7 +43,10 @@ See [the example and its limits](examples/single-app/README.md).
 Model attempts are observed model spans, including failures and retries, not
 unique user requests. Existing JSON fields keep their `requests` names.
 
-`investigate` is included in release v0.2.0 and later.
+`investigate` is included in release v0.2.0. That binary prints "Requests" where
+current source prints "Model attempts"; the arithmetic is unchanged. The optional
+user/session contributor support described below is **unreleased**, not part of
+v0.2.0.
 
 ## Install A Binary
 
@@ -51,6 +59,19 @@ before extracting it. Then run `./fleetdiff --version` or investigate your expor
 ```sh
 ./fleetdiff investigate --before ./before --after ./after --expected app
 ```
+
+`app` is the summary's `producer_id`, not a filename or user/session ID. Use your
+trusted producer inventory for `--expected`, including producers whose exports
+are missing.
+
+With Go installed, install the latest published version:
+
+```sh
+go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
+```
+
+The binary goes to `GOBIN`, or `$(go env GOPATH)/bin` when `GOBIN` is unset; add
+that directory to `PATH`. This does not install unreleased checkout changes.
 
 ## Using LiteLLM?
 
@@ -71,7 +92,7 @@ Run `sh examples/demo.sh` for the existing two-operator walkthrough.
 
 ![Synthetic demo: your team's reported tokens fall from 800 to 360, while the partner's rise from 400 to 1,440. Fleet totals rise from 1,200 to 1,800. Two requests lack token usage in each window.](docs/media/fleet-usage.png)
 
-[Watch the one-minute two-operator walkthrough](docs/media/README.md).
+[Two-operator walkthrough video and transcript](docs/media/README.md#terminal-walkthrough).
 
 A research supervisor delegates to an internal-document specialist your team
 runs and a research specialist a partner runs. This is the supervisor-and-specialists
@@ -107,6 +128,23 @@ or evidence of savings.
 | Did the workload touch more documents? | About 1 to 4 distinct MCP resources; a shared one counts once |
 | Did particular tool-error signatures increase? | One rises from 1 to 4; one appears; one is unchanged |
 | Is part of the fleet missing? | A missing export is refused, or reported as explicitly partial |
+
+### Unreleased Contributor Support
+
+Current-source support adds tracked user and session contributors when compatible
+exports contain `top_users` or `top_sessions` token-weighted sketches, or their
+`_requests` variants. Existing demos above have no user/session attribution
+sketches. Missing user/session sketches remain unknown; distinct session counts
+alone cannot attribute token usage.
+
+A session is flagged for review only when its after-window share **lower bound
+is strictly greater than 25%** by default. `--flag-share` sets the threshold as a
+fraction, for example `--flag-share 0.40`. Shares use recorded sketch weight,
+not necessarily all application usage. Incomplete observation intervals suppress
+flags; token-weighted flags also require complete numeric token coverage. This is
+a concentration flag, not proof of a runaway session or its cause. See the
+[unreleased contract](docs/INVESTIGATION.md#unreleased-user-and-session-contributors).
+Build the checkout to use this support; the linked v0.2.0 binary does not have it.
 
 ## How It Works
 
@@ -157,7 +195,9 @@ bin/fleetdiff investigate --before ./before --after ./after --expected app
 Add `--format json` for automation. fleetdiff only reads files; it never modifies
 inputs or makes network requests. Sharing an export still requires
 authorization. For multiple disjoint producers, use `--expected team,partner`.
-The lower-level `compare` command remains unchanged. See the
+These are the exact `producer_id` values assigned by the exporter. Keep the same
+expected set for both windows; do not drop an ID to hide a missing export.
+The lower-level `compare` command provides the full evidence report. See the
 [investigation contract](docs/INVESTIGATION.md) and, for separate operators, the
 [two-operator trial checklist](docs/TWO_OPERATOR_TRIAL.md).
 
@@ -201,4 +241,8 @@ Run the checks yourself with `go test -race ./...` and `go vet ./...`.
 - [Security policy](SECURITY.md) · [Changelog](CHANGELOG.md) · [Releasing](docs/RELEASING.md)
 
 The `0.2.x` release line provides local, read-only `investigate` and `compare` commands.
+Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
+Do not include raw traces, secrets, or unapproved exports; see the
+[security policy](SECURITY.md) for confidential vulnerability reports.
+
 Apache-2.0. Code authors: Vijay and Codex.

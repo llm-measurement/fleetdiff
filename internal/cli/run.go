@@ -11,8 +11,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,7 +39,9 @@ Usage:
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
 PATH is one canonical summary JSON file or a directory of summary JSON files.
-Expected producers must observe disjoint requests and be supplied from trusted inventory.
+Expected producers are the producer_id values configured by your summary collectors,
+not application, model, user, or session IDs. Supply them from trusted inventory;
+they must observe disjoint requests.
 Names in the report are aliases; producer-N refers to the sorted expected list.
 
 Options:
@@ -45,6 +49,7 @@ Options:
   --after-window RFC3339      Select one processing-time window from the after input
   --format text|json         Output format (default text)
   --top N                    At most 1-100 tracked movers per sketch (default 20)
+  --flag-share DECIMAL       Session after lower-share threshold, 0..1 (default 0.25)
   --allow-partial            Permit missing producers or incomplete observation intervals
   --show-hashes              Include pseudonymous, linkable hashes in output
   --help                    Show this help
@@ -82,6 +87,7 @@ func Run(args []string, out, errout io.Writer) int {
 	beforeWindow := flags.String("before-window", "", "")
 	afterWindow := flags.String("after-window", "", "")
 	top := flags.Int("top", 20, "")
+	flagShareText := flags.String("flag-share", strconv.FormatFloat(compare.DefaultFlagShare, 'f', -1, 64), "")
 	partial := flags.Bool("allow-partial", false, "")
 	hashes := flags.Bool("show-hashes", false, "")
 	if err := flags.Parse(args[1:]); err != nil {
@@ -91,9 +97,23 @@ func Run(args []string, out, errout io.Writer) int {
 			}
 			return 0
 		}
+		for _, name := range []string{"before", "after", "expected", "format", "before-window", "after-window", "top", "flag-share"} {
+			if err.Error() == "flag needs an argument: -"+name {
+				return fail(2, "missing value for --"+name+"; run fleetdiff --help")
+			}
+		}
 		return fail(2, "invalid compare options; run fleetdiff compare --help")
 	}
-	if flags.NArg() != 0 || *before == "" || *after == "" || *expected == "" || len(*expected) > 128*129 || *top < 1 || *top > 100 || (*format != "text" && *format != "json") {
+	for _, required := range []struct{ name, value string }{{"before", *before}, {"after", *after}, {"expected", *expected}} {
+		if strings.TrimSpace(required.value) == "" {
+			return fail(2, "missing required flag --"+required.name+"; run fleetdiff --help")
+		}
+	}
+	flagShare, shareErr := strconv.ParseFloat(*flagShareText, 64)
+	if shareErr != nil || strings.ContainsAny(*flagShareText, "xXpP") || math.IsNaN(flagShare) || math.IsInf(flagShare, 0) || flagShare < 0 || flagShare > 1 {
+		return fail(2, "flag-share must be a finite decimal between 0 and 1")
+	}
+	if flags.NArg() != 0 || len(*expected) > 128*129 || *top < 1 || *top > 100 || (*format != "text" && *format != "json") {
 		return fail(2, "supply before, after, expected producers, a supported format, and top between 1 and 100")
 	}
 	bs, err := parseWindow(*beforeWindow)
@@ -118,7 +138,7 @@ func Run(args []string, out, errout io.Writer) int {
 	}
 	var buffer bytes.Buffer
 	if args[0] == "investigate" {
-		investigation, err := compare.Investigate(a, b, compare.Options{Expected: producers, Top: *top, AllowPartial: *partial, ShowHashes: *hashes})
+		investigation, err := compare.Investigate(a, b, compare.Options{Expected: producers, Top: *top, AllowPartial: *partial, ShowHashes: *hashes, FlagShare: flagShare, FlagShareSet: true})
 		if err != nil {
 			return fail(1, err.Error())
 		}
@@ -136,7 +156,7 @@ func Run(args []string, out, errout io.Writer) int {
 		}
 		return 0
 	}
-	r, err := compare.Compare(a, b, compare.Options{Expected: producers, Top: *top, AllowPartial: *partial, ShowHashes: *hashes})
+	r, err := compare.Compare(a, b, compare.Options{Expected: producers, Top: *top, AllowPartial: *partial, ShowHashes: *hashes, FlagShare: flagShare, FlagShareSet: true})
 	if err != nil {
 		return fail(1, err.Error())
 	}
@@ -158,7 +178,11 @@ func Run(args []string, out, errout io.Writer) int {
 func renderInvestigation(out io.Writer, r compare.Investigation) {
 	fmt.Fprintln(out, "What changed in my agent app? (observed measurements)")
 	for _, q := range r.Questions {
-		fmt.Fprintf(out, "\n%s [%s]\n%s\n", q.Question, q.Status, q.Answer)
+		answer := q.Answer
+		if q.ID == "coverage" {
+			answer = strings.ReplaceAll(answer, "Check evidence.before and evidence.after", "Check Observed coverage below")
+		}
+		fmt.Fprintf(out, "\n%s [%s]\n%s\n", q.Question, q.Status, answer)
 		if v := q.Volume; v != nil {
 			fmt.Fprintf(out, "  Reported tokens: %d -> %d\n  Model attempts: %d -> %d\n  Tokens per attempt: %.2f -> %.2f\n", v.BeforeTokens, v.AfterTokens, v.BeforeRequests, v.AfterRequests, v.BeforeAverage, v.AfterAverage)
 			fmt.Fprintf(out, "  Attempt-count contribution: %+.2f tokens\n  Tokens-per-attempt contribution: %+.2f tokens\n", v.RequestContribution, v.TokensPerRequestContribution)
@@ -167,6 +191,12 @@ func renderInvestigation(out io.Writer, r compare.Investigation) {
 			fmt.Fprintf(out, "  %s", c.Item)
 			if c.Hash != "" {
 				fmt.Fprintf(out, " (%s)", c.Hash)
+			}
+			if c.Measurement != "" {
+				fmt.Fprintf(out, " [%s; %s]", c.Measurement, c.WeightUnit)
+			}
+			if c.Before != nil && c.After != nil && c.Delta != nil {
+				fmt.Fprintf(out, "; count [%d, %d] -> [%d, %d]; delta [%+d, %+d]", c.Before.Lower, c.Before.Upper, c.After.Lower, c.After.Upper, c.Delta.Lower, c.Delta.Upper)
 			}
 			for _, p := range []struct {
 				name string
@@ -177,6 +207,9 @@ func renderInvestigation(out io.Writer, r compare.Investigation) {
 				} else {
 					fmt.Fprintf(out, "; %s share [%.2f%%, %.2f%%]", p.name, p.s.Lower*100, p.s.Upper*100)
 				}
+			}
+			if c.Flag != "" {
+				fmt.Fprintf(out, "; %s", strings.ReplaceAll(c.Flag, "_", " "))
 			}
 			fmt.Fprintln(out)
 		}
@@ -251,6 +284,9 @@ func renderText(out io.Writer, r compare.Report) {
 		}
 	}
 	fmt.Fprintf(out, "\nMeasurements omitted by the output allowlist: %d\n", r.OmittedMeasurements)
+	if len(r.DroppedMeasurements) != 0 {
+		fmt.Fprintf(out, "Optional attribution absent from some snapshots: %s\n", strings.Join(r.DroppedMeasurements, ", "))
+	}
 	for _, note := range r.Notes {
 		fmt.Fprintln(out, "- "+note)
 	}

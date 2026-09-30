@@ -14,13 +14,19 @@ still occur. Arithmetic is not a claim about provider savings.
 Release v0.2.0 adds `fleetdiff investigate`. Older v0.1.1 binaries only
 provide `compare`. Both commands are local, read-only, and accept the same files
 and validation options. One producer works; multiple stacks are optional.
+The user/session contributor extension and `--flag-share` below are **unreleased**;
+they require a build from current source, not the v0.2.0 binary.
 
 ```sh
 fleetdiff investigate --before before/ --after after/ --expected app
 fleetdiff investigate --before before/ --after after/ --expected app --format json
 ```
 
-JSON version 1 contains `questions` and `evidence`. Evidence is the unchanged
+`--expected` lists exact summary `producer_id` values, obtained from trusted
+exporter inventory. It is not a list of filenames or user/session IDs. Use the
+same complete inventory in both windows, even when a file has not arrived.
+
+JSON version 1 contains `questions` and `evidence`. Evidence uses the version 1
 [comparison report](COMPARISON.md). Each question has a stable `id`, `status`,
 and human-readable answer. Status is `observed`, `limited`, or `cannot_determine`.
 Unknown answers are successful reports, not zero measurements; invalid inputs
@@ -47,8 +53,9 @@ remain in `evidence`. Cache and reasoning subsets are never added again.
 
 An attempt is a matching exported model span, including a failure or retry. It
 is not a unique user request or proof the provider received it. Text reports use
-"model attempts"; JSON v1 retains `requests`, `before_requests`, and the other
-request-named fields for compatibility. Their meaning and arithmetic are unchanged.
+"model attempts" in current source (v0.2.0 prints "Requests"); JSON v1 retains
+`requests`, `before_requests`, and the other request-named fields for compatibility.
+Their meaning and arithmetic are unchanged.
 
 If either usage field is missing, the existing summary cannot isolate the token
 total from requests with both fields. Dividing by the complete-request count
@@ -71,10 +78,60 @@ in `evidence.concentration`. Display truncation and missing prompt keys can hide
 contributors. Ordering does not prove true top-k membership. There is no entropy,
 majorization test, or general recovery of previously unknown changed keys.
 
-## Sessions And Coverage
+## Unreleased User And Session Contributors
 
-ID `sessions` currently returns `cannot_determine`: distinct MCP sessions and
-prompt signatures do not associate model tokens with a conversation or run.
+Optional `top_users` and `top_sessions` sketches describe tracked token-weighted
+user and session candidates. `top_users_requests` and `top_sessions_requests`
+describe request-weighted candidates instead. A request weight counts observed
+model attempts, not unique end-user requests. The producer must supply compatible
+accounting, hashing, and [top-k contract markers](COMPARISON.md#tracked-change);
+names alone do not prove correct attribution. Question ID `users` carries user
+attribution; `sessions` carries session attribution. `contributors` also accepts
+`top_prompts_requests` alongside the legacy prompt sketch.
+
+Each new contributor includes `measurement`, `weight_unit`, integer `before`,
+`after`, and `delta` bounds, and available `before_share`/`after_share` bounds.
+Use the measurement name with the item alias: aliases are local to each sketch
+in this comparison, not durable cross-report identities. Session candidates
+meeting the review rule carry `flag: "runaway_candidate"`; despite that label,
+the flag is not a diagnosis.
+
+Shares divide each item's bounds by its own window's recorded sketch weight.
+They are not necessarily shares of all application tokens or attempts: missing
+keys, missing usage, partial collection, and display truncation can hide activity.
+A zero recorded weight gives no share, not a zero share. Hashes remain hidden
+unless `--show-hashes` is supplied; aliases do not recover identities.
+
+Session review flags use the **after-window share lower bound strictly greater
+than** `--flag-share`, which defaults to `0.25` (25%). A lower bound equal to 25%,
+or an upper bound above it without a lower bound above it, is not sufficient.
+Flags also require complete declared observation intervals. Token-weighted flags
+additionally require present request, token, and missing-usage counters with no
+missing usage; request-weighted flags do not require token usage. Limited evidence
+remains visible without the affected flags. Set the threshold as a finite fraction
+from `0` through `1`, for example:
+
+```sh
+bin/fleetdiff investigate --before before/ --after after/ --expected app --flag-share 0.40
+```
+
+This identifies recorded concentration worth reviewing, not a runaway session,
+retry loop, or cause of a token increase. No flag is not proof that every session
+is below the threshold. Inspect coverage and omitted candidates too. Token and
+request shares have different denominators and must not be conflated.
+
+When a known optional sketch is absent from any snapshot, it is omitted across
+both windows and named in `evidence.dropped_measurements`. Attribution present
+only in one window is unknown, not a newly appearing zero-to-positive user or
+session. Present but incompatible contracts remain errors.
+
+ID `sessions` returns `cannot_determine` without session-weight attribution:
+distinct MCP sessions and prompt signatures alone do not associate model tokens
+with a conversation or run. The checked-in single-app examples lack session
+sketches. Released v0.2.0 always gives this unknown answer for sessions and does
+not recognize `--flag-share`.
+
+## Coverage
 
 ID `coverage` distinguishes complete declared intervals and present token fields
 from partial or unknown evidence. Even complete intervals do not establish

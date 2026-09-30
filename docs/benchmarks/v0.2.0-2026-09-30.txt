@@ -1,0 +1,22 @@
+=== RUN   TestMalformedResourceUsage
+    resource_test.go:83: malformed_entries=200000 input_bytes=3467295 elapsed_ms=144 peak_rss_bytes=33046528 exit=1 report_bytes=0
+--- PASS: TestMalformedResourceUsage (0.22s)
+=== RUN   TestResourceUsage
+=== RUN   TestResourceUsage/512-small-files
+    resource_test.go:187: run=1 files_per_side=512 bytes_per_side=219136 producers=128 sketches_per_file=0 elapsed_ms=29 peak_rss_bytes=12517376
+    resource_test.go:187: run=2 files_per_side=512 bytes_per_side=219136 producers=128 sketches_per_file=0 elapsed_ms=29 peak_rss_bytes=12419072
+    resource_test.go:187: run=3 files_per_side=512 bytes_per_side=219136 producers=128 sketches_per_file=0 elapsed_ms=29 peak_rss_bytes=12500992
+=== RUN   TestResourceUsage/near-limit-dense-hll
+    resource_test.go:187: run=1 files_per_side=47 bytes_per_side=32951653 producers=47 sketches_per_file=16 elapsed_ms=450 peak_rss_bytes=143097856
+    resource_test.go:187: run=2 files_per_side=47 bytes_per_side=32951653 producers=47 sketches_per_file=16 elapsed_ms=391 peak_rss_bytes=141754368
+    resource_test.go:187: run=3 files_per_side=47 bytes_per_side=32951653 producers=47 sketches_per_file=16 elapsed_ms=391 peak_rss_bytes=140886016
+=== RUN   TestResourceUsage/near-limit-full-fi
+    resource_test.go:187: run=1 files_per_side=108 bytes_per_side=33266916 producers=108 sketches_per_file=16 elapsed_ms=4608 peak_rss_bytes=130269184
+    resource_test.go:187: run=2 files_per_side=108 bytes_per_side=33266916 producers=108 sketches_per_file=16 elapsed_ms=4633 peak_rss_bytes=130236416
+    resource_test.go:187: run=3 files_per_side=108 bytes_per_side=33266916 producers=108 sketches_per_file=16 elapsed_ms=4708 peak_rss_bytes=130711552
+--- PASS: TestResourceUsage (16.17s)
+    --- PASS: TestResourceUsage/512-small-files (0.20s)
+    --- PASS: TestResourceUsage/near-limit-dense-hll (1.32s)
+    --- PASS: TestResourceUsage/near-limit-full-fi (14.65s)
+PASS
+ok  	github.com/llm-measurement/fleetdiff/internal/compare	16.535s

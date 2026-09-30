@@ -3,8 +3,9 @@
 ## Input And Output
 
 The command consumes canonical [sketchkit summary v1](https://github.com/llm-measurement/llm-sketchkit/blob/v0.2.0/spec/summary.md)
-files. It combines each window independently using `summary.Combine`, then checks
-cross-window compatibility using `summary.Compatible`. Each frequent-items state
+files. After validating original inputs and normalizing the optional extensions
+documented below, it combines each window independently using `summary.Combine`,
+then checks cross-window compatibility using `summary.Compatible`. Each frequent-items state
 is checked for totals consistent with its retained bounds before combination,
 including replayed snapshots and measurements not displayed. Before must end at or before
 after begins; durations and measurement settings must match.
@@ -18,6 +19,8 @@ tool does not impose a wall-clock freshness cutoff or feed an automatic controll
 The same explicit expected producer set applies to both windows. Missing sources
 and partial collection intervals require `--allow-partial`. That option permits an
 observed comparison, not a claim of complete workload change. Empty inputs fail.
+Expected IDs are exact summary `producer_id` values from trusted exporter
+inventory, not input filenames or user/session identities.
 
 Report JSON has version `1` and contains only:
 
@@ -52,10 +55,34 @@ not inherit that smaller untracked bound. Sorting uses descending maximum absolu
 delta endpoint and then ascending hash for deterministic ties. Overlapping
 intervals do not establish true rank order.
 
-Different models' token counts are not normalized compute. `top_prompts` is usually
-token-weighted by the connector, but fleetdiff does not infer units from a payload
-name or reinterpret the accounting fingerprint. The report preserves the generic
-`configured-weight` label. It is not a billing ledger or invoice reconciliation.
+Different models' token counts are not normalized compute. Legacy `top_prompts`
+is usually token-weighted by the connector; the report preserves its generic
+`configured-weight` label for compatibility. It is not a billing ledger or
+invoice reconciliation.
+
+Unreleased source also recognizes `top_users`, `top_sessions`,
+`top_users_requests`, and `top_sessions_requests`. The unsuffixed names follow
+the token-weighted exporter convention; `_requests` names follow the
+request-weighted convention. Their units are `attributed-reported-tokens` and
+`attributed-model-attempts`, respectively, not all application usage. Compatible
+accounting declarations and top-k contract markers are required. The same
+extension recognizes `top_docs`, `top_mcp_sessions`, `top_mcp_methods`, and
+`top_mcp_resources`, plus their `_requests` variants and `top_prompts_requests`.
+These optional names and the investigation's session share flags are not
+supported by v0.2.0 binaries.
+
+Each new known top-k sketch requires a zero-valued counter named
+`topk_contract.v1.<measurement>.<digest>`, with the exporter's 32-character
+lowercase hexadecimal contract digest. Legacy `top_prompts` does not require
+this marker. Markers describe the measurement contract, not additive counts or
+authenticated identity; they are not shown as usage counters.
+
+If a known optional top-k measurement is absent from any input snapshot, source
+builds omit it across both windows, list it in `dropped_measurements`, and count
+it as omitted. They do not treat missing attribution as zero. Every original
+snapshot and every present measurement contract is validated first, including
+superseded snapshots. Present but incompatible contracts still fail; omission
+does not bypass scope, key, accounting, replay, or structural checks.
 
 ## Trust And Effects
 

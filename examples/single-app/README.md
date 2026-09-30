@@ -17,13 +17,18 @@ fleetdiff investigate --before examples/single-app/data/single/before \
   --after examples/single-app/data/single/after --expected app
 ```
 
+`--expected app` names the `producer_id` in each export, not its filename or a
+user/session ID. The v0.2.0 binary labels observed model attempts "Requests";
+current source uses "Model attempts". New user/session contributor support is
+unreleased and is not exercised by these prompt-only fixtures.
+
 ## Expected Answers
 
 | Question | Before | After |
 |---|---:|---:|
-| Observed model requests | 2 | 3 |
+| Observed model attempts | 2 | 3 |
 | Reported input plus output tokens | 200 | 600 |
-| Tokens per observed request | 100 | 200 |
+| Tokens per observed attempt | 100 | 200 |
 | Missing usage | 0 | 0 |
 | Cache-read tokens, already within input | 10 | 10 |
 
@@ -47,6 +52,8 @@ session-level token attribution. This is not a runaway-agent detector.
 ## Two Stacks, Same Question
 
 `--two-stacks` partitions the same model requests between `gateway` and `direct`.
+The script prints `2 expected producer(s) per window (gateway,direct)` before
+the report; the default prints `1 expected producer(s) per window (app)`.
 The fixture does not send the same inference observation to both collectors.
 Their merged measurements equal the single application's measurements. This is
 a synthetic illustration of a LiteLLM gateway alongside direct instrumentation,

@@ -4,7 +4,8 @@
 
 The current input is canonical `llm-sketchkit` summary v1 JSON. It contains counters,
 mergeable sketch state, and metadata describing the observation window and producer.
-It is not a raw OTLP trace, a Prometheus scrape, or a top-k log line.
+It is not a raw OTLP trace, a Prometheus scrape, a top-k log line, a vendor
+dashboard, or a bill.
 
 - For OpenTelemetry pipelines, enable the
   [summary exporter](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/SUMMARY_EXCHANGE.md)
@@ -57,6 +58,13 @@ image. Neither example calls a model. Synthetic OTLP traffic goes only to the lo
 collectors.
 
 ## What If A Producer Or Token Field Is Missing?
+
+`--expected` takes the exact `producer_id` strings assigned to summary exporters
+(the collector's `summary_export.producer_id` setting), not filenames, service
+names inferred from traces, user IDs, or session IDs. For example, exports with
+`"producer_id": "gateway"` and `"producer_id": "direct"` require
+`--expected gateway,direct`. Obtain the list from trusted inventory, not just
+whichever files arrived. The same list applies to both windows.
 
 Use `--expected` to name every producer in the comparison scope. Missing producers
 and partial observation intervals fail by default. `--allow-partial` permits a
@@ -134,14 +142,22 @@ deterministic bound, confidence interval, or statistical significance test.
 
 ## Why Does The Report Say Configured-Weight?
 
-Summary v1 does not declare a typed unit for frequent-item weights. A producer can
-weight observations by tokens, requests, or another supported nonnegative measure.
-fleetdiff does not infer that unit from a measurement's name. Interpret the results
-using the producer's documented accounting settings.
+Legacy summary v1 does not declare a typed unit for frequent-item weights. A
+producer can weight observations by tokens, requests, or another supported
+nonnegative measure. Legacy `top_prompts` retains the `configured-weight` label
+for compatibility. Interpret it using the producer's documented accounting settings.
 
 The samples weight prompt signatures by reported tokens and tool-error signatures
 by occurrences. Their small candidate sets happen to give exact intervals; tests
 also cover nonzero sketch error and disappearing keys.
+
+Unreleased user/session support recognizes the token-weighted `top_users` and
+`top_sessions` conventions and the request-weighted `_requests` variants. Keep
+the exporter's accounting settings and top-k contract markers consistent; names
+are not authenticated proof of units. These extensions report
+`attributed-reported-tokens` or `attributed-model-attempts` as their weight unit.
+A session share flag is a review threshold, not a causal diagnosis.
+See [the unreleased contract](INVESTIGATION.md#unreleased-user-and-session-contributors).
 
 ## Are Exports And Reports Safe To Share?
 

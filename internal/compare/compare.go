@@ -5,6 +5,7 @@
 package compare
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"maps"
@@ -22,6 +23,9 @@ type Options struct {
 	Top          int
 	AllowPartial bool
 	ShowHashes   bool
+	FlagShare    float64
+	// FlagShareSet distinguishes an explicit zero threshold from the default.
+	FlagShareSet bool
 }
 
 type Interval struct {
@@ -94,6 +98,7 @@ type Report struct {
 	Distinct            []Distinct      `json:"distinct"`
 	Concentration       []Concentration `json:"concentration"`
 	OmittedMeasurements int             `json:"omitted_measurements"`
+	DroppedMeasurements []string        `json:"dropped_measurements,omitempty"`
 	Notes               []string        `json:"notes"`
 }
 
@@ -120,6 +125,9 @@ var sketchKinds = map[string]string{
 // Compare returns no report on error and does not mutate input. Expected producers
 // declare disjoint event ownership. Neither that assertion nor identity is authenticated.
 func Compare(before, after []summary.Envelope, options Options) (Report, error) {
+	if _, err := flagShare(options); err != nil {
+		return Report{}, err
+	}
 	if options.Top < 1 || options.Top > 100 {
 		return Report{}, errors.New("top must be between 1 and 100")
 	}
@@ -128,6 +136,16 @@ func Compare(before, after []summary.Envelope, options Options) (Report, error) 
 	}
 	if len(before) > MaxFiles || len(after) > MaxFiles {
 		return Report{}, errors.New("invalid summary batch size")
+	}
+	if err := validateWindow(before); err != nil {
+		return Report{}, errors.New("before window: " + summaryCause(err))
+	}
+	if err := validateWindow(after); err != nil {
+		return Report{}, errors.New("after window: " + summaryCause(err))
+	}
+	before, after, dropped, err := projectTopK(before, after)
+	if err != nil {
+		return Report{}, errors.New("windows: " + summaryCause(err))
 	}
 	if hasUsageProvenance(before) || hasUsageProvenance(after) {
 		var err error
@@ -140,11 +158,11 @@ func Compare(before, after []summary.Envelope, options Options) (Report, error) 
 			return Report{}, errors.New("after window: " + summaryCause(err))
 		}
 	}
-	a, err := combineWindow(before, options.Expected)
+	a, err := summary.Combine(before, options.Expected)
 	if err != nil {
 		return Report{}, errors.New("before window: " + summaryCause(err))
 	}
-	b, err := combineWindow(after, options.Expected)
+	b, err := summary.Combine(after, options.Expected)
 	if err != nil {
 		return Report{}, errors.New("after window: " + summaryCause(err))
 	}
@@ -175,10 +193,18 @@ func Compare(before, after []summary.Envelope, options Options) (Report, error) 
 		"Items are ordered by the largest absolute interval endpoint, not a guaranteed ranking of true changes. Item aliases are local to this report.",
 		"Tokens, configured sketch weights, money, GPU time, and useful work are not interchangeable units.",
 	}}
+	r.DroppedMeasurements = dropped
+	r.OmittedMeasurements = len(dropped)
+	if len(dropped) != 0 {
+		r.Notes = append(r.Notes, "Optional top-k measurements absent from any input snapshot are omitted across both windows; missing attribution is not zero.")
+	}
 	if !complete {
 		r.Notes = append(r.Notes, "PARTIAL: differences may reflect missing observations rather than a workload change.")
 	}
 	for _, name := range slices.Sorted(maps.Keys(a.Counters)) {
+		if isTopKMarker(name) {
+			continue // Contract metadata, not an additive quantity.
+		}
 		unit, ok := counterUnits[name]
 		if !ok {
 			r.OmittedMeasurements++
@@ -189,6 +215,9 @@ func Compare(before, after []summary.Envelope, options Options) (Report, error) 
 	}
 	for _, name := range slices.Sorted(maps.Keys(a.Sketches)) {
 		kind, ok := sketchKinds[name]
+		if _, topK := topKUnits[name]; topK {
+			kind, ok = "frequent_items", true
+		}
 		if !ok {
 			r.OmittedMeasurements++
 			continue
@@ -218,18 +247,28 @@ func Compare(before, after []summary.Envelope, options Options) (Report, error) 
 	return r, nil
 }
 
-func combineWindow(input []summary.Envelope, expected []string) (summary.Result, error) {
+// Validate original snapshots before either optional-extension normalization.
+// Replay identity must also survive projection: dropping a sketch cannot turn a
+// conflicting sequence into a byte-identical duplicate.
+func validateWindow(input []summary.Envelope) error {
 	if len(input) > MaxFiles {
-		return summary.Result{}, errors.New("invalid summary batch size")
+		return errors.New("invalid summary batch size")
 	}
 	remaining := MaxInputBytes
+	encodedRemaining := MaxInputBytes
+	type snapshotID struct {
+		producer, epoch string
+		start           int64
+		sequence        uint64
+	}
+	seen := map[snapshotID][32]byte{}
 	for _, envelope := range input {
 		if len(envelope.Sketches) > 16 {
-			return summary.Result{}, errors.New("invalid summary payload count")
+			return errors.New("invalid summary payload count")
 		}
 		for _, payload := range envelope.Sketches {
 			if len(payload.Data) > remaining {
-				return summary.Result{}, errors.New("summary batch exceeds size limit")
+				return errors.New("summary batch exceeds size limit")
 			}
 			remaining -= len(payload.Data)
 			if payload.Kind != "frequent_items" {
@@ -239,25 +278,45 @@ func combineWindow(input []summary.Envelope, expected []string) (summary.Result,
 			// and measurements omitted from the report. Never sum untrusted bounds.
 			s, err := frequentitems.Parse(payload.Data)
 			if err != nil {
-				return summary.Result{}, errors.New("invalid summary sketch state")
+				return errors.New("invalid summary sketch state")
 			}
 			items, err := s.FrequentItems(frequentitems.NoFalseNegatives)
 			if err != nil {
-				return summary.Result{}, errors.New("invalid summary sketch state")
+				return errors.New("invalid summary sketch state")
 			}
 			unassigned := s.TotalWeight()
 			for _, item := range items {
 				if item.UpperBound > s.TotalWeight() || item.LowerBound > unassigned {
-					return summary.Result{}, errors.New("inconsistent frequent-items total")
+					return errors.New("inconsistent frequent-items total")
 				}
 				unassigned -= item.LowerBound
 			}
 			if s.MaxError() == 0 && unassigned != 0 {
-				return summary.Result{}, errors.New("inconsistent frequent-items total")
+				return errors.New("inconsistent frequent-items total")
 			}
 		}
+		encoded, err := envelope.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		if len(encoded) > encodedRemaining {
+			return errors.New("summary batch exceeds size limit")
+		}
+		encodedRemaining -= len(encoded)
+		if err := validateTopK(envelope); err != nil {
+			return err
+		}
+		if requests, ok := envelope.Counters["requests"]; ok && envelope.Counters["missing_token_usage"] > requests {
+			return errors.New("missing-token request count exceeds observed model requests")
+		}
+		id := snapshotID{envelope.ProducerID, envelope.Epoch, envelope.WindowStart, envelope.Sequence}
+		digest := sha256.Sum256(encoded)
+		if previous, ok := seen[id]; ok && previous != digest {
+			return errors.New("conflicting summary sequence")
+		}
+		seen[id] = digest
 	}
-	return summary.Combine(input, expected)
+	return nil
 }
 
 // Match complete, reviewed messages only. New or decorated dependency errors may
@@ -274,7 +333,9 @@ func summaryCause(err error) string {
 		"cannot combine different windows", "incompatible summary measurement contract",
 		"incompatible summary sketch metadata", "conflicting summary sequence",
 		"summary observation regressed", "summary counter regressed",
-		"combined counter overflow", "overlapping producer epochs", "inconsistent frequent-items total":
+		"combined counter overflow", "overlapping producer epochs", "inconsistent frequent-items total",
+		"invalid top-k contract marker", "missing top-k contract marker", "known measurement has an unexpected sketch kind",
+		"missing-token request count exceeds observed model requests":
 		return message
 	default:
 		return "invalid, incompatible, or conflicting snapshots; check producers, scope, keys, accounting, replay, and input limits"
@@ -366,6 +427,9 @@ func concentration(name string, a, b summary.Payload, options Options) (Concentr
 		return items[i].key < items[j].key
 	})
 	c := Concentration{Name: name, WeightUnit: "configured-weight", BeforeWeight: x.TotalWeight(), AfterWeight: y.TotalWeight(), BeforeMaxError: x.MaxError(), AfterMaxError: y.MaxError(), CandidateCount: len(items), UntrackedDelta: Interval{-x.MaxError(), y.MaxError()}, Movers: []Mover{}}
+	if unit, ok := topKUnits[name]; ok {
+		c.WeightUnit = unit
+	}
 	for i, item := range items[:min(options.Top, len(items))] {
 		m := item.mover
 		m.Item = fmt.Sprintf("item-%d", i+1)

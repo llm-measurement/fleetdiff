@@ -1,5 +1,26 @@
 # Changelog
 
+Notable user-visible changes are recorded here, newest first.
+
+## [Unreleased]
+
+- Add tracked user/session contributor support for optional `top_users` and
+  `top_sessions` sketches and their `_requests` variants. Session review flags
+  require an after-window share lower bound strictly above `--flag-share`
+  (default `0.25`) and complete relevant observations; they are not causal or
+  runaway-session diagnoses. Preserve unknown attribution when optional sketches
+  are absent from any input snapshot.
+- Clarify summary-only inputs, expected producer IDs, released versus checkout
+  behavior, Go installation and embedded checkout versions, and feedback routing.
+- Detect the host OS and architecture during verified binary installation;
+  document partial-asset checksum checks and macOS browser-download approval.
+- Show expected producer counts in the single-app/two-stack demo and embed the
+  existing walkthrough video in a local browser player.
+- Name missing required flags in CLI errors and point text coverage guidance
+  to the text report rather than JSON-only field paths.
+- Label historical resource numbers and unavailable CI evidence as
+  pre-publication observations, not measurements of a public release.
+
 ## [0.2.0] - 2026-09-26
 
 - Add a read-only `investigate` command with token-change questions, tracked
@@ -10,8 +31,6 @@
   provenance without changing their files or relaxing accounting checks.
 - Exercise `investigate` and missing-usage handling in every native release-binary
   smoke test. Existing comparison JSON remains version 1.
-
-Notable user-visible changes are recorded here.
 
 ## [0.1.1] - 2026-09-25
 
@@ -41,7 +60,8 @@ macOS on AMD64 and ARM64. JSON reports use comparison contract v1.
 ### Fixed
 
 - Tagged `go install` builds report Go's embedded module version instead of `dev`.
-  Explicit release stamps still take precedence; checkout builds remain `dev`.
+  Explicit release stamps still take precedence; unstamped builds fall back to
+  `dev` when Go supplies no usable module version.
 - Use llm-sketchkit v0.2.1 with consistent Go/Python validation of frequent-items
   total weight; retain fleetdiff's pre-combination checks.
 - Reject frequent-items payloads whose totals contradict retained item bounds,

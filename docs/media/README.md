@@ -25,10 +25,9 @@ are documentation tools only; neither is needed to run fleetdiff or the demo.
 
 ## Terminal Walkthrough
 
-[Watch the one-minute video](walkthrough.webm) or read the
-[plain-text transcript](transcript.txt).
-
-[![Sample comparison output](preview.png)](walkthrough.webm)
+Download the [one-minute walkthrough video](walkthrough.webm), or read the
+[plain-text transcript](transcript.txt). The repository link is a video download,
+not an embedded browser player.
 
 The video shows actual output from `sh examples/demo.sh`, using the included
 synthetic research-agent files. It pauses for 12 seconds at each question:

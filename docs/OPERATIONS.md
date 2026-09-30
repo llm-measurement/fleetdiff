@@ -12,36 +12,67 @@ Windows binaries are not provided. Download a binary from the
 Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
-Choose `linux_amd64`, `linux_arm64`, `darwin_amd64` (Intel Mac), or `darwin_arm64`
-(Apple Silicon). Run in a new, empty directory:
+The commands select Linux or macOS and AMD64 or ARM64 from the current shell's
+platform. On an Apple Silicon Mac, use a native terminal to select ARM64 rather
+than an Intel shell under Rosetta. Run this block in a new, empty directory; the
+subshell stops on any download or verification failure:
 
 ```sh
+(
+set -eu
 version=v0.2.0
-target=linux_amd64
+case "$(uname -s)" in
+  Linux) os=linux ;;
+  Darwin) os=darwin ;;
+  *) printf '%s\n' 'Supported operating systems: Linux and macOS.' >&2; exit 1 ;;
+esac
+case "$(uname -m)" in
+  x86_64|amd64) arch=amd64 ;;
+  arm64|aarch64) arch=arm64 ;;
+  *) printf '%s\n' 'Supported architectures: AMD64 and ARM64.' >&2; exit 1 ;;
+esac
+target="${os}_${arch}"
 archive="fleetdiff_${version}_${target}.tar.gz"
 base="https://github.com/llm-measurement/fleetdiff/releases/download/$version"
-curl --fail --location --remote-name "$base/$archive"
-curl --fail --location --remote-name "$base/provenance.jsonl"
-gh attestation verify "$archive" --bundle provenance.jsonl \
-  --repo llm-measurement/fleetdiff \
-  --signer-workflow llm-measurement/fleetdiff/.github/workflows/release.yml \
-  --source-ref "refs/tags/$version" --deny-self-hosted-runners
-```
-
-Only after verification succeeds, extract the archive and check the binary:
-
-```sh
+for asset in "$archive" SHA256SUMS provenance.jsonl; do
+  curl --fail --location --proto '=https' --tlsv1.2 --remote-name "$base/$asset"
+done
+for asset in "$archive" SHA256SUMS; do
+  gh attestation verify "$asset" --bundle provenance.jsonl \
+    --repo llm-measurement/fleetdiff \
+    --signer-workflow llm-measurement/fleetdiff/.github/workflows/release.yml \
+    --source-ref "refs/tags/$version" --deny-self-hosted-runners
+done
+test -s "$archive"
+shasum -a 256 --ignore-missing -c SHA256SUMS
 tar -xzf "$archive"
 ./fleetdiff --version
+)
 ```
+
+From a reviewed repository checkout, the same download and verification steps
+are available as a script (no Go compiler needed):
+
+```sh
+sh scripts/install.sh v0.2.0 ./fleetdiff-install
+./fleetdiff-install/fleetdiff --version
+```
+
+The script refuses an existing directory and extracts only after verification.
+A failed run leaves downloads in its new directory for inspection; do not use
+partial output. No administrator privileges or global installation are required.
+It does not change `PATH` or macOS security settings.
 
 Release archives contain `fleetdiff`, its license, and runtime dependency licenses.
 They are accompanied by `SHA256SUMS`, an SPDX dependency inventory, build metadata,
 and a signed provenance bundle. Checksums alone do not authenticate a download.
 The verification command checks both the archive digest and its signing identity.
 `SHA256SUMS` is
-also attested: verify it with the same command before using it to check a full
-downloaded asset set with `shasum -a 256 -c SHA256SUMS`.
+also attested: verify it with the same command before using it to check a partial
+downloaded asset set with `shasum -a 256 --ignore-missing -c SHA256SUMS`.
+`--ignore-missing` permits the other platform archives to be absent; it does not
+excuse a checksum mismatch. For a full asset set, omit `--ignore-missing` so a
+missing file is also an error. The selected archive is separately attested above.
 For a restricted network, have your artifact administrator verify the download
 on a connected machine and copy it through the approved internal mirror.
 To verify offline, transfer the provenance bundle and an independently approved
@@ -53,6 +84,27 @@ Do not trust a replacement root merely because it arrived with the archive.
 macOS binaries are not Apple Developer ID signed or notarized. Organizations
 requiring that must approve or sign the binary through their normal software
 distribution process. Do not disable Gatekeeper or endpoint protection to run it.
+Archives downloaded in a browser may carry a quarantine marker, which can make
+macOS block the extracted command even after its GitHub provenance verifies.
+Those checks are independent. After verifying the archive and confirming local
+policy permits it, attempt to run the binary, then use System Settings > Privacy
+& Security > Open Anyway if macOS offers that per-item approval. Follow
+[Apple's guidance](https://support.apple.com/en-us/102445); if approval is unavailable
+on a managed Mac, ask the administrator. Do not strip quarantine attributes or
+disable system-wide protections as an installation step.
+
+### Install With Go
+
+Install a published version with a currently patched Go 1.25 or 1.26 toolchain:
+
+```sh
+go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
+```
+
+Use `@v0.2.0` instead of `@latest` to pin that release. The binary is installed
+under `GOBIN`, or `$(go env GOPATH)/bin` when unset; put that directory on `PATH`.
+This path uses Go module verification rather than the archive attestation above,
+and does not include unreleased checkout features.
 
 ### Build From Source
 
@@ -64,9 +116,20 @@ go build -mod=readonly -trimpath -o bin/fleetdiff ./cmd/fleetdiff
 bin/fleetdiff --version
 ```
 
-Unstamped checkout builds report `dev`. Tagged `go install` builds report the
-embedded module version. Release archives include a stamped version and revision;
-the revision remains `unknown` in unstamped builds.
+Check `--version` on the binary you actually run:
+
+| Build | Version | Revision |
+|---|---|---|
+| Unstamped checkout build above | Go's embedded module/VCS version, or `dev` when unavailable | `unknown` |
+| Tagged `go install ...@v0.2.0` | `v0.2.0`, from Go's module metadata | `unknown` |
+| Verified release archive | Stamped release version | Stamped source revision |
+
+A checkout may report a pseudo-version and `+dirty`, depending on the Go toolchain
+and available Git metadata. `dev` is only the fallback, not an installation
+failure. Neither a checkout pseudo-version nor `dev` denotes a published release;
+record the commit and local changes separately. Explicit packaging stamps take
+precedence over module metadata. `sh scripts/build-release.sh dev` explicitly
+stamps `dev`, unlike the unstamped build above.
 
 Builds can download Go dependencies and toolchains. Runtime comparison cannot.
 For an offline build, prepare the approved toolchain and module cache in a
