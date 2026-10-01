@@ -25,6 +25,16 @@ archive is then checksum-verified and exercised on its native platform. Linux
 also runs the offline/non-root smoke test. Dependency inventory alone is not a
 vulnerability verdict; the source reachability scan is a separate check.
 
+The native archive check also runs `TestReleaseBinaryTopK` against the unpacked
+executable. It checks user/session attribution, the strict share threshold,
+missing usage, absent older measurements, and hidden private metadata. To repeat
+that check locally after verifying and extracting an archive:
+
+```sh
+FLEETDIFF_RELEASE_BINARY=/path/to/fleetdiff go test ./internal/cli \
+  -run '^TestReleaseBinaryTopK$' -count=1 -v
+```
+
 For a release, use a clean reviewed commit, update the changelog, and create a
 signed version tag. The build script verifies the requested tag points at the
 checked-out commit and rejects dirty release builds. Protect release tags and
@@ -42,6 +52,13 @@ metadata. It verifies the archive identity against this repository, workflow,
 and tag, then creates a **draft** release. A maintainer must review its assets
 and independently follow the verification instructions in OPERATIONS before
 publishing. The workflow does not overwrite an existing release.
+
+Use the version's notes in `docs/releases/` as its release body. Prepare the
+installer default for that tag, keeping explicit download instructions on the
+working release until the new downloads verify. Then update README links and the
+supported-version policy. Do not replace immutable tags
+or artifacts to correct a failed publication; fix forward with a new version if
+any release content must change.
 
 No signing keys are stored in the repository. The workflow uses GitHub OIDC and
 short-lived signing identity. This does not prove the program has no defects or

@@ -5,10 +5,14 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/compare"
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/frequentitems"
@@ -33,7 +37,11 @@ func topKInputs(t *testing.T, name string, includeBefore bool, afterWeights ...i
 		e.Counters["input_tokens"] = 600
 		e.Counters["output_tokens"] = 0
 		if i != 0 || includeBefore {
-			f, err := frequentitems.New("micro", sketchhash.SessionV1, sketchhash.HMACSHA25664)
+			domain := sketchhash.SessionV1
+			if strings.HasPrefix(name, "top_users") {
+				domain = sketchhash.UserV1
+			}
+			f, err := frequentitems.New("micro", domain, sketchhash.HMACSHA25664)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -65,6 +73,67 @@ func topKInputs(t *testing.T, name string, includeBefore bool, afterWeights ...i
 		}
 	}
 	return a, b
+}
+
+func TestReleaseBinaryTopK(t *testing.T) {
+	binary := os.Getenv("FLEETDIFF_RELEASE_BINARY")
+	if binary == "" {
+		t.Skip("set FLEETDIFF_RELEASE_BINARY to test an unpacked release archive")
+	}
+	binary, err := filepath.Abs(binary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, sketch, question, threshold, status string
+		includeBefore, flagged                    bool
+	}{
+		{"request sessions", "top_sessions_requests", "sessions", "0.25", "observed", true, true},
+		{"strict threshold", "top_sessions_requests", "sessions", "0.8", "observed", true, false},
+		{"older window", "top_sessions_requests", "sessions", "0.25", "cannot_determine", false, false},
+		{"missing token usage", "top_sessions", "sessions", "0.25", "limited", true, false},
+		{"request users", "top_users_requests", "users", "0.25", "observed", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, b := topKInputs(t, tc.sketch, tc.includeBefore)
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			cmd := exec.CommandContext(ctx, binary, "investigate", "--before", a, "--after", b,
+				"--expected", "operator", "--format", "json", "--flag-share", tc.threshold)
+			var diagnostic bytes.Buffer
+			cmd.Stderr = &diagnostic
+			output, err := cmd.Output()
+			if err != nil {
+				t.Fatal(err, diagnostic.String())
+			}
+			for _, private := range []string{"SENTINEL", "topk_contract", `"hash"`} {
+				if strings.Contains(string(output)+diagnostic.String(), private) {
+					t.Fatal("private metadata leaked by release binary")
+				}
+			}
+			var report compare.Investigation
+			if err := json.Unmarshal(output, &report); err != nil {
+				t.Fatal(err)
+			}
+			if report.Evidence.After.Usage.Missing != 4 {
+				t.Fatal("release binary changed missing-usage accounting")
+			}
+			for _, question := range report.Questions {
+				if question.ID != tc.question {
+					continue
+				}
+				flagged := false
+				for _, contributor := range question.Contributors {
+					flagged = flagged || contributor.Flag == "runaway_candidate"
+				}
+				if question.Status != tc.status || flagged != tc.flagged {
+					t.Fatalf("unexpected release answer: %+v", question)
+				}
+				return
+			}
+			t.Fatal("release binary omitted question", tc.question)
+		})
+	}
 }
 
 func TestTopKRequestInvestigationCLI(t *testing.T) {

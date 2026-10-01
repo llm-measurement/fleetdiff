@@ -2,7 +2,9 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## [Unreleased]
+## [0.3.0] - 2026-10-01
+
+See the [release notes](docs/releases/v0.3.0.md) for compatibility and upgrade details.
 
 - Add tracked user/session contributor support for optional `top_users` and
   `top_sessions` sketches and their `_requests` variants. Session review flags
@@ -14,12 +16,13 @@ Notable user-visible changes are recorded here, newest first.
   behavior, Go installation and embedded checkout versions, and feedback routing.
 - Detect the host OS and architecture during verified binary installation;
   document partial-asset checksum checks and macOS browser-download approval.
-- Show expected producer counts in the single-app/two-stack demo and embed the
-  existing walkthrough video in a local browser player.
+- Show expected producer counts in the single-app/two-stack demo.
 - Name missing required flags in CLI errors and point text coverage guidance
   to the text report rather than JSON-only field paths.
-- Label historical resource numbers and unavailable CI evidence as
-  pre-publication observations, not measurements of a public release.
+- Replace historical resource numbers with a checked-in benchmark command and
+  measurements of the public v0.2.0 tag.
+- Check optional user/session attribution, unknown older windows, threshold
+  boundaries, and hidden hashes in each native release archive.
 
 ## [0.2.0] - 2026-09-26
 
