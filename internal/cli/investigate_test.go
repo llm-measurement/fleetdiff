@@ -6,12 +6,95 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/llm-measurement/fleetdiff/internal/compare"
 )
+
+func TestSessionsDemo(t *testing.T) {
+	for _, format := range []string{"json", "text"} {
+		var out, diagnostic bytes.Buffer
+		args := []string{"investigate", "--before", "../../examples/sessions/data/before",
+			"--after", "../../examples/sessions/data/after", "--expected", "app", "--format", format}
+		if code := Run(args, &out, &diagnostic); code != 0 {
+			t.Fatal(code, diagnostic.String())
+		}
+		for _, hidden := range []string{"SESSIONS_PRIVATE_", `"hash"`, "topk_contract"} {
+			if strings.Contains(out.String()+diagnostic.String(), hidden) {
+				t.Fatal("private fixture content in report")
+			}
+		}
+		if format == "text" {
+			for _, want := range []string{"Reported tokens: 400 -> 3300", "Model attempts: 4 -> 13",
+				"+1592.31 tokens", "+1307.69 tokens", "[90.91%, 90.91%]; runaway candidate",
+				"Were these counts reported by the provider? [cannot_determine]"} {
+				if !strings.Contains(out.String(), want) {
+					t.Fatalf("missing %q in report", want)
+				}
+			}
+			continue
+		}
+		var report compare.Investigation
+		if err := json.Unmarshal(out.Bytes(), &report); err != nil {
+			t.Fatal(err)
+		}
+		if !report.Evidence.Complete {
+			t.Fatal("fixture coverage is incomplete")
+		}
+		seen := map[string]bool{}
+		for _, q := range report.Questions {
+			seen[q.ID] = true
+			switch q.ID {
+			case "volume":
+				v := q.Volume
+				if q.Status != "observed" || v == nil || v.BeforeTokens != 400 || v.AfterTokens != 3300 || v.BeforeRequests != 4 || v.AfterRequests != 13 ||
+					math.Abs(v.RequestContribution-20700.0/13) > 1e-9 || math.Abs(v.TokensPerRequestContribution-17000.0/13) > 1e-9 {
+					t.Fatal("incorrect volume split", v)
+				}
+			case "sessions", "users":
+				leaders, flags := 0, 0
+				for _, c := range q.Contributors {
+					if c.Flag != "" {
+						flags++
+						if c.Flag != "runaway_candidate" || c.After == nil || c.After.Lower != 3000 {
+							t.Fatal("unexpected candidate flag", c)
+						}
+					}
+					if c.After != nil && c.After.Lower == 3000 {
+						leaders++
+						if c.Before == nil || c.Before.Lower != 0 || c.Before.Upper != 0 || c.After.Upper != 3000 ||
+							c.AfterShare == nil || math.Abs(c.AfterShare.Lower-10.0/11) > 1e-12 || c.AfterShare.Upper != c.AfterShare.Lower {
+							t.Fatal("incorrect leading contributor bounds", c)
+						}
+					}
+				}
+				wantFlags := 0
+				if q.ID == "sessions" {
+					wantFlags = 1
+				}
+				if q.Status != "observed" || leaders != 1 || flags != wantFlags {
+					t.Fatal("incorrect attribution", q)
+				}
+			case "coverage":
+				if q.Status != "observed" {
+					t.Fatal(q)
+				}
+			case "usage_source":
+				if q.Status != "cannot_determine" {
+					t.Fatal("invented provider origin", q)
+				}
+			}
+		}
+		for _, id := range []string{"volume", "sessions", "users", "coverage", "usage_source"} {
+			if !seen[id] {
+				t.Fatal("missing question", id)
+			}
+		}
+	}
+}
 
 func TestSingleAppAndTwoStackInvestigation(t *testing.T) {
 	base := "../../examples/single-app/data/"

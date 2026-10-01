@@ -7,6 +7,7 @@ investigation over two disjoint producers. No provider account or Docker needed:
 sh examples/investigate.sh
 sh examples/investigate.sh --two-stacks
 sh examples/investigate.sh --missing-usage
+sh examples/investigate.sh --sessions
 ```
 
 Run from the repository checkout with Go installed. The script builds the current
@@ -21,6 +22,9 @@ fleetdiff investigate --before examples/single-app/data/single/before \
 user/session ID. Release v0.3.0 labels observed model attempts "Model attempts".
 Its user/session contributor support is not exercised by these prompt-only
 fixtures.
+
+`--sessions` uses a [separate synthetic scenario](../sessions/README.md) with
+user and session attribution, including one high-share session flagged for review.
 
 ## Expected Answers
 

@@ -24,3 +24,11 @@ jq -e '.version == 1 and
 "$binary" investigate --before examples/single-app/data/single/before \
   --after examples/single-app/data/missing-usage/after --expected app --format json > "$report"
 jq -e '([.questions[] | select(.id == "volume") | .status == "cannot_determine"] == [true])' "$report" >/dev/null
+"$binary" investigate --before examples/sessions/data/before \
+  --after examples/sessions/data/after --expected app --format json > "$report"
+jq -e '([.questions[] | select(.id == "volume") | .status == "observed" and
+      .volume.before_reported_tokens == 400 and .volume.after_reported_tokens == 3300] == [true]) and
+    ([.questions[] | select(.id == "sessions") | .contributors[] | select(.flag == "runaway_candidate") |
+      .after.lower == 3000 and .after.upper == 3000] == [true]) and
+    ([.questions[] | select(.id == "users") | .contributors[] | select(.after.lower == 3000)] | length == 1) and
+    ([.questions[] | select(.id == "usage_source") | .status == "cannot_determine"] == [true])' "$report" >/dev/null

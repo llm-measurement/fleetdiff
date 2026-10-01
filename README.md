@@ -47,6 +47,18 @@ Release v0.3.0 includes `investigate` and optional user/session contributors.
 It prints "Model attempts" where v0.2.0 printed "Requests"; the arithmetic and
 existing JSON field names are unchanged.
 
+### Did One Session Account For Most Of The Increase?
+
+```sh
+sh examples/investigate.sh --sessions
+```
+
+In this synthetic example, tokens rise from 400 to 3,300. One new session and
+user account for 3,000 tokens, a share of `[90.91%, 90.91%]`. Only that session
+is flagged as a `runaway candidate`. The flag means investigate, not proof of
+a loop. Provider origin stays `cannot_determine`. No Docker or API key needed.
+See the [scenario, expected answers and reproduction command](examples/sessions/README.md).
+
 ## Install A Binary
 
 No Go compiler is needed to use a release binary. Download the
@@ -121,7 +133,7 @@ or evidence of savings.
 |---|---|
 | More requests or more tokens per request? | Single-app report: +150 and +250 tokens respectively; refused if usage is incomplete |
 | Which tracked contributors changed? | Prompt-weight delta bounds and shares of recorded sketch weight, not a guaranteed top-k ranking |
-| Which sessions have a high share worth investigating? | `cannot_determine` in these fixtures, which lack session attribution; v0.3.0 answers when compatible session sketches are present |
+| Which sessions have a high share worth investigating? | `--sessions`: one candidate at `[90.91%, 90.91%]`; the default demo lacks session attribution and returns `cannot_determine` |
 | Did total reported usage fall, or just move? | Ours 800 to 360 tokens; fleet 1,200 to 1,800 |
 | Did model activity rise while runs stayed flat? | 6 to 10 model requests; 2 root-agent runs in both windows |
 | Did the workload touch more documents? | About 1 to 4 distinct MCP resources; a shared one counts once |
@@ -132,9 +144,9 @@ or evidence of savings.
 
 Release v0.3.0 supports tracked user and session contributors when compatible
 exports contain `top_users` or `top_sessions` token-weighted sketches, or their
-`_requests` variants. Existing demos above have no user/session attribution
-sketches. Missing user/session sketches remain unknown; distinct session counts
-alone cannot attribute token usage.
+`_requests` variants. The `--sessions` demo includes both. The default single-app
+and two-operator demos have no user/session attribution sketches. Missing sketches
+remain unknown; distinct session counts alone cannot attribute token usage.
 
 A session is flagged for review only when its after-window share **lower bound
 is strictly greater than 25%** by default. `--flag-share` sets the threshold as a
