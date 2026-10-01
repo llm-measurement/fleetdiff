@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Security fixes target the latest patch in the `0.2.x` release line and `main`.
+Security fixes target the latest patch in the `0.3.x` release line and `main`.
 Use the newest patch and record its version and revision when running trials.
 Older patches and development snapshots do not receive routine backports.
 Dependencies and the Go toolchain are reviewed on an ongoing basis.

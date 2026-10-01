@@ -151,13 +151,13 @@ The samples weight prompt signatures by reported tokens and tool-error signature
 by occurrences. Their small candidate sets happen to give exact intervals; tests
 also cover nonzero sketch error and disappearing keys.
 
-Unreleased user/session support recognizes the token-weighted `top_users` and
+Release v0.3.0 recognizes the token-weighted `top_users` and
 `top_sessions` conventions and the request-weighted `_requests` variants. Keep
 the exporter's accounting settings and top-k contract markers consistent; names
 are not authenticated proof of units. These extensions report
 `attributed-reported-tokens` or `attributed-model-attempts` as their weight unit.
 A session share flag is a review threshold, not a causal diagnosis.
-See [the unreleased contract](INVESTIGATION.md#unreleased-user-and-session-contributors).
+See [the investigation contract](INVESTIGATION.md#user-and-session-contributors).
 
 ## Are Exports And Reports Safe To Share?
 

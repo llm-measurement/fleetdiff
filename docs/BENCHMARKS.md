@@ -6,7 +6,7 @@ They were run from a clean clone of published tag
 [`v0.2.0`](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.2.0),
 using the [checked-in resource tests](https://github.com/llm-measurement/fleetdiff/blob/84a621f80d423aeb8a379a3d978620746edd3efb/internal/compare/resource_test.go).
 The [complete test output](benchmarks/v0.2.0-2026-09-30.txt) accompanies these results.
-This measures that release, not the current unreleased contributor features.
+This measures that release, not the v0.3.0 contributor features.
 
 ## Environment
 

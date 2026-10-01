@@ -10,7 +10,7 @@ sh examples/investigate.sh --missing-usage
 ```
 
 Run from the repository checkout with Go installed. The script builds the current
-source. A verified v0.2.0 release binary can read the same sample files directly:
+source. A verified v0.3.0 release binary can read the same sample files directly:
 
 ```sh
 fleetdiff investigate --before examples/single-app/data/single/before \
@@ -18,9 +18,9 @@ fleetdiff investigate --before examples/single-app/data/single/before \
 ```
 
 `--expected app` names the `producer_id` in each export, not its filename or a
-user/session ID. The v0.2.0 binary labels observed model attempts "Requests";
-current source uses "Model attempts". New user/session contributor support is
-unreleased and is not exercised by these prompt-only fixtures.
+user/session ID. Release v0.3.0 labels observed model attempts "Model attempts".
+Its user/session contributor support is not exercised by these prompt-only
+fixtures.
 
 ## Expected Answers
 
@@ -47,7 +47,10 @@ recorded tokens and one incomplete request, and refuses to produce the arithmeti
 split. It does not substitute zero for the missing output.
 
 Session investigation returns `cannot_determine`: these exports contain no
-session-level token attribution. This is not a runaway-agent detector.
+session-level token attribution. To investigate sessions, collect two compatible
+windows with collector v0.3.0's optional
+[`topk_keys`](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/TOPK_KEYS.md).
+Session share flags identify candidates to review, not a diagnosed runaway loop.
 
 ## Two Stacks, Same Question
 

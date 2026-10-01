@@ -11,11 +11,11 @@ Declared origin is not authenticated proof. The collector excludes explicitly
 unavailable fields and marks requests missing. Unknown gateway-filled zeros can
 still occur. Arithmetic is not a claim about provider savings.
 
-Release v0.2.0 adds `fleetdiff investigate`. Older v0.1.1 binaries only
+Release v0.2.0 introduced `fleetdiff investigate`. Older v0.1.1 binaries only
 provide `compare`. Both commands are local, read-only, and accept the same files
 and validation options. One producer works; multiple stacks are optional.
-The user/session contributor extension and `--flag-share` below are **unreleased**;
-they require a build from current source, not the v0.2.0 binary.
+Release v0.3.0 adds the user/session contributor extension and `--flag-share`
+below. These require compatible attribution sketches in the input summaries.
 
 ```sh
 fleetdiff investigate --before before/ --after after/ --expected app
@@ -53,7 +53,7 @@ remain in `evidence`. Cache and reasoning subsets are never added again.
 
 An attempt is a matching exported model span, including a failure or retry. It
 is not a unique user request or proof the provider received it. Text reports use
-"model attempts" in current source (v0.2.0 prints "Requests"); JSON v1 retains
+"model attempts" in v0.3.0 (v0.2.0 prints "Requests"); JSON v1 retains
 `requests`, `before_requests`, and the other request-named fields for compatibility.
 Their meaning and arithmetic are unchanged.
 
@@ -78,7 +78,7 @@ in `evidence.concentration`. Display truncation and missing prompt keys can hide
 contributors. Ordering does not prove true top-k membership. There is no entropy,
 majorization test, or general recovery of previously unknown changed keys.
 
-## Unreleased User And Session Contributors
+## User And Session Contributors
 
 Optional `top_users` and `top_sessions` sketches describe tracked token-weighted
 user and session candidates. `top_users_requests` and `top_sessions_requests`

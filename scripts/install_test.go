@@ -46,7 +46,7 @@ func TestInstall(t *testing.T) {
 				}
 				writeTestFile(t, filepath.Join(destination, "keep"), "unchanged", 0600)
 			}
-			cmd := exec.Command("sh", script, "v0.2.0", destination)
+			cmd := exec.Command("sh", script, "v0.3.0", destination)
 			cmd.Env = env
 			output, err := cmd.CombinedOutput()
 			if tc.failure == "" {
@@ -120,7 +120,7 @@ func TestInstallOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"--help"}, {"dev"}, {""}, {"v0.2.0/other"}, {"v0.2.0", ""}, {"v0.2.0", "new", "extra"}} {
+	for _, args := range [][]string{{"--help"}, {"dev"}, {""}, {"v0.3.0/other"}, {"v0.3.0", ""}, {"v0.3.0", "new", "extra"}} {
 		t.Run(fmt.Sprint(args), func(t *testing.T) {
 			cmd := exec.Command("sh", append([]string{script}, args...)...)
 			cmd.Dir = t.TempDir()
@@ -150,7 +150,7 @@ func installEnvironment(t *testing.T, system, arch, target, failure string) (str
 			t.Fatal(err)
 		}
 	}
-	name := "fleetdiff_v0.2.0_" + target + ".tar.gz"
+	name := "fleetdiff_v0.3.0_" + target + ".tar.gz"
 	var archive strings.Builder
 	gz := gzip.NewWriter(&archive)
 	tw := tar.NewWriter(gz)
@@ -180,7 +180,7 @@ func installEnvironment(t *testing.T, system, arch, target, failure string) (str
 set -eu
 [ "$TEST_FAILURE" != download ] || exit 1
 for url do :; done
-case "$url" in https://github.com/llm-measurement/fleetdiff/releases/download/v0.2.0/*) ;; *) exit 1 ;; esac
+case "$url" in https://github.com/llm-measurement/fleetdiff/releases/download/v0.3.0/*) ;; *) exit 1 ;; esac
 asset=${url##*/}
 if [ "$TEST_FAILURE" = missing ] && [ "$asset" = "$TEST_ARCHIVE" ]; then exit 0; fi
 cp "$TEST_ASSETS/$asset" "$asset"
@@ -194,7 +194,7 @@ asset=$3
 [ "$6" = --repo ] && [ "$7" = llm-measurement/fleetdiff ]
 [ "$8" = --signer-workflow ] && [ "$9" = llm-measurement/fleetdiff/.github/workflows/release.yml ]
 shift 9
-[ "$1" = --source-ref ] && [ "$2" = refs/tags/v0.2.0 ] && [ "$3" = --deny-self-hosted-runners ]
+[ "$1" = --source-ref ] && [ "$2" = refs/tags/v0.3.0 ] && [ "$3" = --deny-self-hosted-runners ]
 if [ "$TEST_FAILURE" = archive ] && [ "$asset" = "$TEST_ARCHIVE" ]; then exit 1; fi
 if [ "$TEST_FAILURE" = manifest ] && [ "$asset" = SHA256SUMS ]; then exit 1; fi
 `, 0700)

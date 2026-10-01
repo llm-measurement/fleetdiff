@@ -60,7 +60,7 @@ is usually token-weighted by the connector; the report preserves its generic
 `configured-weight` label for compatibility. It is not a billing ledger or
 invoice reconciliation.
 
-Unreleased source also recognizes `top_users`, `top_sessions`,
+Release v0.3.0 also recognizes `top_users`, `top_sessions`,
 `top_users_requests`, and `top_sessions_requests`. The unsuffixed names follow
 the token-weighted exporter convention; `_requests` names follow the
 request-weighted convention. Their units are `attributed-reported-tokens` and
@@ -77,9 +77,9 @@ lowercase hexadecimal contract digest. Legacy `top_prompts` does not require
 this marker. Markers describe the measurement contract, not additive counts or
 authenticated identity; they are not shown as usage counters.
 
-If a known optional top-k measurement is absent from any input snapshot, source
-builds omit it across both windows, list it in `dropped_measurements`, and count
-it as omitted. They do not treat missing attribution as zero. Every original
+If a known optional top-k measurement is absent from any input snapshot, v0.3.0
+omits it across both windows, lists it in `dropped_measurements`, and counts
+it as omitted. It does not treat missing attribution as zero. Every original
 snapshot and every present measurement contract is validated first, including
 superseded snapshots. Present but incompatible contracts still fail; omission
 does not bypass scope, key, accounting, replay, or structural checks.

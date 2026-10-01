@@ -8,7 +8,7 @@ secret. It does not upload data, check for updates, or send usage telemetry.
 
 The initial supported targets are Linux and macOS on AMD64 and ARM64. Native
 Windows binaries are not provided. Download a binary from the
-[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.2.0).
+[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.3.0).
 Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
@@ -20,7 +20,7 @@ subshell stops on any download or verification failure:
 ```sh
 (
 set -eu
-version=v0.2.0
+version=v0.3.0
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
@@ -54,7 +54,7 @@ From a reviewed repository checkout, the same download and verification steps
 are available as a script (no Go compiler needed):
 
 ```sh
-sh scripts/install.sh v0.2.0 ./fleetdiff-install
+sh scripts/install.sh v0.3.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -101,7 +101,7 @@ Install a published version with a currently patched Go 1.25 or 1.26 toolchain:
 go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 ```
 
-Use `@v0.2.0` instead of `@latest` to pin that release. The binary is installed
+Use `@v0.3.0` instead of `@latest` to pin that release. The binary is installed
 under `GOBIN`, or `$(go env GOPATH)/bin` when unset; put that directory on `PATH`.
 This path uses Go module verification rather than the archive attestation above,
 and does not include unreleased checkout features.
@@ -121,7 +121,7 @@ Check `--version` on the binary you actually run:
 | Build | Version | Revision |
 |---|---|---|
 | Unstamped checkout build above | Go's embedded module/VCS version, or `dev` when unavailable | `unknown` |
-| Tagged `go install ...@v0.2.0` | `v0.2.0`, from Go's module metadata | `unknown` |
+| Tagged `go install ...@v0.3.0` | `v0.3.0`, from Go's module metadata | `unknown` |
 | Verified release archive | Stamped release version | Stamped source revision |
 
 A checkout may report a pseudo-version and `+dirty`, depending on the Go toolchain
@@ -217,5 +217,5 @@ and incomplete observation intervals remain partial. A restart never fills in
 missing usage. Key rotations or changed measurement contracts can require new,
 separate comparisons rather than a forced merge.
 
-Security maintenance covers the current `0.2.x` release line, not a production SLA.
+Security maintenance covers the current `0.3.x` release line, not a production SLA.
 See [SECURITY.md](../SECURITY.md) for supported versions and confidential reporting.

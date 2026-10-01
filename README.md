@@ -43,15 +43,14 @@ See [the example and its limits](examples/single-app/README.md).
 Model attempts are observed model spans, including failures and retries, not
 unique user requests. Existing JSON fields keep their `requests` names.
 
-`investigate` is included in release v0.2.0. That binary prints "Requests" where
-current source prints "Model attempts"; the arithmetic is unchanged. The optional
-user/session contributor support described below is **unreleased**, not part of
-v0.2.0.
+Release v0.3.0 includes `investigate` and optional user/session contributors.
+It prints "Model attempts" where v0.2.0 printed "Requests"; the arithmetic and
+existing JSON field names are unchanged.
 
 ## Install A Binary
 
 No Go compiler is needed to use a release binary. Download the
-[v0.2.0 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.2.0)
+[v0.3.0 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.3.0)
 for Linux or macOS, on AMD64 or ARM64. Follow the
 [download and verification instructions](docs/OPERATIONS.md#install-and-verify)
 before extracting it. Then run `./fleetdiff --version` or investigate your exports:
@@ -122,16 +121,16 @@ or evidence of savings.
 |---|---|
 | More requests or more tokens per request? | Single-app report: +150 and +250 tokens respectively; refused if usage is incomplete |
 | Which tracked contributors changed? | Prompt-weight delta bounds and shares of recorded sketch weight, not a guaranteed top-k ranking |
-| Can it identify a runaway session? | `cannot_determine`: current exports do not attribute model tokens to sessions |
+| Which sessions have a high share worth investigating? | `cannot_determine` in these fixtures, which lack session attribution; v0.3.0 answers when compatible session sketches are present |
 | Did total reported usage fall, or just move? | Ours 800 to 360 tokens; fleet 1,200 to 1,800 |
 | Did model activity rise while runs stayed flat? | 6 to 10 model requests; 2 root-agent runs in both windows |
 | Did the workload touch more documents? | About 1 to 4 distinct MCP resources; a shared one counts once |
 | Did particular tool-error signatures increase? | One rises from 1 to 4; one appears; one is unchanged |
 | Is part of the fleet missing? | A missing export is refused, or reported as explicitly partial |
 
-### Unreleased Contributor Support
+### User And Session Contributors
 
-Current-source support adds tracked user and session contributors when compatible
+Release v0.3.0 supports tracked user and session contributors when compatible
 exports contain `top_users` or `top_sessions` token-weighted sketches, or their
 `_requests` variants. Existing demos above have no user/session attribution
 sketches. Missing user/session sketches remain unknown; distinct session counts
@@ -143,8 +142,10 @@ fraction, for example `--flag-share 0.40`. Shares use recorded sketch weight,
 not necessarily all application usage. Incomplete observation intervals suppress
 flags; token-weighted flags also require complete numeric token coverage. This is
 a concentration flag, not proof of a runaway session or its cause. See the
-[unreleased contract](docs/INVESTIGATION.md#unreleased-user-and-session-contributors).
-Build the checkout to use this support; the linked v0.2.0 binary does not have it.
+[investigation contract](docs/INVESTIGATION.md#user-and-session-contributors).
+Use fleetdiff v0.3.0 with collector v0.3.0's optional
+[`topk_keys`](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/TOPK_KEYS.md),
+or compatible sketchkit exports. Old windows cannot supply missing attribution.
 
 ## How It Works
 
@@ -205,8 +206,8 @@ The lower-level `compare` command provides the full evidence report. See the
 
 - **Exact:** request, token, and agent-run counts, for observed spans.
 - **Estimated:** distinct users, sessions, and resources, with a nominal error.
-- **Bounded:** changes in prompt and tool-error signatures, with lower and upper
-  bounds.
+- **Bounded:** changes in prompt and tool-error signatures, plus user/session
+  contributors when exported, with lower and upper bounds.
 - **Missing stays missing:** requests without token usage are counted as
   missing, never as zero.
 
@@ -240,7 +241,7 @@ Run the checks yourself with `go test -race ./...` and `go vet ./...`.
 - [Resource measurements](docs/BENCHMARKS.md): sizing on one machine
 - [Security policy](SECURITY.md) · [Changelog](CHANGELOG.md) · [Releasing](docs/RELEASING.md)
 
-The `0.2.x` release line provides local, read-only `investigate` and `compare` commands.
+The `0.3.x` release line provides local, read-only `investigate` and `compare` commands.
 Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
 Do not include raw traces, secrets, or unapproved exports; see the
 [security policy](SECURITY.md) for confidential vulnerability reports.
