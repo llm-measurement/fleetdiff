@@ -10,6 +10,8 @@ provide `compare`. Both commands are local, read-only, and accept the same files
 and validation options. One producer works; multiple stacks are optional.
 Release v0.3.0 adds the user/session contributor extension and `--flag-share`
 below. These require compatible attribution sketches in the input summaries.
+Release v0.3.1 adds the concise text layout shown in the examples and whole-token
+contributions. The JSON version and calculated values remain unchanged.
 
 ```sh
 fleetdiff investigate --before before/ --after after/ --expected app

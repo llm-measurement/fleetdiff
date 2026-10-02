@@ -45,7 +45,7 @@ this counter.
 sh examples/investigate.sh --sessions
 ```
 
-The source-built report opens with:
+The v0.3.1 report opens with:
 
 ```text
 1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.
@@ -59,7 +59,7 @@ See the [scenario, expected answers and reproduction command](examples/sessions/
 ## Install A Binary
 
 No Go compiler is needed to use a release binary. Download the
-[v0.3.0 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.3.0)
+[v0.3.1 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.3.1)
 for Linux or macOS, on AMD64 or ARM64. Follow the
 [download and verification instructions](docs/OPERATIONS.md#install-and-verify)
 before extracting it. Then run `./fleetdiff --version` or investigate your exports:
@@ -136,7 +136,7 @@ shifted toward the partner and increased overall in this synthetic example.
 
 ### User And Session Contributors
 
-Release v0.3.0 supports tracked user and session contributors when compatible
+fleetdiff supports tracked user and session contributors when compatible
 exports contain `top_users` or `top_sessions` token-weighted sketches, or their
 `_requests` variants. Try `--sessions` for token-weighted user and session results.
 
@@ -146,7 +146,7 @@ fraction, for example `--flag-share 0.40`. Shares use attributed weight, excludi
 activity without a key. Flags require complete relevant observations and identify
 concentration worth investigating. See the
 [investigation contract](docs/INVESTIGATION.md#user-and-session-contributors).
-Use fleetdiff v0.3.0 with collector v0.3.0's optional
+Use fleetdiff v0.3.1 with collector v0.3.0's optional
 [`topk_keys`](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/TOPK_KEYS.md),
 or compatible sketchkit exports.
 

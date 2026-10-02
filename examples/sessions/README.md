@@ -6,7 +6,7 @@ From the repository checkout, with Go installed:
 sh examples/investigate.sh --sessions
 ```
 
-The source-built report starts with:
+The v0.3.1 report starts with:
 
 ```text
 1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.
@@ -14,7 +14,7 @@ The source-built report starts with:
 
 No Docker, provider account, API key, or traffic capture is needed. The script
 builds fleetdiff and reads two checked-in synthetic summary files. With a verified
-v0.3.0 binary already installed, skip the build:
+v0.3.1 binary already installed, skip the build:
 
 ```sh
 fleetdiff investigate --before examples/sessions/data/before \

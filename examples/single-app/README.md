@@ -11,7 +11,7 @@ sh examples/investigate.sh --sessions
 ```
 
 Run from the repository checkout with Go installed. The script builds the current
-source. A verified v0.3.0 release binary can read the same sample files directly:
+source. A verified v0.3.1 release binary prints the same report from these files:
 
 ```sh
 fleetdiff investigate --before examples/single-app/data/single/before \
