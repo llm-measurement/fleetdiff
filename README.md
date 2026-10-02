@@ -27,7 +27,7 @@ single-application report from synthetic collector exports:
 
 ```text
 Reported tokens: 200 -> 600 (+400); model attempts: 2 -> 3.
-  +150.00 tokens from attempt count; +250.00 tokens from tokens per attempt.
+  +150 tokens from attempt count; +250 tokens from tokens per attempt.
   Tokens per attempt: 100.00 -> 200.00.
 ```
 

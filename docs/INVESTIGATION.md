@@ -51,6 +51,8 @@ tokens-per-request contribution = (A1 - A0) * (N1 + N0) / 2
 The two contributions sum to the token change, up to floating-point rounding.
 Exact integer counters remain in `evidence`. Cache and reasoning tokens stay
 within their input/output totals.
+Text reports round contributions to whole tokens; JSON retains the calculated
+precision. Rounded contributions can differ from the total change by one token.
 
 An attempt is a matching exported model span, including a failure or retry.
 Text reports use "model attempts" in v0.3.0 (v0.2.0 prints "Requests"); JSON v1 retains

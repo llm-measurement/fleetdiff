@@ -32,7 +32,7 @@ func TestSessionsDemo(t *testing.T) {
 				t.Fatal("session result must lead the report", out.String())
 			}
 			for _, want := range []string{"Reported tokens: 400 -> 3300", "model attempts: 4 -> 13",
-				"+1592.31 tokens", "+1307.69 tokens", "0 -> 3000", "flagged for review",
+				"+1592 tokens", "+1308 tokens", "0 -> 3000", "flagged for review",
 				"More answers with more data: enable usage provenance"} {
 				if !strings.Contains(out.String(), want) {
 					t.Fatalf("missing %q in report", want)

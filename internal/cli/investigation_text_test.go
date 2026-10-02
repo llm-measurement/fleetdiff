@@ -12,6 +12,39 @@ import (
 	"github.com/llm-measurement/fleetdiff/internal/compare"
 )
 
+func TestInvestigationTextRoundsContributionsOnly(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		sign float64
+		want string
+	}{
+		{"increase", 1, "+1592 tokens from attempt count; +1308 tokens from tokens per attempt."},
+		{"decrease", -1, "-1592 tokens from attempt count; -1308 tokens from tokens per attempt."},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := compare.Investigation{Version: 1, Questions: []compare.Question{
+				{ID: "volume", Status: "observed", Volume: &compare.VolumeChange{
+					RequestContribution: tc.sign * 20700 / 13, TokensPerRequestContribution: tc.sign * 17000 / 13,
+					BeforeAverage: 100, AfterAverage: 3300.0 / 13,
+				}},
+			}}
+			before, err := json.Marshal(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			renderInvestigation(&out, r, .25)
+			if !strings.Contains(out.String(), tc.want) || !strings.Contains(out.String(), "Tokens per attempt: 100.00 -> 253.85.") {
+				t.Fatal(out.String())
+			}
+			after, err := json.Marshal(r)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatal("display rounding changed JSON values")
+			}
+		})
+	}
+}
+
 func TestInvestigationTextPreservesJSONAndUncertainty(t *testing.T) {
 	r := compare.Investigation{Version: 1, Questions: []compare.Question{
 		{ID: "sessions", Question: "Which sessions need investigation?", Status: "limited", Contributors: []compare.Contributor{

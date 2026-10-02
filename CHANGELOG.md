@@ -2,6 +2,20 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.3.1] - 2026-10-01
+
+See the [release notes](docs/releases/v0.3.1.md) for upgrade details.
+
+- Lead investigation reports with the main finding, followed by compact
+  contributor tables and coverage. Show session candidates as "flagged for review."
+- Round displayed token-change contributions to whole tokens, retaining JSON
+  precision, percentage bounds, and token-per-attempt averages.
+- Include the one-command sessions demo, clearer report guides, and refreshed
+  walkthrough media. Check the text headline and rounded contributions in each
+  packaged binary's smoke test.
+- Keep summary compatibility, JSON version 1, accounting, and flag thresholds
+  unchanged. No collector upgrade or window reset is needed.
+
 ## [0.3.0] - 2026-10-01
 
 See the [release notes](docs/releases/v0.3.0.md) for compatibility and upgrade details.

@@ -21,6 +21,10 @@ jq -e '.version == 1 and
       .volume.request_count_contribution_tokens == 150 and
       .volume.tokens_per_request_contribution_tokens == 250] == [true]) and
     ([.questions[] | select(.id == "usage_source") | .status == "cannot_determine"] == [true])' "$report" >/dev/null
+"$binary" investigate --before examples/sessions/data/before \
+  --after examples/sessions/data/after --expected app > "$report"
+grep -Fx '1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.' "$report"
+grep -Fx '  +1592 tokens from attempt count; +1308 tokens from tokens per attempt.' "$report"
 "$binary" investigate --before examples/single-app/data/single/before \
   --after examples/single-app/data/missing-usage/after --expected app --format json > "$report"
 jq -e '([.questions[] | select(.id == "volume") | .status == "cannot_determine"] == [true])' "$report" >/dev/null

@@ -31,7 +31,7 @@ one session, each reporting 250 input and 50 output tokens.
 | Question | Expected answer |
 |---|---|
 | Did usage rise? | 400 to 3,300 reported tokens; 4 to 13 model attempts |
-| More attempts, or more tokens per attempt? | +1,592.31 and +1,307.69 tokens respectively, totaling +2,900 |
+| More attempts, or more tokens per attempt? | About +1,592 and +1,308 tokens respectively, totaling +2,900 |
 | Did one session dominate? | One new session has bounds `[3000, 3000]` and share `[90.91%, 90.91%]`; only it is flagged |
 | Which user accounts for that volume? | One new pseudonymous user has the same 3,000-token bounds |
 | Are observations complete? | Both declared intervals are complete, with no missing numeric usage |

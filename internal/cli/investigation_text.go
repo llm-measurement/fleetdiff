@@ -23,7 +23,7 @@ func renderInvestigation(out io.Writer, r compare.Investigation, threshold float
 			if !strings.HasPrefix(headline, "Reported tokens:") {
 				fmt.Fprintf(out, "Reported tokens: %d -> %d; model attempts: %d -> %d.\n", v.BeforeTokens, v.AfterTokens, v.BeforeRequests, v.AfterRequests)
 			}
-			fmt.Fprintf(out, "  %+.2f tokens from attempt count; %+.2f tokens from tokens per attempt.\n", v.RequestContribution, v.TokensPerRequestContribution)
+			fmt.Fprintf(out, "  %+.0f tokens from attempt count; %+.0f tokens from tokens per attempt.\n", v.RequestContribution, v.TokensPerRequestContribution)
 			fmt.Fprintf(out, "  Tokens per attempt: %.2f -> %.2f.\n", v.BeforeAverage, v.AfterAverage)
 		}
 		if q.Status == "cannot_determine" {
