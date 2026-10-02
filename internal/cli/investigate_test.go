@@ -28,6 +28,9 @@ func TestSessionsDemo(t *testing.T) {
 			}
 		}
 		if format == "text" {
+			if !strings.HasPrefix(out.String(), "1 of 8 tracked sessions flagged: 90.91% of attributed tokens.\n") {
+				t.Fatal("session result must lead the report", out.String())
+			}
 			for _, want := range []string{"Reported tokens: 400 -> 3300", "Model attempts: 4 -> 13",
 				"+1592.31 tokens", "+1307.69 tokens", "[90.91%, 90.91%]; runaway candidate",
 				"Were these counts reported by the provider? [cannot_determine]"} {
@@ -119,6 +122,13 @@ func TestSingleAppAndTwoStackInvestigation(t *testing.T) {
 			if format == "text" {
 				if !strings.Contains(out.String(), "What changed in my agent app?") || !strings.Contains(out.String(), "cannot_determine") {
 					t.Fatal(out.String())
+				}
+				if mode == "missing-usage" {
+					if !strings.HasPrefix(out.String(), "Token-change breakdown unavailable.") {
+						t.Fatal("missing usage must be visible in the headline")
+					}
+				} else if !strings.HasPrefix(out.String(), "Reported tokens: 200 -> 600 (+400); model attempts: 2 -> 3.") {
+					t.Fatal("volume result must lead the report")
 				}
 				continue
 			}

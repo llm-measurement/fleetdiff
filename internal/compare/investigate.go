@@ -66,9 +66,9 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 		return Investigation{}, err
 	}
 	volume := Question{ID: "volume", Question: "More model attempts, or more reported tokens per attempt?", Status: "cannot_determine"}
-	contributors := Question{ID: "contributors", Question: "Which tracked prompt contributors changed?", Status: "cannot_determine", Answer: "No prompt-weight sketch is available; missing measurements are not zero."}
-	sessions := Question{ID: "sessions", Question: "Which sessions need investigation?", Status: "cannot_determine", Answer: "These summaries have no session-level token attribution. Prompt signatures and distinct MCP sessions cannot identify high-consumption sessions or diagnose loops."}
-	coverage := Question{ID: "coverage", Question: "How much of this comparison can I trust?", Status: "observed", Answer: "Observation intervals are complete and every observed model attempt reports input and output usage. This does not prove complete upstream delivery, unsampled traffic, or provider-reported rather than inferred usage."}
+	contributors := Question{ID: "contributors", Question: "Which tracked prompt contributors changed?", Status: "cannot_determine", Answer: "Add prompt-weight sketches to compare prompt contributors."}
+	sessions := Question{ID: "sessions", Question: "Which sessions need investigation?", Status: "cannot_determine", Answer: "Add session-weight sketches to compare session contributors."}
+	coverage := Question{ID: "coverage", Question: "Which observations are covered?", Status: "observed", Answer: "Declared intervals are complete; every observed model attempt has both usage fields. Coverage describes the supplied observations."}
 	var input, output *Counter
 	for i := range r.Counters {
 		switch r.Counters[i].Name {
@@ -81,11 +81,11 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 	a, b := r.Before.Usage, r.After.Usage
 	switch {
 	case !r.Complete:
-		volume.Answer = "An expected producer or observation interval is incomplete. Differences may reflect missing observations rather than workload changes."
+		volume.Answer = "An expected producer or observation interval is incomplete."
 	case a == nil || b == nil || input == nil || output == nil:
 		volume.Answer = "Request, token, or missing-usage counters are unavailable."
 	case a.Missing != 0 || b.Missing != 0:
-		volume.Answer = "Some model attempts lack input or output usage. Recorded token totals remain visible, but a complete-usage average or workload explanation cannot be recovered from these totals."
+		volume.Answer = "Some model attempts lack usage fields. Recorded totals and coverage are shown below."
 	case a.Requests == 0 || b.Requests == 0:
 		volume.Answer = "At least one window has no observed model attempts; tokens per attempt is undefined."
 	default:
@@ -94,27 +94,27 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 		n0, n1 := float64(a.Requests), float64(b.Requests)
 		p0, p1 := float64(x)/n0, float64(y)/n1
 		volume.Status = "observed"
-		volume.Answer = "Arithmetic split of observed token change, not a causal explanation. The symmetric split shares the interaction equally between attempt count and tokens per attempt; cache and reasoning subsets are not added again. Attempts are matching model spans, including failures and retries, not unique user requests."
+		volume.Answer = "The arithmetic split shares the interaction equally between attempt count and tokens per attempt. Attempts include failures and retries."
 		volume.Volume = &VolumeChange{x, y, a.Requests, b.Requests, p0, p1, (n1 - n0) * (p0 + p1) / 2, (p1 - p0) * (n0 + n1) / 2}
 	}
 	if !r.Complete || a == nil || b == nil || input == nil || output == nil || a.Missing != 0 || b.Missing != 0 {
 		coverage.Status = "limited"
-		coverage.Answer = "Coverage is incomplete or unknown. Check evidence.before and evidence.after for observed requests, missing usage, and producer coverage. Do not interpret a lower observed total as savings."
+		coverage.Answer = "Coverage is incomplete or unknown. Check evidence.before and evidence.after for missing usage and producers."
 	}
 	source := usageSourceQuestion(r)
 	if volume.Volume != nil && source.Status != "observed" {
-		volume.Answer += " Provider origin is not established for every count; zeros or estimates inserted upstream can change this arithmetic without changing actual consumption."
+		volume.Answer += " See provider origin below."
 	}
 	for _, c := range r.Concentration {
 		if c.Name != "top_prompts" {
 			continue
 		}
 		if c.BeforeWeight == 0 && c.AfterWeight == 0 {
-			contributors.Answer = "No prompt weight was recorded. This does not establish that no prompts or tokens were used."
+			contributors.Answer = "Prompt attribution has no recorded weight in these windows."
 			break
 		}
 		contributors.Status = "observed"
-		contributors.Answer = "Shares use each prompt sketch's recorded configured weight, not all application tokens. Items are tracked candidates, not a guaranteed top-k ranking or full concentration curve; integer counts and delta bounds are in evidence.concentration."
+		contributors.Answer = "Shares use recorded prompt weight. Bounds describe tracked candidates; see evidence.concentration for integer counts."
 		if coverage.Status == "limited" {
 			contributors.Status = "limited"
 		}
@@ -126,7 +126,7 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 	// The shortest decimal form defines the cutoff: .3 means exactly 3/10.
 	cutoff, _ := new(big.Rat).SetString(strconv.FormatFloat(threshold, 'g', -1, 64))
 	sessions = attributionQuestion(sessions, r, []string{"top_sessions", "top_sessions_requests"}, coverage.Status == "limited", cutoff)
-	users := Question{ID: "users", Question: "Which tracked users contribute tokens or model attempts?", Status: "cannot_determine", Answer: "No comparable user-level attribution is available; missing measurements are not zero. This is not billing or a full user ranking."}
+	users := Question{ID: "users", Question: "Which tracked users contribute tokens or model attempts?", Status: "cannot_determine", Answer: "Add user-weight sketches to compare user contributors."}
 	users = attributionQuestion(users, r, []string{"top_users", "top_users_requests"}, coverage.Status == "limited", cutoff)
 	for _, c := range r.Concentration {
 		if c.Name == "top_prompts_requests" {
@@ -170,11 +170,11 @@ func attributionQuestion(q Question, r Report, names []string, tokenLimited bool
 	}
 	if !found {
 		if dropped {
-			q.Answer = "Attribution is absent from one or more input snapshots and was omitted across both windows. Missing attribution is not zero; comparable contributor changes cannot be determined."
+			q.Answer = "Attribution needs matching sketches in every input snapshot; some are missing."
 		} else {
 			for _, c := range r.Concentration {
 				if slices.Contains(names, c.Name) {
-					q.Answer = "No attributed sketch weight was recorded. This does not establish zero traffic or zero consumption."
+					q.Answer = "Attribution has no recorded weight in these windows."
 				}
 			}
 		}
@@ -182,22 +182,22 @@ func attributionQuestion(q Question, r Report, names []string, tokenLimited bool
 		return q
 	}
 	q.Status = "observed"
-	q.Answer = "Shares and count/delta bounds describe tracked candidates relative only to each sketch's attributed weight, not all traffic or a guaranteed top-k ranking. Per-key missing-ID coverage is not recorded; shares exclude unattributed activity. Token weights are recorded input plus output usage; request weights are model attempts, including failures and retries, not unique user requests. This is not billing or a root-cause diagnosis."
+	q.Answer = "Shares use attributed tokens or model attempts, excluding activity without a key. Per-key missing-ID coverage is unknown. Bounds describe tracked candidates."
 	if q.ID == "sessions" {
-		q.Answer += " A runaway candidate requires an after lower-bound share of attributed session sketch weight strictly above the configured threshold and complete relevant observations. The flag is an investigation prompt only, not a share of all application weight or proof of a loop."
+		q.Answer += " Flags mark lower-bound shares above the review threshold with complete relevant observations; investigate the flagged sessions."
 	}
 	if limited {
 		q.Status = "limited"
-		q.Answer += " Observation intervals or token coverage are incomplete or unknown. Flags are suppressed for the affected attribution; request-weight attribution does not require token usage."
+		q.Answer += " Incomplete intervals or token coverage suppress affected flags. Attempt-weight flags need no token data."
 	}
 	if dropped {
-		q.Answer += " Other requested attribution was absent from some snapshots and omitted; those changes cannot be determined."
+		q.Answer += " Some other attribution is missing from input snapshots."
 	}
 	return q
 }
 
 func usageSourceQuestion(r Report) Question {
-	q := Question{ID: "usage_source", Question: "Were these counts reported by the provider?", Status: "cannot_determine", Answer: "Source provenance was not recorded for every input/output field. Numeric coverage does not establish provider coverage; gateways may fill absent counts with zeros or estimates."}
+	q := Question{ID: "usage_source", Question: "Were these counts reported by the provider?", Status: "cannot_determine", Answer: "Provider origin is unknown for some fields; gateways can supply zeros or estimates. Enable source provenance to distinguish them."}
 	if r.Before.Usage == nil || r.After.Usage == nil || r.Before.Usage.Requests == 0 || r.After.Usage.Requests == 0 {
 		return q
 	}
@@ -218,7 +218,7 @@ func usageSourceQuestion(r Report) Question {
 			}
 			for side, value := range [2]uint64{counter.Before, counter.After} {
 				if value > remaining[side] {
-					q.Answer = "Source provenance counts are inconsistent with observed requests. Do not use them to establish provider coverage."
+					q.Answer = "Source provenance counts disagree with observed attempts. Check the producer's accounting."
 					return q
 				}
 				remaining[side] -= value
@@ -238,12 +238,12 @@ func usageSourceQuestion(r Report) Question {
 		return q
 	}
 	q.Status = "limited"
-	q.Answer = "Some input/output fields are declared inferred or unavailable at source. Declared unavailable counts are excluded by the collector. See usage_provenance.v1 counters in evidence; do not interpret a lower total as provider savings."
+	q.Answer = "Some fields are declared inferred or unavailable. The collector excludes declared unavailable counts; see usage_provenance.v1 counters for the breakdown."
 	if providerOnly && r.Complete && r.Before.Usage.Missing == 0 && r.After.Usage.Missing == 0 {
 		q.Status = "observed"
-		q.Answer = "The instrumenter declares every observed input/output count provider-reported. This declaration is not authenticated proof, does not establish complete upstream delivery, and is not invoice reconciliation."
+		q.Answer = "The instrumenter declares all observed input/output counts provider-reported."
 	} else if providerOnly {
-		q.Answer = "Observed fields are declared provider-reported, but producer, interval, or numeric coverage is incomplete. The declarations do not establish complete provider usage."
+		q.Answer = "Observed fields are declared provider-reported; producer, interval, or usage coverage is incomplete."
 	}
 	return q
 }

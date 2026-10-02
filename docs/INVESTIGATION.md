@@ -1,15 +1,9 @@
 # Investigate An Application Change
 
-The provider-origin question distinguishes declared `provider_reported`, `inferred`,
-`unavailable`, and `unknown` field observations. It uses the collector's fixed
-`usage_provenance.v1` counters. Older exports without those counters return
-`cannot_determine`, as do observations with unknown origin. For mixed old/new
-inputs, fleetdiff supplies unknown observations in memory, without changing files
-or the base accounting fingerprint. Other compatibility checks remain strict;
-partial or unrecognized-version declarations are never silently repaired.
-Declared origin is not authenticated proof. The collector excludes explicitly
-unavailable fields and marks requests missing. Unknown gateway-filled zeros can
-still occur. Arithmetic is not a claim about provider savings.
+Compare two windows to see how token volume changed, which contributors moved,
+and which sessions deserve attention. The text report leads with a session flag
+when one is available, otherwise a token-volume summary. Counts, bounds, and
+coverage follow below.
 
 Release v0.2.0 introduced `fleetdiff investigate`. Older v0.1.1 binaries only
 provide `compare`. Both commands are local, read-only, and accept the same files
@@ -32,6 +26,13 @@ and human-readable answer. Status is `observed`, `limited`, or `cannot_determine
 Unknown answers are successful reports, not zero measurements; invalid inputs
 still fail with no report. Consumers should use IDs and structured values rather
 than parse answer prose. The internal Go implementation is not a public Go API.
+
+The text headline summarizes displayed candidates for one measurement at a time,
+preferring token-weighted session flags over attempt-weighted flags. Its share is
+for one flagged session, not the sum of flagged sessions. When `--top` truncates
+the candidate list, it says "shown sessions" rather than "tracked sessions".
+Unequal share bounds stay a range, rounded outward. JSON fields and flag criteria
+are unchanged.
 
 ## Volume
 
@@ -141,3 +142,15 @@ or a truthful accounting declaration. The existing comparison contract applies.
 Use `--allow-partial` to inspect an incomplete observed subset, not to bypass
 incompatible accounting or keys. Default reports omit raw metadata and hashes;
 `--show-hashes` explicitly reveals pseudonymous, linkable item identifiers.
+
+## Provider Origin
+
+The provider-origin question distinguishes declared `provider_reported`, `inferred`,
+`unavailable`, and `unknown` field observations using `usage_provenance.v1` counters.
+Older exports and observations with unknown origin return `cannot_determine`.
+For mixed old/new inputs, fleetdiff supplies unknown observations in memory while
+preserving files, accounting fingerprints, and compatibility checks.
+
+The collector excludes explicitly unavailable fields and marks those attempts
+missing. Origin is an instrumenter declaration; gateways can still fill unknown
+fields with zeros or estimates. Use provider records for billing reconciliation.

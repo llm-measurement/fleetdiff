@@ -24,7 +24,4 @@ if ! command -v go >/dev/null 2>&1; then printf '%s\n' 'Install Go from https://
 export GOWORK=off
 go build -o bin/fleetdiff ./cmd/fleetdiff
 printf 'Synthetic demo: %s expected producer(s) per window (%s).\n\n' "$producers" "$expected"
-if [ "${1:-}" = --sessions ]; then
-  printf '%s\n\n' 'Did one session account for most of the increase? A flag is a reason to investigate, not proof of a loop.'
-fi
 bin/fleetdiff investigate --before "$before" --after "$after" --expected "$expected"

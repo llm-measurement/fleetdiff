@@ -176,13 +176,15 @@ func Run(args []string, out, errout io.Writer) int {
 }
 
 func renderInvestigation(out io.Writer, r compare.Investigation) {
-	fmt.Fprintln(out, "What changed in my agent app? (observed measurements)")
+	fmt.Fprintln(out, investigationHeadline(r))
+	fmt.Fprintln(out, "\nWhat changed in my agent app?")
 	for _, q := range r.Questions {
 		answer := q.Answer
 		if q.ID == "coverage" {
 			answer = strings.ReplaceAll(answer, "Check evidence.before and evidence.after", "Check Observed coverage below")
 		}
-		fmt.Fprintf(out, "\n%s [%s]\n%s\n", q.Question, q.Status, answer)
+		answer = strings.ReplaceAll(answer, "see evidence.concentration for integer counts", "use --format json for integer counts")
+		fmt.Fprintf(out, "\n%s [%s]\n", q.Question, q.Status)
 		if v := q.Volume; v != nil {
 			fmt.Fprintf(out, "  Reported tokens: %d -> %d\n  Model attempts: %d -> %d\n  Tokens per attempt: %.2f -> %.2f\n", v.BeforeTokens, v.AfterTokens, v.BeforeRequests, v.AfterRequests, v.BeforeAverage, v.AfterAverage)
 			fmt.Fprintf(out, "  Attempt-count contribution: %+.2f tokens\n  Tokens-per-attempt contribution: %+.2f tokens\n", v.RequestContribution, v.TokensPerRequestContribution)
@@ -213,6 +215,7 @@ func renderInvestigation(out io.Writer, r compare.Investigation) {
 			}
 			fmt.Fprintln(out)
 		}
+		fmt.Fprintln(out, answer)
 	}
 	fmt.Fprintln(out, "\nObserved coverage (before -> after)")
 	var input, output *compare.Counter
@@ -267,7 +270,7 @@ func renderText(out io.Writer, r compare.Report) {
 		fmt.Fprintf(out, "  %s: %d -> %d; %+d [%s]\n", c.Name, c.Before, c.After, c.Delta, c.Unit)
 	}
 	if len(r.Distinct) > 0 {
-		fmt.Fprintln(out, "\nDistinct activity (estimates; nominal statistical RSE, not hard bounds)")
+		fmt.Fprintln(out, "\nDistinct activity (estimates with nominal statistical RSE)")
 	}
 	for _, d := range r.Distinct {
 		fmt.Fprintf(out, "  %s: %.2f -> %.2f; estimated delta %+.2f; nominal RSE %.2f%% / %.2f%%\n", d.Name, d.Before.Estimate, d.After.Estimate, d.EstimatedDelta, d.Before.NominalRSE*100, d.After.NominalRSE*100)

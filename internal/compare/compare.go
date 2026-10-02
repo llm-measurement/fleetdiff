@@ -185,18 +185,14 @@ func Compare(before, after []summary.Envelope, options Options) (Report, error) 
 		return Report{}, err
 	}
 	r := Report{Version: 1, Complete: complete, Before: aw, After: bw, Counters: []Counter{}, Distinct: []Distinct{}, Concentration: []Concentration{}, Notes: []string{
-		"Local observation comparison, not policy enforcement, billing reconciliation, or proof of causation.",
-		"Full observation intervals do not prove complete upstream instrumentation, delivery, or sampling.",
-		"Producer identity and disjoint request ownership are operator assertions, not authenticated by this report.",
-		"HLL uncertainty is a nominal statistical scale, not a deterministic bound or a significance test.",
-		"Mover bounds apply only to observed configured weight. Candidate selection is the union of both frequent-item queries, not general unknown-key recovery.",
-		"Items are ordered by the largest absolute interval endpoint, not a guaranteed ranking of true changes. Item aliases are local to this report.",
-		"Tokens, configured sketch weights, money, GPU time, and useful work are not interchangeable units.",
+		"Counts describe supplied observations. Operators establish producer identity, disjoint traffic, and upstream delivery.",
+		"Distinct-count RSE is statistical; tracked-item bounds are deterministic for the recorded weight.",
+		"Candidates come from both windows, ordered by largest absolute delta-bound endpoint. Aliases are local to this report.",
 	}}
 	r.DroppedMeasurements = dropped
 	r.OmittedMeasurements = len(dropped)
 	if len(dropped) != 0 {
-		r.Notes = append(r.Notes, "Optional top-k measurements absent from any input snapshot are omitted across both windows; missing attribution is not zero.")
+		r.Notes = append(r.Notes, "Optional attribution needs matching sketches in every input snapshot; missing measurements are listed above.")
 	}
 	if !complete {
 		r.Notes = append(r.Notes, "PARTIAL: differences may reflect missing observations rather than a workload change.")

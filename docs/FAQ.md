@@ -4,8 +4,7 @@
 
 The current input is canonical `llm-sketchkit` summary v1 JSON. It contains counters,
 mergeable sketch state, and metadata describing the observation window and producer.
-It is not a raw OTLP trace, a Prometheus scrape, a top-k log line, a vendor
-dashboard, or a bill.
+Create those files through either supported integration:
 
 - For OpenTelemetry pipelines, enable the
   [summary exporter](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/SUMMARY_EXCHANGE.md)
@@ -26,8 +25,8 @@ weighted frequent items. That keeps the state from growing with every new identi
 The purpose here is to compare activity across systems; the sketches are how the
 comparison avoids requiring everyone's raw events.
 
-If exact records are safe to share and straightforward to query, use them. This
-tool does not replace an archive, trace explorer, or billing ledger.
+Use the comparison to choose where to investigate, then follow individual events
+in your trace explorer or archive.
 
 ## Can I Combine Hosted And Self-Hosted Systems?
 
@@ -98,13 +97,12 @@ add runs when trace context is propagated. An agent under an HTTP request or an
 `invoke_workflow` parent counts zero by this rule. Losing parent context can
 inflate the count; fleetdiff cannot detect that from summaries alone.
 
-The example uses two batch jobs with root supervisor spans, nested internal
+The synthetic example uses two batch jobs with root supervisor spans, nested internal
 specialists, and a company-side client span parenting each partner-side specialist
 span. Span ownership is disjoint even though trace IDs are shared. Propagation
-preserves the intended count in this fixture; it is not deduplication or a general
-definition of a business task. The
+preserves the root-agent count in this fixture. The
 [agent conventions](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md)
-remain in Development, and this fixture is not a captured framework integration.
+remain in Development.
 
 Resource URIs, session IDs, tool names, and error types are not printed in reports.
 MCP resources use the retrieval-document hash domain, so an identical resource
@@ -114,8 +112,8 @@ error contributes weight one. The live test uses its own fixture key to check
 which signature moved; normal comparisons need no key and do not recover names.
 
 Model requests rise from 6 to 10 while root runs stay at 2. Distinct resources
-rise from approximately 1 to 4 and sessions from 4 to 8. This does not prove a
-retry loop, over-delegation, answer quality, or an MCP security issue.
+rise from approximately 1 to 4 and sessions from 4 to 8. Follow those changes in
+your traces to understand what caused them.
 
 ## What Do The Error Bounds Mean?
 
@@ -156,7 +154,7 @@ Release v0.3.0 recognizes the token-weighted `top_users` and
 the exporter's accounting settings and top-k contract markers consistent; names
 are not authenticated proof of units. These extensions report
 `attributed-reported-tokens` or `attributed-model-attempts` as their weight unit.
-A session share flag is a review threshold, not a causal diagnosis.
+A session share flag highlights a candidate for investigation.
 See [the investigation contract](INVESTIGATION.md#user-and-session-contributors).
 
 ## Are Exports And Reports Safe To Share?

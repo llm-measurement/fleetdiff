@@ -55,7 +55,7 @@ func TestInvestigationUsageSource(t *testing.T) {
 			if q.ID != "usage_source" || q.Status != tc.status {
 				t.Fatal(q)
 			}
-			if tc.status != "observed" && r.Questions[0].Volume != nil && !strings.Contains(r.Questions[0].Answer, "Provider origin is not established") {
+			if tc.status != "observed" && r.Questions[0].Volume != nil && !strings.Contains(r.Questions[0].Answer, "See provider origin below") {
 				t.Fatal("volume lacks provenance warning")
 			}
 		})

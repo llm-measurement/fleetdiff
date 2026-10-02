@@ -18,10 +18,8 @@ fleetdiff investigate --before examples/single-app/data/single/before \
   --after examples/single-app/data/single/after --expected app
 ```
 
-`--expected app` names the `producer_id` in each export, not its filename or a
-user/session ID. Release v0.3.0 labels observed model attempts "Model attempts".
-Its user/session contributor support is not exercised by these prompt-only
-fixtures.
+`--expected app` names the `producer_id` in each export. These fixtures focus on
+model attempts, token volume, and prompt contributors.
 
 `--sessions` uses a [separate synthetic scenario](../sessions/README.md) with
 user and session attribution, including one high-share session flagged for review.
@@ -38,35 +36,29 @@ user and session attribution, including one high-share session flagged for revie
 
 The 400-token increase splits into +150 from request count and +250 from tokens
 per request, using the symmetric arithmetic decomposition in
-[the investigation contract](../../docs/INVESTIGATION.md). This describes the
-recorded change; it does not prove why a deployment changed behavior.
+[the investigation contract](../../docs/INVESTIGATION.md).
 
 Two application-supplied prompt-template keys have observed weights 100 -> 400
 and 100 -> 200. The first key's share rises from 50% to about 66.7%. These small
-fixtures have exact frequent-item bounds, not a full-distribution concentration
-claim. The broader tests exercise nonzero error.
+fixtures retain every key, so their frequent-item bounds are exact. The broader
+tests exercise nonzero error.
 
 The missing-usage example removes one output-token attribute. It reports 560
-recorded tokens and one incomplete request, and refuses to produce the arithmetic
-split. It does not substitute zero for the missing output.
+recorded tokens and one incomplete request. The report keeps the totals visible
+and marks the arithmetic split as `cannot_determine`.
 
-Session investigation returns `cannot_determine`: these exports contain no
-session-level token attribution. To investigate sessions, collect two compatible
-windows with collector v0.3.0's optional
+To investigate sessions in your own traffic, collect two compatible windows with
+collector v0.3.0's optional
 [`topk_keys`](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/TOPK_KEYS.md).
-Session share flags identify candidates to review, not a diagnosed runaway loop.
 
 ## Two Stacks, Same Question
 
 `--two-stacks` partitions the same model requests between `gateway` and `direct`.
 The script prints `2 expected producer(s) per window (gateway,direct)` before
 the report; the default prints `1 expected producer(s) per window (app)`.
-The fixture does not send the same inference observation to both collectors.
-Their merged measurements equal the single application's measurements. This is
-a synthetic illustration of a LiteLLM gateway alongside direct instrumentation,
-not a capture from two installed frameworks. Each producer must use compatible
-accounting and hashing rules. Combining overlapping observations would double
-count; fleetdiff cannot infer overlap from different producer IDs.
+Each observation belongs to one producer. Their merged measurements equal the
+single application's measurements. This synthetic example represents a LiteLLM
+gateway alongside direct instrumentation, with compatible accounting and hashing.
 
 ## Fixture Provenance
 

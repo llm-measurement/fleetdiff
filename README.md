@@ -11,8 +11,7 @@ API key is needed.
 
 Inputs are summary exports from
 [otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
-or [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit), not raw traces,
-vendor dashboards, or bills.
+or [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit).
 
 ## Try It In A Minute
 
@@ -34,18 +33,13 @@ Attempt-count contribution: +150.00 tokens
 Tokens-per-attempt contribution: +250.00 tokens
 ```
 
-This is an arithmetic split, not proof of cause. Try
-`sh examples/investigate.sh --missing-usage`: one missing usage field makes the
-explanation `cannot_determine`, not a guessed saving. Add `--two-stacks` to run
+Try `sh examples/investigate.sh --missing-usage` to see how the report highlights
+incomplete usage. Add `--two-stacks` to run
 the same investigation over disjoint gateway and direct-call exports.
-See [the example and its limits](examples/single-app/README.md).
+See the [example walkthrough](examples/single-app/README.md).
 
-Model attempts are observed model spans, including failures and retries, not
-unique user requests. Existing JSON fields keep their `requests` names.
-
-Release v0.3.0 includes `investigate` and optional user/session contributors.
-It prints "Model attempts" where v0.2.0 printed "Requests"; the arithmetic and
-existing JSON field names are unchanged.
+Model attempts include failures and retries. The JSON API uses `requests` for
+this counter.
 
 ### Did One Session Account For Most Of The Increase?
 
@@ -53,10 +47,15 @@ existing JSON field names are unchanged.
 sh examples/investigate.sh --sessions
 ```
 
+The source-built report opens with:
+
+```text
+1 of 8 tracked sessions flagged: 90.91% of attributed tokens.
+```
+
 In this synthetic example, tokens rise from 400 to 3,300. One new session and
-user account for 3,000 tokens, a share of `[90.91%, 90.91%]`. Only that session
-is flagged as a `runaway candidate`. The flag means investigate, not proof of
-a loop. Provider origin stays `cannot_determine`. No Docker or API key needed.
+user account for 3,000 tokens. The report marks that session for investigation
+and shows the bounds, volume split, and coverage below. No Docker or API key needed.
 See the [scenario, expected answers and reproduction command](examples/sessions/README.md).
 
 ## Install A Binary
@@ -71,9 +70,8 @@ before extracting it. Then run `./fleetdiff --version` or investigate your expor
 ./fleetdiff investigate --before ./before --after ./after --expected app
 ```
 
-`app` is the summary's `producer_id`, not a filename or user/session ID. Use your
-trusted producer inventory for `--expected`, including producers whose exports
-are missing.
+`app` is the summary's `producer_id`. Set `--expected` from your trusted producer
+inventory, including producers whose exports are missing.
 
 With Go installed, install the latest published version:
 
@@ -82,7 +80,7 @@ go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 ```
 
 The binary goes to `GOBIN`, or `$(go env GOPATH)/bin` when `GOBIN` is unset; add
-that directory to `PATH`. This does not install unreleased checkout changes.
+that directory to `PATH`.
 
 ## Using LiteLLM?
 
@@ -92,10 +90,10 @@ then use `fleetdiff investigate` to compare its before-and-after summary exports
 See whether the increase came from more requests or more recorded tokens per
 request, with missing usage shown. Keep your existing tracing backend.
 
-The recipe documents the tested LiteLLM version and an optional callback that
-preserves missing provider usage for supported non-streaming responses. Streaming
-usage provenance remains unknown: LiteLLM can supply estimates when provider
-counts are absent. The comparison is not invoice reconciliation or proof of savings.
+The recipe includes a tested LiteLLM version and a callback that preserves missing
+provider usage for supported non-streaming responses. The report distinguishes
+declared provider counts, estimates, and unknown origin; streaming origin is
+currently unknown.
 
 ## Extend To Separately Operated Agents
 
@@ -123,41 +121,36 @@ After a deployment:
 ```
 
 **Your system reported less. The fleet reported more.** Reported token usage
-shifted toward the partner and increased overall. Whether the answers got better
-is outside what fleetdiff measures. The data is synthetic, not provider traffic
-or evidence of savings.
+shifted toward the partner and increased overall in this synthetic example.
 
 ## Questions It Answers
 
 | Question | In the demo |
 |---|---|
-| More requests or more tokens per request? | Single-app report: +150 and +250 tokens respectively; refused if usage is incomplete |
-| Which tracked contributors changed? | Prompt-weight delta bounds and shares of recorded sketch weight, not a guaranteed top-k ranking |
-| Which sessions have a high share worth investigating? | `--sessions`: one candidate at `[90.91%, 90.91%]`; the default demo lacks session attribution and returns `cannot_determine` |
+| More requests or more tokens per request? | Single-app report: +150 and +250 tokens respectively, with usage coverage shown |
+| Which tracked contributors changed? | Prompt-weight changes and attributed shares, with lower and upper bounds |
+| Which sessions have a high share worth investigating? | `--sessions`: one flagged candidate at `[90.91%, 90.91%]` |
 | Did total reported usage fall, or just move? | Ours 800 to 360 tokens; fleet 1,200 to 1,800 |
 | Did model activity rise while runs stayed flat? | 6 to 10 model requests; 2 root-agent runs in both windows |
 | Did the workload touch more documents? | About 1 to 4 distinct MCP resources; a shared one counts once |
 | Did particular tool-error signatures increase? | One rises from 1 to 4; one appears; one is unchanged |
-| Is part of the fleet missing? | A missing export is refused, or reported as explicitly partial |
+| Is part of the fleet missing? | Required producer checks and an explicit partial-report option |
 
 ### User And Session Contributors
 
 Release v0.3.0 supports tracked user and session contributors when compatible
 exports contain `top_users` or `top_sessions` token-weighted sketches, or their
-`_requests` variants. The `--sessions` demo includes both. The default single-app
-and two-operator demos have no user/session attribution sketches. Missing sketches
-remain unknown; distinct session counts alone cannot attribute token usage.
+`_requests` variants. Try `--sessions` for token-weighted user and session results.
 
 A session is flagged for review only when its after-window share **lower bound
 is strictly greater than 25%** by default. `--flag-share` sets the threshold as a
-fraction, for example `--flag-share 0.40`. Shares use recorded sketch weight,
-not necessarily all application usage. Incomplete observation intervals suppress
-flags; token-weighted flags also require complete numeric token coverage. This is
-a concentration flag, not proof of a runaway session or its cause. See the
+fraction, for example `--flag-share 0.40`. Shares use attributed weight, excluding
+activity without a key. Flags require complete relevant observations and identify
+concentration worth investigating. See the
 [investigation contract](docs/INVESTIGATION.md#user-and-session-contributors).
 Use fleetdiff v0.3.0 with collector v0.3.0's optional
 [`topk_keys`](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/TOPK_KEYS.md),
-or compatible sketchkit exports. Old windows cannot supply missing attribution.
+or compatible sketchkit exports.
 
 ## How It Works
 
@@ -175,11 +168,10 @@ or compatible sketchkit exports. Old windows cannot supply missing attribution.
 Each operator keeps its own trace backend. The
 [OpenTelemetry collector](https://github.com/llm-measurement/otelcol-genai-sketches)
 or [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit) exports a
-summary per time window. Replayed summaries do not double-count. Shared identities
-count once with compatible hashing settings. Operators must avoid counting the
-same requests twice: fleetdiff cannot deduplicate requests observed by different
-operators. It will not call a comparison complete when an expected operator is
-missing.
+summary per time window. Compatible hashing makes shared identities count once;
+snapshot replay handling prevents re-importing a file from inflating totals.
+Assign each request to one producer and list all expected producers so fleetdiff
+can report missing coverage.
 
 ## Run It Through Real Collectors
 
@@ -205,16 +197,15 @@ go build -o bin/fleetdiff ./cmd/fleetdiff
 bin/fleetdiff investigate --before ./before --after ./after --expected app
 ```
 
-Add `--format json` for automation. fleetdiff only reads files; it never modifies
-inputs or makes network requests. Sharing an export still requires
-authorization. For multiple disjoint producers, use `--expected team,partner`.
+Add `--format json` for automation. fleetdiff reads local files and writes the
+report to stdout. For multiple disjoint producers, use `--expected team,partner`.
 These are the exact `producer_id` values assigned by the exporter. Keep the same
-expected set for both windows; do not drop an ID to hide a missing export.
+expected set for both windows.
 The lower-level `compare` command provides the full evidence report. See the
 [investigation contract](docs/INVESTIGATION.md) and, for separate operators, the
 [two-operator trial checklist](docs/TWO_OPERATOR_TRIAL.md).
 
-## What The Numbers Mean, And What They Don't
+## Reading The Results
 
 - **Exact:** request, token, and agent-run counts, for observed spans.
 - **Estimated:** distinct users, sessions, and resources, with a nominal error.
@@ -223,14 +214,12 @@ The lower-level `compare` command provides the full evidence report. See the
 - **Missing stays missing:** requests without token usage are counted as
   missing, never as zero.
 
-Reported tokens are not an invoice or a measure of useful work, and a
-before-and-after difference does not prove its cause. More activity does not
-prove retries, over-delegation, or better answers. Agent runs count only
-`invoke_agent` spans with no parent, so an agent under an HTTP request or
-workflow span is not counted. See the
-[agent and MCP caveats](docs/FAQ.md#what-agent-and-mcp-activity-can-i-compare).
-Hashes are keyed and pseudonymous, not anonymous; treat exports and reports as
-sensitive.
+Use the report to choose what to investigate, then consult traces for causes and
+provider records for billing. Agent runs count root `invoke_agent` spans; see
+[agent and MCP accounting](docs/FAQ.md#what-agent-and-mcp-activity-can-i-compare).
+`cannot_determine` identifies a question that needs more measurement data.
+Exports contain pseudonymous, linkable hashes: apply access controls and share
+only authorized data.
 
 ## Built To Be Checked
 

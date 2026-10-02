@@ -6,6 +6,12 @@ From the repository checkout, with Go installed:
 sh examples/investigate.sh --sessions
 ```
 
+The source-built report starts with:
+
+```text
+1 of 8 tracked sessions flagged: 90.91% of attributed tokens.
+```
+
 No Docker, provider account, API key, or traffic capture is needed. The script
 builds fleetdiff and reads two checked-in synthetic summary files. With a verified
 v0.3.0 binary already installed, skip the build:
@@ -27,26 +33,22 @@ one session, each reporting 250 input and 50 output tokens.
 | Did usage rise? | 400 to 3,300 reported tokens; 4 to 13 model attempts |
 | More attempts, or more tokens per attempt? | +1,592.31 and +1,307.69 tokens respectively, totaling +2,900 |
 | Did one session dominate? | One new session has bounds `[3000, 3000]` and share `[90.91%, 90.91%]`; only it is flagged |
-| Which user accounts for that volume? | One new pseudonymous user has the same 3,000-token bounds; raw identity is not recovered |
+| Which user accounts for that volume? | One new pseudonymous user has the same 3,000-token bounds |
 | Are observations complete? | Both declared intervals are complete, with no missing numeric usage |
 | Did a provider report those counts? | `cannot_determine`: no provenance declarations were supplied |
 
-The CLI calls the flag a `runaway candidate`. It means a session's share lower
-bound exceeds the review threshold, not that a loop, waste or its cause has been
-proven. Ten legitimate calls can produce the same measurements. These small
-fixtures happen to give exact bounds; larger candidate sets can have nonzero
-error. Shares use attributed sketch weight, which need not cover all traffic.
+The CLI calls the flag a `runaway candidate`: a session whose share lower bound
+exceeds the review threshold. Use it to focus an investigation. Shares cover
+attributed weight; this small fixture retains every key, so the bounds are exact.
 
-The arithmetic split describes the change, not its cause. Item aliases are local
-to each measurement: matching `item-1` labels in user and session sections are
-not an identity join. The example's recipe, not the aliases, establishes the link.
+Item aliases are local to each measurement. The scenario defines the user/session
+relationship; matching `item-1` labels alone do not join identities.
 
 ## Reproduce The Files
 
 The [generator](generate.go) composes llm-sketchkit hashing, frequent-items, HLL
-and summary APIs. These are deterministic library-generated fixtures, not saved
-collector output or a live-provider test. Their synthetic accounting identifier
-and extraction markers must not be mixed with production exports.
+and summary APIs. These deterministic library-generated fixtures have synthetic
+accounting and extraction markers. Keep them separate from production exports.
 
 ```sh
 GOWORK=off go run ./examples/sessions -out /tmp/fleetdiff-sessions-new
@@ -65,4 +67,4 @@ For your own application, enable collector v0.3.0's
 for `user_key` and `session_key` with token weights, then collect two complete
 windows. Keep the hashing key private and the same across the comparison.
 Use the [LiteLLM recipe](https://github.com/llm-measurement/otelcol-genai-sketches/tree/main/examples/integrations/litellm)
-when collecting through a gateway; missing provenance must remain unknown.
+when collecting through a gateway, including its provider-origin reporting.

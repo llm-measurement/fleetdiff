@@ -385,7 +385,7 @@ func TestTopKUserDeltaAndAttributedShares(t *testing.T) {
 		t.Fatal(err)
 	}
 	q := question(t, r, "users")
-	if q.Status != "observed" || len(q.Contributors) != 2 || !strings.Contains(q.Answer, "not all traffic") {
+	if q.Status != "observed" || len(q.Contributors) != 2 || !strings.Contains(q.Answer, "excluding activity without a key") {
 		t.Fatal(q)
 	}
 	for _, c := range q.Contributors {
@@ -518,7 +518,7 @@ func TestTopKPartialAndMissingUsage(t *testing.T) {
 				if flagged != (want == "observed") {
 					t.Fatal("flag disagrees with coverage", q)
 				}
-				if want == "observed" && (!strings.Contains(q.Answer, "model attempts") || !strings.Contains(q.Answer, "not billing")) {
+				if want == "observed" && (!strings.Contains(q.Answer, "model attempts") || !strings.Contains(q.Answer, "attributed tokens")) {
 					t.Fatal(q.Answer)
 				}
 			})

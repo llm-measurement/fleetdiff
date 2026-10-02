@@ -179,7 +179,7 @@ func TestTopKRequestInvestigationCLI(t *testing.T) {
 					if q.Status != "observed" || !strings.Contains(q.Answer, "model attempts") {
 						t.Fatal(q)
 					}
-					for _, want := range []string{"attributed session sketch weight", "Per-key missing-ID coverage is not recorded", "investigation prompt only", "not a share of all application weight"} {
+					for _, want := range []string{"attributed tokens or model attempts", "excluding activity without a key", "Per-key missing-ID coverage is unknown", "lower-bound shares", "complete relevant observations", "investigate the flagged sessions"} {
 						if !strings.Contains(q.Answer, want) {
 							t.Fatalf("missing qualification %q: %s", want, q.Answer)
 						}
