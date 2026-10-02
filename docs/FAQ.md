@@ -133,10 +133,10 @@ the candidate union; it does not discover every possible heavy mover. Rows are
 ordered by their largest absolute interval endpoint, not a guaranteed true ranking.
 The default display limit is 20; use `--top N` for 1 to 100 rows.
 
-Distinct counts use HLL and report nominal relative standard error based on the
-profile's normal precision: `1.04 / sqrt(2^p)`. This is the dense-regime scale,
-also shown for sparse sketches, not a measured error for the particular input,
-deterministic bound, confidence interval, or statistical significance test.
+Distinct counts use HLL. Its nominal error scale is about `1.04 / sqrt(2^p)`,
+using the profile's normal precision, including when state is sparse. Interpret
+this as a statistical scale; deterministic intervals apply to the frequent-item
+counts above.
 
 ## Why Does The Report Say Configured-Weight?
 

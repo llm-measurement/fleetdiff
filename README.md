@@ -26,11 +26,9 @@ on Linux or macOS. No Docker. The command builds current source and prints a
 single-application report from synthetic collector exports:
 
 ```text
-Reported tokens: 200 -> 600
-Model attempts: 2 -> 3
-Tokens per attempt: 100.00 -> 200.00
-Attempt-count contribution: +150.00 tokens
-Tokens-per-attempt contribution: +250.00 tokens
+Reported tokens: 200 -> 600 (+400); model attempts: 2 -> 3.
+  +150.00 tokens from attempt count; +250.00 tokens from tokens per attempt.
+  Tokens per attempt: 100.00 -> 200.00.
 ```
 
 Try `sh examples/investigate.sh --missing-usage` to see how the report highlights
@@ -50,7 +48,7 @@ sh examples/investigate.sh --sessions
 The source-built report opens with:
 
 ```text
-1 of 8 tracked sessions flagged: 90.91% of attributed tokens.
+1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.
 ```
 
 In this synthetic example, tokens rise from 400 to 3,300. One new session and
@@ -214,10 +212,12 @@ The lower-level `compare` command provides the full evidence report. See the
 - **Missing stays missing:** requests without token usage are counted as
   missing, never as zero.
 
-Use the report to choose what to investigate, then consult traces for causes and
+Use the report to choose what to investigate. A difference does not establish its
+cause, and reported tokens are not an invoice: consult traces for causes and
 provider records for billing. Agent runs count root `invoke_agent` spans; see
 [agent and MCP accounting](docs/FAQ.md#what-agent-and-mcp-activity-can-i-compare).
-`cannot_determine` identifies a question that needs more measurement data.
+JSON `cannot_determine` identifies a question that needs more measurement data;
+the text report collects these questions into one closing guidance line.
 Exports contain pseudonymous, linkable hashes: apply access controls and share
 only authorized data.
 

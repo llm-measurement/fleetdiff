@@ -31,7 +31,7 @@ func TestWalkthrough(t *testing.T) {
 		if err != nil || !bytes.Equal(published, text.Bytes()) {
 			t.Fatal("refresh the published walkthrough from actual demo output")
 		}
-		for _, want := range []string{"800 -> 360 (down 440)", "1200 -> 1800 (up 600)", "Model requests: 6 -> 10", "Observed root-agent runs: 2 -> 2", "Requests missing token usage: 2 -> 2", "Distinct users, estimated: 2 -> 2", "Distinct MCP resources, estimated: 1 -> 4", "Distinct MCP sessions, estimated: 4 -> 8", "[1, 1] -> [4, 4] occurrences; increased", "[0, 0] -> [1, 1] occurrences; increased", "[2, 2] -> [2, 2] occurrences; unchanged", "refused", "marked incomplete", "Reported work moved and grew; answer quality is outside what fleetdiff measures."} {
+		for _, want := range []string{"800 -> 360 (down 440)", "1200 -> 1800 (up 600)", "Model requests: 6 -> 10", "Observed root-agent runs: 2 -> 2", "Requests missing token usage: 2 -> 2", "Distinct users, estimated: 2 -> 2", "Distinct MCP resources, estimated: 1 -> 4", "Distinct MCP sessions, estimated: 4 -> 8", "[1, 1] -> [4, 4] occurrences; increased", "[0, 0] -> [1, 1] occurrences; increased", "[2, 2] -> [2, 2] occurrences; unchanged", "refused", "marked incomplete", "Reported work moved to the partner and grew by 600 tokens across the fleet.", "Next: inspect the partner's model calls and the increased tool-error signatures."} {
 			if !strings.Contains(text.String(), want) {
 				t.Fatalf("missing %q in walkthrough", want)
 			}

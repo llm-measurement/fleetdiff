@@ -43,6 +43,4 @@ access. Initial builds may download dependencies, and the live example starts
 local Docker collectors and may download its pinned image. See the
 [comparison contract](docs/COMPARISON.md) for input limits and trust assumptions.
 See [operations](docs/OPERATIONS.md) for installation verification, isolated
-execution, upgrades, and rollback. Automated scanners and fuzzing do not prove
-absence of unknown vulnerabilities. The project does not claim compliance
-certification, a security SLA, or suitability for every enterprise environment.
+execution, upgrades, and rollback.

@@ -9,7 +9,7 @@ sh examples/investigate.sh --sessions
 The source-built report starts with:
 
 ```text
-1 of 8 tracked sessions flagged: 90.91% of attributed tokens.
+1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.
 ```
 
 No Docker, provider account, API key, or traffic capture is needed. The script
@@ -37,8 +37,8 @@ one session, each reporting 250 input and 50 output tokens.
 | Are observations complete? | Both declared intervals are complete, with no missing numeric usage |
 | Did a provider report those counts? | `cannot_determine`: no provenance declarations were supplied |
 
-The CLI calls the flag a `runaway candidate`: a session whose share lower bound
-exceeds the review threshold. Use it to focus an investigation. Shares cover
+The text report says `flagged for review`; JSON retains `runaway_candidate`.
+The session's share lower bound exceeds the review threshold. Shares cover
 attributed weight; this small fixture retains every key, so the bounds are exact.
 
 Item aliases are local to each measurement. The scenario defines the user/session

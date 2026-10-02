@@ -1,8 +1,7 @@
 # Operating fleetdiff
 
-fleetdiff is a local, read-only comparison command, not a service. It needs no
-administrator privileges, inbound port, database, model credentials, or hashing
-secret. It does not upload data, check for updates, or send usage telemetry.
+fleetdiff is one local binary. It reads summary files and prints a report,
+offline and unprivileged. All input and output stays on your machine.
 
 ## Install And Verify
 
@@ -180,9 +179,8 @@ and retain headroom. Start with one comparison process, not unlimited parallel
 jobs. The demonstration's 256 MiB container test covers its small sample only.
 
 CI checks the packaged Linux binary with no network, non-root UID, no Linux
-capabilities, a read-only root, and read-only input mounts. This is a tested
-deployment pattern, not a claim of certification against every enterprise image
-or endpoint policy.
+capabilities, a read-only root, and read-only input mounts. Apply your organization's
+software approval process to the binary and deployment configuration.
 
 ## Automation
 
@@ -217,5 +215,4 @@ and incomplete observation intervals remain partial. A restart never fills in
 missing usage. Key rotations or changed measurement contracts can require new,
 separate comparisons rather than a forced merge.
 
-Security maintenance covers the current `0.3.x` release line, not a production SLA.
 See [SECURITY.md](../SECURITY.md) for supported versions and confidential reporting.

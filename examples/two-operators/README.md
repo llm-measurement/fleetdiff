@@ -10,9 +10,8 @@ This example runs two instances of the released `otelcol-genai-sketches 0.1.0`
 image. Each receives its own synthetic OTLP/HTTP fixture. They have separate state
 and private export directories. Only their summary files enter fleetdiff.
 
-It exercises the real receiver, connector, file exporter, and fleetdiff comparison.
-It is not a captured SDK integration, a provider compatibility certification, or
-evidence that two external organizations have tried the software.
+It exercises the real receiver, connector, file exporter, and fleetdiff comparison
+using controlled synthetic traffic.
 
 ## Run Locally
 
@@ -66,7 +65,7 @@ Looking only at the owned system, reported tokens fall from 800 to 360. The
 partner's tokens rise from 400 to 1,440. Bringing the partner's export into the
 comparison changes the answer: the combined scope rises by 600 tokens. This is
 why another operator's participation is useful, even when each system already has
-its own dashboard. It is not evidence of a population-wide network effect.
+its own dashboard.
 
 | Measurement | Before | After |
 |---|---:|---:|
@@ -97,10 +96,9 @@ aliases, not the planted tool names or errors. The harness alone checks identiti
 The walkthrough asks five questions: did reported usage fall, did model activity
 rise with flat runs, did more resources appear, did error signatures increase, and
 is a system missing? The answer is **reported work moved and grew**. Two requests
-still lack usage in each window, though their share falls from 2/6 to 2/10. These
-measurements do not establish total spending, wasted work, answer quality,
-complete instrumentation, or invoice accuracy. Cache and reasoning subsets are
-not counted twice.
+still lack usage in each window, though their share falls from 2/6 to 2/10.
+Cache and reasoning tokens remain subsets of the input and output totals.
+See [Reading The Results](../../README.md#reading-the-results) for interpretation.
 
 The [shared recipe](../internal/scenario/research.json) drives both demo paths.
 A Docker-free test independently derives its answers from the generated spans;
@@ -113,8 +111,7 @@ specialists are nested. An owned client invocation and its partner-side child
 share trace context, but have different span IDs. Each span goes to exactly one
 collector. The model requests are also disjoint, so no event is counted twice.
 
-This is one synthetic representation, not tested framework compatibility or a
-standard agent task denominator. The released collector counts `agent_runs` only
+In this scenario, the released collector counts `agent_runs` only
 for parentless `invoke_agent` spans. Agents under an HTTP request or workflow
 parent count zero; lost trace context can inflate the count. Shared trace IDs do
 not authenticate operators or deduplicate independently recorded work. See the
@@ -165,12 +162,10 @@ unchanged. No prompts, user IDs, document IDs, MCP resource URIs, or hashing sec
 are copied into that handoff. The inputs are synthetic, but the privacy check also
 scans decoded sketch bytes rather than just searching base64-encoded JSON.
 
-Summary metadata is cleartext; hashes are pseudonymous and linkable. Aggregates
-can still reveal sensitive activity. Use an approved, authenticated transfer and
-access controls when applying the pattern to real data. A valid file does not prove
-the sender's identity, that the hashing secrets really match, or that event streams
-are disjoint. Do not transfer the entire output directory: it includes private
-diagnostics and intentionally altered counterexamples.
+Use an approved, authenticated transfer and access controls for real data; see
+[export privacy](../../docs/FAQ.md#are-exports-and-reports-safe-to-share) and
+[Safe Use](../../SECURITY.md#safe-use). Transfer only the `handoff` directory.
+The rest of the output includes private diagnostics and altered counterexamples.
 
 Each collector gets a fresh per-run key and key-version ID through its environment.
 Exports from different demo runs therefore reject comparison. The same key is
@@ -181,7 +176,7 @@ rotation in a real deployment. fleetdiff does not need the key to compare export
 Containers have read-only root filesystems, no Linux capabilities, private writable
 summary mounts, and CPU/memory limits. Ports are bound to host loopback. The Docker
 network is a normal bridge, not an outbound firewall; no external exporter is
-configured. This is a local fixture runner, not a production security configuration.
+configured. For production execution, follow [Operations](../../docs/OPERATIONS.md).
 
 Metric slice values are allowed cleartext values. The fixtures use non-sensitive
 model labels and force label overflow. Raw-field sentinels belong in hashed

@@ -109,7 +109,7 @@ func TestInvestigationNamesModelAttempts(t *testing.T) {
 	if Run(args, &out, &errout) != 0 {
 		t.Fatal(errout.String())
 	}
-	for _, want := range []string{"Model attempts: 2 -> 3", "Tokens per attempt: 100.00 -> 200.00", "Attempt-count contribution: +150.00 tokens"} {
+	for _, want := range []string{"model attempts: 2 -> 3", "Tokens per attempt: 100.00 -> 200.00", "+150.00 tokens from attempt count"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("missing %q in report: %s", want, out.String())
 		}

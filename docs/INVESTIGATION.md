@@ -49,35 +49,30 @@ tokens-per-request contribution = (A1 - A0) * (N1 + N0) / 2
 ```
 
 The two contributions sum to the token change, up to floating-point rounding.
-Neither is causal attribution or evidence of useful work. Exact integer counters
-remain in `evidence`. Cache and reasoning subsets are never added again.
+Exact integer counters remain in `evidence`. Cache and reasoning tokens stay
+within their input/output totals.
 
-An attempt is a matching exported model span, including a failure or retry. It
-is not a unique user request or proof the provider received it. Text reports use
-"model attempts" in v0.3.0 (v0.2.0 prints "Requests"); JSON v1 retains
+An attempt is a matching exported model span, including a failure or retry.
+Text reports use "model attempts" in v0.3.0 (v0.2.0 prints "Requests"); JSON v1 retains
 `requests`, `before_requests`, and the other request-named fields for compatibility.
 Their meaning and arithmetic are unchanged.
 
 If either usage field is missing, the existing summary cannot isolate the token
 total from requests with both fields. Dividing by the complete-request count
 would mix populations. The question therefore returns `cannot_determine`, while
-retaining recorded totals and missingness. Complete upstream sampling/delivery
-and provider-reported versus locally inferred usage cannot be verified here.
+retaining recorded totals and missingness.
 
 Rising attempts, falling recorded tokens per attempt, and rising missing usage
-can suggest failures or retries worth investigating. Instrumentation loss can
-look similar. This is not automatic retry-storm or runaway-agent detection, and
-it does not override the refusal to split volume when usage is missing.
+can suggest failures or retries worth investigating. Check traces and
+instrumentation coverage to distinguish them; the volume split requires complete
+usage.
 
 ## Contributors
 
 ID `contributors`. Uses the existing `top_prompts` candidate union and integer
-frequency bounds. Shares are relative to each sketch's recorded configured
-weight, not all application tokens. A zero denominator produces an absent share,
-not zero. Displayed percentages are rounded; exact counts and denominators remain
-in `evidence.concentration`. Display truncation and missing prompt keys can hide
-contributors. Ordering does not prove true top-k membership. There is no entropy,
-majorization test, or general recovery of previously unknown changed keys.
+frequency bounds. Shares use each sketch's recorded configured weight.
+Displayed percentages are rounded; exact counts and denominators remain in
+`evidence.concentration`. Increase `--top` to show more tracked candidates.
 
 ## User And Session Contributors
 
@@ -93,15 +88,12 @@ attribution; `sessions` carries session attribution. `contributors` also accepts
 Each new contributor includes `measurement`, `weight_unit`, integer `before`,
 `after`, and `delta` bounds, and available `before_share`/`after_share` bounds.
 Use the measurement name with the item alias: aliases are local to each sketch
-in this comparison, not durable cross-report identities. Session candidates
-meeting the review rule carry `flag: "runaway_candidate"`; despite that label,
-the flag is not a diagnosis.
+in this comparison. Session candidates meeting the review rule print
+`flagged for review`; JSON retains `flag: "runaway_candidate"`.
 
 Shares divide each item's bounds by its own window's recorded sketch weight.
-They are not necessarily shares of all application tokens or attempts: missing
-keys, missing usage, partial collection, and display truncation can hide activity.
-A zero recorded weight gives no share, not a zero share. Hashes remain hidden
-unless `--show-hashes` is supplied; aliases do not recover identities.
+Token and request weights have separate denominators. A zero recorded weight
+gives an absent share. Hashes remain hidden unless `--show-hashes` is supplied.
 
 Session review flags use the **after-window share lower bound strictly greater
 than** `--flag-share`, which defaults to `0.25` (25%). A lower bound equal to 25%,
@@ -116,28 +108,24 @@ from `0` through `1`, for example:
 bin/fleetdiff investigate --before before/ --after after/ --expected app --flag-share 0.40
 ```
 
-This identifies recorded concentration worth reviewing, not a runaway session,
-retry loop, or cause of a token increase. No flag is not proof that every session
-is below the threshold. Inspect coverage and omitted candidates too. Token and
-request shares have different denominators and must not be conflated.
+Use flags to choose sessions for trace inspection. Check coverage and omitted
+candidates alongside the visible rows.
 
 When a known optional sketch is absent from any snapshot, it is omitted across
 both windows and named in `evidence.dropped_measurements`. Attribution present
 only in one window is unknown, not a newly appearing zero-to-positive user or
 session. Present but incompatible contracts remain errors.
 
-ID `sessions` returns `cannot_determine` without session-weight attribution:
-distinct MCP sessions and prompt signatures alone do not associate model tokens
-with a conversation or run. The checked-in single-app examples lack session
-sketches. Released v0.2.0 always gives this unknown answer for sessions and does
-not recognize `--flag-share`.
+ID `sessions` needs session-weight attribution linking model activity to a session.
+Try `sh examples/investigate.sh --sessions` for a complete synthetic example.
+The basic single-app fixture leaves that question open; v0.2.0 predates these
+rankings and `--flag-share`.
 
 ## Coverage
 
 ID `coverage` distinguishes complete declared intervals and present token fields
-from partial or unknown evidence. Even complete intervals do not establish
-unsampled delivery, authenticated producer identity, disjoint source traffic,
-or a truthful accounting declaration. The existing comparison contract applies.
+from partial or unknown evidence. The text report prints coverage once; JSON
+retains each question's status and the underlying counters.
 
 Use `--allow-partial` to inspect an incomplete observed subset, not to bypass
 incompatible accounting or keys. Default reports omit raw metadata and hashes;
@@ -152,5 +140,23 @@ For mixed old/new inputs, fleetdiff supplies unknown observations in memory whil
 preserving files, accounting fingerprints, and compatibility checks.
 
 The collector excludes explicitly unavailable fields and marks those attempts
-missing. Origin is an instrumenter declaration; gateways can still fill unknown
-fields with zeros or estimates. Use provider records for billing reconciliation.
+missing. The text report collects unanswered questions into a closing guidance
+line naming the additional measurements needed.
+
+## What The Numbers Mean
+
+- Shares cover weight attributed to each configured key. Missing keys, partial
+  collection, and display truncation can hide activity; a zero denominator gives
+  an unknown share. Tracked candidates describe the head of the distribution,
+  not every key or a guaranteed rank ordering.
+- A review flag identifies concentration above the chosen lower-bound threshold,
+  not proof of a loop. Unflagged or undisplayed sessions still warrant attention
+  when coverage is incomplete. Use traces to investigate causes.
+- Model attempts include exported failures and retries, not unique user requests
+  or proof of provider receipt. Complete declared intervals do not establish
+  complete upstream delivery. Usage origin is an instrumenter declaration;
+  undeclared counts may include gateway zeros or estimates.
+- Aliases belong to one measurement in one comparison. For sharing and producer
+  trust, see [export privacy](FAQ.md#are-exports-and-reports-safe-to-share) and
+  [Safe Use](../SECURITY.md#safe-use). For missing data, billing, and causality,
+  see [Reading The Results](../README.md#reading-the-results).

@@ -60,10 +60,9 @@ supported-version policy. Do not replace immutable tags
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-No signing keys are stored in the repository. The workflow uses GitHub OIDC and
-short-lived signing identity. This does not prove the program has no defects or
-that a compromised authorized maintainer could not release malicious code.
+The workflow uses GitHub OIDC and a short-lived signing identity. Repository and
+workflow permissions control who can publish; review those alongside provenance.
 
 Before accepting external security reports, enable GitHub private vulnerability
 reporting and test the link in SECURITY.md. Confirm the contact and supported
-version policy. A release is not an enterprise certification or support SLA.
+version policy.

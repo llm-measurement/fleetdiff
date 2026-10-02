@@ -158,7 +158,7 @@ func TestTopKRequestInvestigationCLI(t *testing.T) {
 				t.Fatal("private metadata leaked")
 			}
 			if tc.format == "text" {
-				for _, want := range []string{"Which sessions need investigation? [observed]", "runaway candidate", "count [1, 1] -> [8, 8]; delta [+7, +7]", "attributed-model-attempts", "Check Observed coverage below"} {
+				for _, want := range []string{"Which sessions need investigation?", "flagged for review", "1 -> 8", "top_sessions_requests", "Coverage (before -> after):"} {
 					if !strings.Contains(out.String(), want) {
 						t.Fatalf("missing %q: %s", want, out.String())
 					}

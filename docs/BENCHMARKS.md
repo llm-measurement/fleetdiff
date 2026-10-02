@@ -1,12 +1,13 @@
 # Input Resource Measurements
 
-Date: 2026-09-30. These are synthetic sizing checks, not workload-independent
-latency guarantees, a throughput benchmark, or evidence of business savings.
-They were run from a clean clone of published tag
+On one Apple M4 Max, synthetic inputs near the size limits compared in 29 ms to
+4.708 s, with at most 136.5 MiB peak memory. Commands to reproduce follow below.
+
+Measured on 2026-09-30 from a clean clone of published tag
 [`v0.2.0`](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.2.0),
 using the [checked-in resource tests](https://github.com/llm-measurement/fleetdiff/blob/84a621f80d423aeb8a379a3d978620746edd3efb/internal/compare/resource_test.go).
 The [complete test output](benchmarks/v0.2.0-2026-09-30.txt) accompanies these results.
-This measures that release, not the v0.3.0 contributor features.
+These results describe v0.2.0; the v0.3.0 contributor features need a separate run.
 
 ## Environment
 
@@ -37,7 +38,6 @@ measurements have unrecognized names on purpose: undisplayed data is still
 validated and combined. The counter-only case contains four cumulative snapshots
 per producer; later snapshots replace earlier ones. Every run produced a complete
 valid report. The largest observed RSS was 136.5 MiB; the longest run was 4.708 s.
-Do not treat either as a worst-case ceiling over all valid or malformed inputs.
 
 A separate malformed-state case encoded 200,000 repeated protobuf frequent-item
 entries in a 3,467,295-byte JSON file. One fresh process rejected it in 144 ms,
@@ -72,9 +72,8 @@ inputs at or below the documented limits and measure your own mix.
 
 ## Scope
 
-All measured valid-input processes succeeded. The malformed-input process failed
-as expected without emitting a report. These are local macOS ARM64 measurements
-of a source-built binary, not downloaded release archives or Linux/container
-performance. This rerun did not exercise other operating systems, architectures,
-or hosted CI. See [Operations](OPERATIONS.md) for deployment restrictions and
-the separate release-verification procedure.
+All measured valid-input processes succeeded; the malformed input was rejected
+before report output. Results cover a source-built macOS ARM64 binary on the
+machine above. They are sizing observations, not worst-case ceilings or predictions
+for other workloads and platforms. See [Operations](OPERATIONS.md) for deployment
+and release verification.

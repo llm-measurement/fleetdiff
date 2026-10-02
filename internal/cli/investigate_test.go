@@ -28,15 +28,19 @@ func TestSessionsDemo(t *testing.T) {
 			}
 		}
 		if format == "text" {
-			if !strings.HasPrefix(out.String(), "1 of 8 tracked sessions flagged: 90.91% of attributed tokens.\n") {
+			if !strings.HasPrefix(out.String(), "1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.\n") {
 				t.Fatal("session result must lead the report", out.String())
 			}
-			for _, want := range []string{"Reported tokens: 400 -> 3300", "Model attempts: 4 -> 13",
-				"+1592.31 tokens", "+1307.69 tokens", "[90.91%, 90.91%]; runaway candidate",
-				"Were these counts reported by the provider? [cannot_determine]"} {
+			for _, want := range []string{"Reported tokens: 400 -> 3300", "model attempts: 4 -> 13",
+				"+1592.31 tokens", "+1307.69 tokens", "0 -> 3000", "flagged for review",
+				"More answers with more data: enable usage provenance"} {
 				if !strings.Contains(out.String(), want) {
 					t.Fatalf("missing %q in report", want)
 				}
+			}
+			if strings.Contains(out.String(), "cannot_determine") || strings.Contains(out.String(), "runaway candidate") ||
+				strings.Count(out.String(), "Shares use") != 1 || strings.Count(out.String(), "Reported tokens:") != 1 {
+				t.Fatal("text report repeats details or exposes JSON-only wording", out.String())
 			}
 			continue
 		}
@@ -120,12 +124,16 @@ func TestSingleAppAndTwoStackInvestigation(t *testing.T) {
 				t.Fatal("private fixture content in report")
 			}
 			if format == "text" {
-				if !strings.Contains(out.String(), "What changed in my agent app?") || !strings.Contains(out.String(), "cannot_determine") {
+				if strings.Contains(out.String(), "cannot_determine") || strings.Count(out.String(), "More answers with more data:") != 1 ||
+					!strings.Contains(out.String(), "session_key topk_keys") || !strings.Contains(out.String(), "user_key topk_keys") {
 					t.Fatal(out.String())
 				}
 				if mode == "missing-usage" {
 					if !strings.HasPrefix(out.String(), "Token-change breakdown unavailable.") {
 						t.Fatal("missing usage must be visible in the headline")
+					}
+					if !strings.Contains(out.String(), "complete producer and usage coverage") {
+						t.Fatal("missing usage needs an actionable closing hint")
 					}
 				} else if !strings.HasPrefix(out.String(), "Reported tokens: 200 -> 600 (+400); model attempts: 2 -> 3.") {
 					t.Fatal("volume result must lead the report")

@@ -21,8 +21,7 @@ func investigationHeadline(r compare.Investigation) string {
 			{"top_sessions", "tokens"}, {"top_sessions_requests", "model attempts"},
 		} {
 			tracked, flagged := 0, 0
-			var leading *compare.Share
-			ranged := false
+			var leading *compare.Contributor
 			for _, c := range q.Contributors {
 				if c.Measurement != measurement.name {
 					continue
@@ -30,9 +29,8 @@ func investigationHeadline(r compare.Investigation) string {
 				tracked++
 				if c.Flag == "runaway_candidate" && c.AfterShare != nil {
 					flagged++
-					if leading == nil || c.AfterShare.Lower > leading.Lower {
-						leading = c.AfterShare
-						ranged = leading.Lower != leading.Upper || c.After != nil && c.After.Lower != c.After.Upper
+					if leading == nil || c.AfterShare.Lower > leading.AfterShare.Lower {
+						leading = &c
 					}
 				}
 			}
@@ -45,21 +43,12 @@ func investigationHeadline(r compare.Investigation) string {
 					population = "shown"
 				}
 			}
-			percent := fmt.Sprintf("%.2f%%", leading.Lower*100)
-			if ranged {
-				// Round interval endpoints outward so display preserves the bounds.
-				lower, upper := leading.Lower*10000, leading.Upper*10000
-				if leading.Lower == leading.Upper {
-					lower = math.Nextafter(lower, math.Inf(-1))
-					upper = math.Nextafter(upper, math.Inf(1))
-				}
-				percent = fmt.Sprintf("[%.2f%%, %.2f%%]", max(0, math.Floor(lower)/100), min(100, math.Ceil(upper)/100))
-			}
+			percent := shareText(leading.AfterShare, leading.After)
 			label := ": "
 			if flagged > 1 {
 				label = "; one flagged session: "
 			}
-			return fmt.Sprintf("%d of %d %s sessions flagged%s%s of attributed %s.", flagged, tracked, population, label, percent, measurement.unit)
+			return fmt.Sprintf("%d of %d %s sessions flagged for review%s%s of attributed %s.", flagged, tracked, population, label, percent, measurement.unit)
 		}
 	}
 	for _, q := range r.Questions {
@@ -75,4 +64,20 @@ func investigationHeadline(r compare.Investigation) string {
 		}
 	}
 	return "Comparison ready. See observed coverage below."
+}
+
+func shareText(s *compare.Share, bounds *compare.Interval) string {
+	if s == nil {
+		return "unknown"
+	}
+	if s.Lower == s.Upper && (bounds == nil || bounds.Lower == bounds.Upper) {
+		return fmt.Sprintf("%.2f%%", s.Lower*100)
+	}
+	// Preserve integer uncertainty even when floating-point shares coincide.
+	lower, upper := s.Lower*10000, s.Upper*10000
+	if s.Lower == s.Upper {
+		lower = math.Nextafter(lower, math.Inf(-1))
+		upper = math.Nextafter(upper, math.Inf(1))
+	}
+	return fmt.Sprintf("[%.2f%%, %.2f%%]", max(0, math.Floor(lower)/100), min(100, math.Ceil(upper)/100))
 }

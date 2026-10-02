@@ -32,16 +32,16 @@ func buildVersion(info *debug.BuildInfo) string {
 	return info.Main.Version
 }
 
-const help = `fleetdiff compares local agent-fleet measurements. It does not enforce policy.
+const help = `fleetdiff shows what changed between two windows of agent measurements.
+Local and read-only.
 
 Usage:
   fleetdiff investigate --before PATH --after PATH --expected PRODUCER[,PRODUCER] [options]
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
 PATH is one canonical summary JSON file or a directory of summary JSON files.
-Expected producers are the producer_id values configured by your summary collectors,
-not application, model, user, or session IDs. Supply them from trusted inventory;
-they must observe disjoint requests.
+Expected producers are the producer_id values configured by your summary collectors.
+Supply them from trusted inventory; they must observe disjoint requests.
 Names in the report are aliases; producer-N refers to the sorted expected list.
 
 Options:
@@ -55,8 +55,7 @@ Options:
   --help                    Show this help
   --version                 Print version, revision, Go toolchain, and platform
 
-No account, network access, or hashing secret is needed.
-No files are modified. Default output omits paths, producer metadata, and hashes.
+Runs offline using local summary files. Default output uses aliases for identities.
 Exit status: 0 report/help, 1 input/comparison/output error, 2 invalid command/options.
 `
 
@@ -149,7 +148,7 @@ func Run(args []string, out, errout io.Writer) int {
 				return fail(1, "cannot encode investigation")
 			}
 		} else {
-			renderInvestigation(&buffer, investigation)
+			renderInvestigation(&buffer, investigation, flagShare)
 		}
 		if _, err := io.Copy(out, &buffer); err != nil {
 			return fail(1, "cannot write investigation")
@@ -173,68 +172,6 @@ func Run(args []string, out, errout io.Writer) int {
 		return fail(1, "cannot write comparison")
 	}
 	return 0
-}
-
-func renderInvestigation(out io.Writer, r compare.Investigation) {
-	fmt.Fprintln(out, investigationHeadline(r))
-	fmt.Fprintln(out, "\nWhat changed in my agent app?")
-	for _, q := range r.Questions {
-		answer := q.Answer
-		if q.ID == "coverage" {
-			answer = strings.ReplaceAll(answer, "Check evidence.before and evidence.after", "Check Observed coverage below")
-		}
-		answer = strings.ReplaceAll(answer, "see evidence.concentration for integer counts", "use --format json for integer counts")
-		fmt.Fprintf(out, "\n%s [%s]\n", q.Question, q.Status)
-		if v := q.Volume; v != nil {
-			fmt.Fprintf(out, "  Reported tokens: %d -> %d\n  Model attempts: %d -> %d\n  Tokens per attempt: %.2f -> %.2f\n", v.BeforeTokens, v.AfterTokens, v.BeforeRequests, v.AfterRequests, v.BeforeAverage, v.AfterAverage)
-			fmt.Fprintf(out, "  Attempt-count contribution: %+.2f tokens\n  Tokens-per-attempt contribution: %+.2f tokens\n", v.RequestContribution, v.TokensPerRequestContribution)
-		}
-		for _, c := range q.Contributors {
-			fmt.Fprintf(out, "  %s", c.Item)
-			if c.Hash != "" {
-				fmt.Fprintf(out, " (%s)", c.Hash)
-			}
-			if c.Measurement != "" {
-				fmt.Fprintf(out, " [%s; %s]", c.Measurement, c.WeightUnit)
-			}
-			if c.Before != nil && c.After != nil && c.Delta != nil {
-				fmt.Fprintf(out, "; count [%d, %d] -> [%d, %d]; delta [%+d, %+d]", c.Before.Lower, c.Before.Upper, c.After.Lower, c.After.Upper, c.Delta.Lower, c.Delta.Upper)
-			}
-			for _, p := range []struct {
-				name string
-				s    *compare.Share
-			}{{"before", c.BeforeShare}, {"after", c.AfterShare}} {
-				if p.s == nil {
-					fmt.Fprintf(out, "; %s share undefined", p.name)
-				} else {
-					fmt.Fprintf(out, "; %s share [%.2f%%, %.2f%%]", p.name, p.s.Lower*100, p.s.Upper*100)
-				}
-			}
-			if c.Flag != "" {
-				fmt.Fprintf(out, "; %s", strings.ReplaceAll(c.Flag, "_", " "))
-			}
-			fmt.Fprintln(out)
-		}
-		fmt.Fprintln(out, answer)
-	}
-	fmt.Fprintln(out, "\nObserved coverage (before -> after)")
-	var input, output *compare.Counter
-	for i := range r.Evidence.Counters {
-		switch r.Evidence.Counters[i].Name {
-		case "input_tokens":
-			input = &r.Evidence.Counters[i]
-		case "output_tokens":
-			output = &r.Evidence.Counters[i]
-		}
-	}
-	if input != nil && output != nil {
-		fmt.Fprintf(out, "  Recorded input + output tokens: %d -> %d\n", input.Before+output.Before, input.After+output.After)
-	}
-	if a, b := r.Evidence.Before.Usage, r.Evidence.After.Usage; a != nil && b != nil {
-		fmt.Fprintf(out, "  Model attempts with both usage fields: %d/%d -> %d/%d\n", a.Complete, a.Requests, b.Complete, b.Requests)
-	}
-	fmt.Fprintf(out, "  Missing producers: %d -> %d; partial producers: %d -> %d\n", len(r.Evidence.Before.MissingProducers), len(r.Evidence.After.MissingProducers), len(r.Evidence.Before.PartialProducers), len(r.Evidence.After.PartialProducers))
-	fmt.Fprintln(out, "Use --format json for supporting counters and integer bounds, or compare for the full text report.")
 }
 
 func parseWindow(value string) (*int64, error) {

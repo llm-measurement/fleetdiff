@@ -13,8 +13,7 @@ after begins; durations and measurement settings must match.
 Only cumulative snapshots are accepted. Replays do not add counts. The highest
 sequence per producer/process epoch replaces earlier snapshots, subject to the
 summary contract's checks. Nonoverlapping restart epochs contribute separately;
-conflicts and overlapping epochs are rejected. Windows may be historical: this
-tool does not impose a wall-clock freshness cutoff or feed an automatic controller.
+conflicts and overlapping epochs are rejected. Historical windows are supported.
 
 The same explicit expected producer set applies to both windows. Missing sources
 and partial collection intervals require `--allow-partial`. That option permits an
@@ -47,7 +46,7 @@ Subtract endpoints to obtain the deterministic interval for observed weight chan
 
 An interval entirely above zero is `increased`; entirely below zero is `decreased`;
 exactly `[0,0]` is `unchanged`; all other intervals are `uncertain`. This direction
-concerns observed keyed weight, not population-wide statistical or causal change.
+describes observed keyed weight.
 
 A key outside the full candidate union has a change within
 `[-before.max_error, after.max_error]`. Keys omitted only by the display limit do
@@ -55,10 +54,8 @@ not inherit that smaller untracked bound. Sorting uses descending maximum absolu
 delta endpoint and then ascending hash for deterministic ties. Overlapping
 intervals do not establish true rank order.
 
-Different models' token counts are not normalized compute. Legacy `top_prompts`
-is usually token-weighted by the connector; the report preserves its generic
-`configured-weight` label for compatibility. It is not a billing ledger or
-invoice reconciliation.
+Legacy `top_prompts` is usually token-weighted by the connector; the report
+preserves its generic `configured-weight` label for compatibility.
 
 Release v0.3.0 also recognizes `top_users`, `top_sessions`,
 `top_users_requests`, and `top_sessions_requests`. The unsuffixed names follow
@@ -86,17 +83,14 @@ does not bypass scope, key, accounting, replay, or structural checks.
 
 ## Trust And Effects
 
-The runtime reads files and writes stdout/stderr only. It needs no hashing secret
-and performs no networking, remote lookup, policy decision, or enforcement.
-Use authenticated transport outside the command. Summary identity, key identity,
-accounting, and disjoint event ownership are declarations, not authenticated proof.
-Do not use untrusted metadata to grant authority.
+The runtime reads local files and writes stdout/stderr, offline and read-only.
+Transfer inputs through authenticated channels and follow
+[Safe Use](../SECURITY.md#safe-use) for producer and metadata trust.
 
 Metadata and arbitrary measurement names can contain sensitive data. The report
 uses reviewed names and generated aliases rather than reflecting input. Error
 messages do not quote command arguments, filenames, or malformed JSON. Opt-in
-hashes are pseudonyms, not recovered prompts. Frequency patterns may still be
-identifying; access-control inputs and reports appropriately.
+hashes follow the [export privacy rules](FAQ.md#are-exports-and-reports-safe-to-share).
 
 The input limits bound encoded bytes, file count, and directory entries, not a
 promise of constant CPU time or a measured maximum RSS. Parsing and canonical
@@ -130,6 +124,12 @@ Use each measurement's `name` rather than its array position. Aliases identify
 only this comparison; they are not durable cross-report entity IDs.
 
 The `complete_observation_intervals` boolean refers to the expected producer set
-and declared observation intervals, not the presence of every upstream event or
-token field. Check `token_coverage` separately. The report does not contain an
-authentication verdict or permission to enforce a policy.
+and declared observation intervals. Check `token_coverage` separately.
+
+## What The Numbers Mean
+
+Coverage describes supplied observations, not proof of complete upstream delivery.
+Token counts retain each model's units rather than normalized compute. Use
+[Reading The Results](../README.md#reading-the-results) for billing and causality
+and [Safe Use](../SECURITY.md#safe-use) for trust requirements before acting on
+any report.

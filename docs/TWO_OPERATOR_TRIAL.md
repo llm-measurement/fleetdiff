@@ -56,10 +56,6 @@ out of public issues unless authorized. The tool sends no trial telemetry.
 - [ ] Used the comparison again for a real investigation.
 - [ ] Asked another team or supplier for a compatible export.
 
-A successful example is not a production deployment. A colleague handoff is not
-an external customer trial. A request for another supplier's export is useful
-feedback, not an endorsement or proof of a network effect.
-
 ## Removal
 
 Stop the local example's containers and remove its output directory after reviewing

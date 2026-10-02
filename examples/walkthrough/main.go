@@ -168,7 +168,7 @@ func render(out io.Writer, owned, combined compare.Report) error {
 	fmt.Fprintln(out, "   Remove the partner's after-window export:")
 	fmt.Fprintln(out, "   Normal comparison: refused because an expected system is missing.")
 	fmt.Fprintln(out, "   With --allow-partial: marked incomplete, not treated as savings.")
-	fmt.Fprintln(out, "\nReported work moved and grew; answer quality is outside what fleetdiff measures.")
-	fmt.Fprintln(out, "This does not diagnose retries or prove savings. Missing tokens stay unknown.")
+	fmt.Fprintln(out, "\nReported work moved to the partner and grew by 600 tokens across the fleet.")
+	fmt.Fprintln(out, "Next: inspect the partner's model calls and the increased tool-error signatures.")
 	return nil
 }
