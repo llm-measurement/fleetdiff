@@ -1,9 +1,9 @@
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
-github.com/llm-measurement/llm-sketchkit v0.2.1 h1:tAlsNncGGaKVlkwcvFnOSn+mQrX9UfLnDQizZbOrIao=
-github.com/llm-measurement/llm-sketchkit v0.2.1/go.mod h1:FfKeuXT6lD9G4wv8Z5KBcHF+q+3odiJfo7mNDZpX52M=
-go.opentelemetry.io/proto/slim/otlp v1.11.0 h1:zB37f+f99+y6UIZR4h7UpwbXd5kFNyip35U7GaJ/Jik=
-go.opentelemetry.io/proto/slim/otlp v1.11.0/go.mod h1:mI3DeND+VXZuA4keqFPKDJ3BklwveYm1JqBcEWKDEOM=
+github.com/llm-measurement/llm-sketchkit v0.2.2 h1:MtDgc3Gy5Pjbst/ZXQe9YidOVlQ6+X+hbYnjFrtmf8k=
+github.com/llm-measurement/llm-sketchkit v0.2.2/go.mod h1:FfKeuXT6lD9G4wv8Z5KBcHF+q+3odiJfo7mNDZpX52M=
+go.opentelemetry.io/proto/slim/otlp v1.11.1 h1:qf2OA3kQcIDXh3q7b6kc0IzRe8BFXlVIlH5uaOACrVQ=
+go.opentelemetry.io/proto/slim/otlp v1.11.1/go.mod h1:15pWfj6/rYjQzyrC3ZGQoZ0rNgLqI/Lk+jFgYgV4UIE=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
 go.yaml.in/yaml/v3 v3.0.5/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
 golang.org/x/text v0.41.0 h1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=
