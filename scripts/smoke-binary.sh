@@ -7,6 +7,15 @@ binary=${1:?supply a built binary}
 report=$(mktemp)
 trap 'rm -f "$report"' EXIT HUP INT TERM
 "$binary" --version
+"$binary" inspect --format json testdata/inspect-contract/v1/litellm-normal-no-usage-stock.json > "$report"
+jq -e '.schema == "fleetdiff-inspect/v1" and
+    .metrics.gen_ai_sketch_requests_total == 1 and
+    .metrics.gen_ai_sketch_missing_token_usage_total == 0 and
+    .usage_provenance["input/unknown"] == 1' "$report" >/dev/null
+"$binary" inspect --format json testdata/inspect-contract/v1/litellm-normal-no-usage-provenance.json > "$report"
+jq -e '.metrics.gen_ai_sketch_requests_total == 1 and
+    .metrics.gen_ai_sketch_missing_token_usage_total == 1 and
+    .usage_provenance["input/unavailable"] == 1' "$report" >/dev/null
 "$binary" compare --before examples/two-systems/data/before \
   --after examples/two-systems/data/after --expected owned,partner --format json > "$report"
 test -s "$report"

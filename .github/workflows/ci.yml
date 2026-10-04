@@ -26,6 +26,21 @@ jobs:
           go-version: "1.26.8"
       - run: go test -race ./...
       - run: go vet ./...
+      - name: Offline capture accounting contract
+        run: |
+          (cd testdata/inspect-contract/v1 && shasum -a 256 -c SHA256SUMS)
+          go test ./internal/inspect -run '^TestInspectAccountingContract$' -count=1
+          sh examples/inspect.sh
+          sh examples/inspect.sh --provenance
+      - name: SDK, file-exporter, and LiteLLM capture recipes
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        run: |
+          go build -o bin/fleetdiff ./cmd/fleetdiff
+          python3 -m venv "$RUNNER_TEMP/capture-venv"
+          "$RUNNER_TEMP/capture-venv/bin/python" -m pip install -r examples/inspect/requirements.txt
+          FLEETDIFF_BIN="$PWD/bin/fleetdiff" FLEETDIFF_CAPTURE_DOCKER=1 \
+            "$RUNNER_TEMP/capture-venv/bin/python" -m unittest discover -s examples/inspect -p test_capture.py -v
       - name: One-command walkthrough
         run: sh examples/demo.sh
       - name: Single-application investigation and two-stack extension
@@ -39,6 +54,8 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/media-venv"
           "$RUNNER_TEMP/media-venv/bin/python" -m pip install -r docs/media/requirements.txt
           "$RUNNER_TEMP/media-venv/bin/python" -B -m unittest discover -s docs/media -p 'test_*.py'
+          "$RUNNER_TEMP/media-venv/bin/python" docs/media/sessions_gif.py --out "$RUNNER_TEMP/sessions-media"
+          cmp docs/media/sessions-transcript.txt "$RUNNER_TEMP/sessions-media/sessions-transcript.txt"
           go run ./examples/walkthrough -out "$RUNNER_TEMP/chart-reports"
           "$RUNNER_TEMP/media-venv/bin/python" docs/media/plot.py "$RUNNER_TEMP/chart-reports" --out "$RUNNER_TEMP/fleet-usage.png"
       - name: Example and reproducible fixtures
@@ -59,6 +76,7 @@ jobs:
         run: |
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10s -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10s -parallel 2
+          go test ./internal/inspect -run '^$' -fuzz '^FuzzTraceRecord$' -fuzztime 10s -parallel 2
       - name: Two operators through the released collector
         if: runner.os == 'Linux'
         timeout-minutes: 10

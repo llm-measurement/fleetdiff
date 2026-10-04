@@ -1,6 +1,6 @@
 # Operating fleetdiff
 
-fleetdiff is one local binary. It reads summary files and prints a report,
+fleetdiff is one local binary. It reads summary files (or OTLP captures with `inspect`) and prints a report,
 offline and unprivileged. All input and output stays on your machine.
 
 ## Install And Verify
@@ -164,6 +164,11 @@ retention and sharing policy to both exports and reports. `--show-hashes` is an
 explicit additional disclosure, not a harmless display preference.
 
 ## Limits And Sizing
+
+For `inspect`, use the [capture limits and privacy settings](INSPECT.md#limits).
+Raw trace captures are more sensitive than summaries. Protect them before running
+the command; use a fresh per-run key and default aliases for shared reports.
+The limits below apply to `compare` and `investigate`.
 
 Each side permits at most 512 JSON files, 1,024 directory entries, and 32 MiB of
 encoded input. One summary is limited to 8 MiB. Expected producers are limited

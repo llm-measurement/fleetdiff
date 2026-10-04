@@ -22,3 +22,11 @@ test -s "$work/report.json"
 jq -e '.version == 1 and .complete_observation_intervals == true and
     ([.counters[] | select(.name == "requests") | .after] == [10])' "$work/report.json" >/dev/null
 printf 'Restricted runtime passed: %s\n' "$platform"
+docker run --rm --platform "$platform" --network none --read-only --user 65532:65532 \
+  --cap-drop ALL --security-opt no-new-privileges --memory 256m --cpus 1 --pids-limit 64 \
+  --mount "type=bind,src=$(pwd)/testdata/inspect-contract/v1,dst=/data,readonly" \
+  "$image" inspect --format json /data/litellm-normal-no-usage-provenance.json > "$work/inspect.json"
+jq -e '.schema == "fleetdiff-inspect/v1" and
+    .metrics.gen_ai_sketch_requests_total == 1 and
+    .metrics.gen_ai_sketch_missing_token_usage_total == 1' "$work/inspect.json" >/dev/null
+printf 'Restricted offline inspection passed: %s\n' "$platform"

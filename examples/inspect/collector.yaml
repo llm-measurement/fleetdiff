@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 128
+    spike_limit_mib: 32
+exporters:
+  file/capture:
+    path: /capture/traces.jsonl
+    format: json
+    rotation:
+      max_megabytes: 4
+      max_backups: 1
+    flush_interval: 100ms
+service:
+  telemetry:
+    logs:
+      level: error
+    metrics:
+      level: none
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter]
+      exporters: [file/capture]

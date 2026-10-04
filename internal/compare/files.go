@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"syscall"
 
+	"github.com/llm-measurement/fleetdiff/internal/localfile"
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/summary"
 )
 
@@ -99,34 +99,5 @@ func ReadWindow(path string, selected *int64) ([]summary.Envelope, error) {
 }
 
 func readRegular(root *os.Root, name string, remaining int) ([]byte, error) {
-	info, err := root.Lstat(name)
-	if err != nil || !info.Mode().IsRegular() {
-		return nil, errors.New("expected a regular file, not a symlink or special file")
-	}
-	if info.Size() > summary.MaxBytes {
-		return nil, errors.New("summary exceeds 8 MiB")
-	}
-	if info.Size() > int64(remaining) {
-		return nil, errors.New("input exceeds 32 MiB")
-	}
-	// Nonblocking/no-follow protects the final component against a replacement
-	// with a FIFO or symlink between Lstat and open. Root confines traversal.
-	f, err := root.OpenFile(name, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
-	if err != nil {
-		return nil, errors.New("cannot open summary file")
-	}
-	defer f.Close()
-	current, err := f.Stat()
-	if err != nil || !current.Mode().IsRegular() || !os.SameFile(info, current) {
-		return nil, errors.New("summary file changed while opening")
-	}
-	limit := min(summary.MaxBytes, remaining)
-	data, err := io.ReadAll(io.LimitReader(f, int64(limit)+1))
-	if err != nil {
-		return nil, errors.New("cannot read summary file")
-	}
-	if len(data) > limit {
-		return nil, errors.New("summary or input size limit exceeded")
-	}
-	return data, nil
+	return localfile.Read(root, name, min(summary.MaxBytes, remaining))
 }

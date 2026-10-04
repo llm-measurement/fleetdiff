@@ -2,6 +2,10 @@
 
 **See what changed in your agent application, using summaries instead of raw traces.**
 
+![Sessions demo: one of eight tracked sessions is flagged for review, accounting for 90.91% of attributed tokens.](docs/media/sessions.gif)
+
+[Run this demo](examples/sessions/README.md) | [Read the transcript](docs/media/sessions-transcript.txt)
+
 Did token usage rise because you made more requests, or because each request
 used more tokens? Which tracked contributors changed? Is the comparison missing
 usage data? fleetdiff reads small summary files and answers locally. Start with
@@ -9,9 +13,10 @@ one application; combine compatible exports when you add workers or separately
 operated systems. Keep your existing trace backend. No account, upload, or model
 API key is needed.
 
-Inputs are summary exports from
+Comparison inputs are summary exports from
 [otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
 or [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit).
+The new `inspect` command checks a local OTLP capture before you set up summary export.
 
 ## Try It In A Minute
 
@@ -80,7 +85,43 @@ go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 The binary goes to `GOBIN`, or `$(go env GOPATH)/bin` when `GOBIN` is unset; add
 that directory to `PATH`.
 
+## Will It Work With My Traces?
+
+Check a short capture before deploying anything new:
+
+```sh
+sh examples/inspect.sh
+```
+
+The Go-only sample opens with:
+
+```text
+Your traces can fully answer 2 of 7 questions.
+```
+
+It shows which usage, user, prompt, and session questions your fields can answer,
+what to add next, and which attributes would be risky metric labels. Missing usage
+and unknown token origin stay visible. User and session rankings use aliases.
+
+**`inspect` is available from this checkout, not the v0.3.1 release binary.**
+Build it and inspect your own file, a capture directory, or stdin:
+
+```sh
+go build -o bin/fleetdiff ./cmd/fleetdiff
+bin/fleetdiff inspect ./traces.jsonl
+bin/fleetdiff inspect --format json --input-format json - < ./traces.jsonl
+```
+
+Start with one of the three [capture recipes](examples/inspect/README.md):
+a Collector file exporter, a Python SDK, or LiteLLM. They preserve your existing
+backend. Captures contain raw telemetry: keep them private and share the report
+instead. Inspection runs offline and writes no files.
+See [formats, accounting, and limits](docs/INSPECT.md).
+
 ## Using LiteLLM?
+
+Start with the [local capture recipe](examples/inspect/README.md#route-3-litellm-to-the-capture-collector)
+to check whether usage is present and whether its origin is declared.
 
 Did token usage jump after an application change? Send LiteLLM traces to the
 [collector recipe](https://github.com/llm-measurement/otelcol-genai-sketches/tree/main/examples/integrations/litellm),
@@ -125,6 +166,7 @@ shifted toward the partner and increased overall in this synthetic example.
 
 | Question | In the demo |
 |---|---|
+| Can my traces answer these questions? | `inspect`: field readiness, usage origin, per-field cardinality, and a next action |
 | More requests or more tokens per request? | Single-app report: +150 and +250 tokens respectively, with usage coverage shown |
 | Which tracked contributors changed? | Prompt-weight changes and attributed shares, with lower and upper bounds |
 | Which sessions have a high share worth investigating? | `--sessions`: one flagged candidate at `[90.91%, 90.91%]` |
@@ -238,6 +280,7 @@ Run the checks yourself with `go test -race ./...` and `go vet ./...`.
 - [FAQ](docs/FAQ.md): inputs, accuracy, privacy, and troubleshooting
 - [Comparison contract](docs/COMPARISON.md)
 - [Investigation questions and JSON API](docs/INVESTIGATION.md)
+- [Local trace inspection](docs/INSPECT.md) and [capture recipes](examples/inspect/README.md)
 - [Operations](docs/OPERATIONS.md): installation verification, offline use, and upgrades
 - [Resource measurements](docs/BENCHMARKS.md): sizing on one machine
 - [Security policy](SECURITY.md) · [Changelog](CHANGELOG.md) · [Releasing](docs/RELEASING.md)

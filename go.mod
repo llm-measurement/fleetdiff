@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/llm-measurement/llm-sketchkit v0.2.1
+	go.opentelemetry.io/proto/slim/otlp v1.11.0
 	google.golang.org/protobuf v1.36.12
 )
 

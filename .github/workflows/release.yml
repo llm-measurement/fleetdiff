@@ -56,6 +56,7 @@ jobs:
       - name: Complete checksums
         run: |
           jq -e 'any(.packages[]; .name == "github.com/llm-measurement/llm-sketchkit") and
+            any(.packages[]; .name == "go.opentelemetry.io/proto/slim/otlp") and
             any(.packages[]; .name == "google.golang.org/protobuf")' sbom.spdx.json >/dev/null
           mv sbom.spdx.json dist/
           cd dist
@@ -106,10 +107,10 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.8'
-      - name: Verify top-k answers from the packaged binary
+      - name: Verify top-k answers and inspection from the packaged binary
         env:
           FLEETDIFF_RELEASE_BINARY: ${{ github.workspace }}/unpacked/fleetdiff
-        run: go test ./internal/cli -run '^TestReleaseBinaryTopK$' -count=1 -v
+        run: go test ./internal/cli -run '^TestReleaseBinary(TopK|Inspect)$' -count=1 -v
       - name: Offline unprivileged runtime
         if: runner.os == 'Linux'
         env:

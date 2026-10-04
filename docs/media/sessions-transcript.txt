@@ -1,0 +1,43 @@
+Synthetic demo: 1 expected producer(s) per window (app).
+
+1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.
+Reported tokens: 400 -> 3300; model attempts: 4 -> 13.
+  +1592 tokens from attempt count; +1308 tokens from tokens per attempt.
+  Tokens per attempt: 100.00 -> 253.85.
+Coverage (before -> after): 4/4 -> 13/13 attempts with both usage fields; missing producers 0 -> 0; partial producers 0 -> 0.
+
+Which tracked prompt contributors changed?
+  key / measurement     before -> after  after share  review
+  item-1 / top_prompts  0 -> 3000        90.91%
+  item-2 / top_prompts  100 -> 0         0.00%
+  item-3 / top_prompts  100 -> 0         0.00%
+  item-4 / top_prompts  0 -> 100         3.03%
+  item-5 / top_prompts  100 -> 0         0.00%
+  item-6 / top_prompts  0 -> 100         3.03%
+  item-7 / top_prompts  100 -> 0         0.00%
+  item-8 / top_prompts  0 -> 100         3.03%
+
+Which sessions need investigation?
+  key / measurement         before -> after  after share  review
+  session-1 / top_sessions  0 -> 3000        90.91%       flagged for review
+  session-2 / top_sessions  0 -> 100         3.03%
+  session-3 / top_sessions  0 -> 100         3.03%
+  session-4 / top_sessions  0 -> 100         3.03%
+  session-5 / top_sessions  100 -> 0         0.00%
+  session-6 / top_sessions  100 -> 0         0.00%
+  session-7 / top_sessions  100 -> 0         0.00%
+  session-8 / top_sessions  100 -> 0         0.00%
+
+Which tracked users contribute tokens or model attempts?
+  key / measurement   before -> after  after share  review
+  user-1 / top_users  0 -> 3000        90.91%
+  user-2 / top_users  100 -> 0         0.00%
+  user-3 / top_users  100 -> 100       3.03%
+  user-4 / top_users  100 -> 100       3.03%
+  user-5 / top_users  100 -> 100       3.03%
+
+Notes
+  Shares use each sketch's attributed weight; activity without a key is excluded. Aliases are local to each measurement. Rows show tracked candidates up to --top.
+  Flags mark a share lower bound above 25% with complete relevant observations. Open the session's traces to see why.
+  Use --format json for integer bounds and all counters.
+More answers with more data: enable usage provenance to label provider-reported counts.

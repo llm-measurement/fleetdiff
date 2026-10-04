@@ -2,6 +2,24 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.4.0] - 2026-10-03
+
+See the [release notes](docs/releases/v0.4.0.md) for capture and upgrade instructions.
+
+- Add offline `inspect` for local OTLP JSON/JSONL, raw or framed protobuf, capture
+  directories, and stdin. Report field readiness, token coverage and origin,
+  distinct-value label risks, and user/session/prompt rankings with bounds.
+- Use fresh per-run hashing keys, default aliases, bounded inputs, and sanitized
+  errors. Reuse the collector's versioned accounting fixtures in both CI suites.
+- Add runnable Collector, Python SDK, and LiteLLM capture recipes and a Go-only
+  inspection demo. Verify inspection in packaged-binary and no-network smoke tests.
+- Leave existing summary formats and comparison/investigation JSON unchanged.
+- Add opt-in custom attribute names with terminal-safe text, actionable aliased
+  label guidance, readable question names, and compact exact ranking counts.
+  Keep usage measurements out of label review while preserving accounting checks.
+- Put the actual sessions demo at the top of the README as a small terminal GIF,
+  with a plain-text transcript and a CI check against live demo output.
+
 ## [0.3.1] - 2026-10-01
 
 See the [release notes](docs/releases/v0.3.1.md) for upgrade details.

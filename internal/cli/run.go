@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -36,6 +37,7 @@ const help = `fleetdiff shows what changed between two windows of agent measurem
 Local and read-only.
 
 Usage:
+  fleetdiff inspect [options] CAPTURE
   fleetdiff investigate --before PATH --after PATH --expected PRODUCER[,PRODUCER] [options]
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
@@ -55,12 +57,21 @@ Options:
   --help                    Show this help
   --version                 Print version, revision, Go toolchain, and platform
 
-Runs offline using local summary files. Default output uses aliases for identities.
+inspect reads local OTLP captures; run fleetdiff inspect --help for capture options.
+Runs offline using local files. Default output uses aliases for identities.
 Exit status: 0 report/help, 1 input/comparison/output error, 2 invalid command/options.
 `
 
 func Run(args []string, out, errout io.Writer) int {
+	return RunWithInput(args, os.Stdin, out, errout)
+}
+
+// RunWithInput makes stdin explicit for callers embedding the command.
+func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	fail := func(code int, message string) int { fmt.Fprintln(errout, message); return code }
+	if len(args) > 0 && args[0] == "inspect" {
+		return runInspect(args[1:], in, out, errout)
+	}
 	if len(args) == 1 && args[0] == "--version" {
 		info, _ := debug.ReadBuildInfo()
 		if _, err := fmt.Fprintf(out, "fleetdiff %s (%s) %s %s/%s\n", buildVersion(info), Revision, runtime.Version(), runtime.GOOS, runtime.GOARCH); err != nil {

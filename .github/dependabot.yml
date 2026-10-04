@@ -2,6 +2,12 @@
 # Code authors: Vijay and Codex
 version: 2
 updates:
+  - package-ecosystem: pip
+    directory: /examples/inspect
+    schedule: {interval: weekly}
+    groups:
+      capture-dependencies:
+        patterns: ["*"]
   - package-ecosystem: gomod
     directory: /
     schedule: {interval: weekly}

@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+opentelemetry-api==1.38.0
+opentelemetry-sdk==1.38.0
+opentelemetry-exporter-otlp-proto-common==1.38.0
+opentelemetry-proto==1.38.0
+opentelemetry-semantic-conventions==0.59b0
+protobuf==6.33.6
+importlib-metadata==8.7.1
+typing-extensions==4.16.0
+zipp==4.1.1

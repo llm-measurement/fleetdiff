@@ -2,7 +2,7 @@
 
 ## Where Do The Summary Files Come From?
 
-The current input is canonical `llm-sketchkit` summary v1 JSON. It contains counters,
+The input to `compare` and `investigate` is canonical `llm-sketchkit` summary v1 JSON. It contains counters,
 mergeable sketch state, and metadata describing the observation window and producer.
 Create those files through either supported integration:
 
@@ -14,6 +14,24 @@ Create those files through either supported integration:
 
 The [comparison contract](COMPARISON.md) lists supported measurement names. Unknown
 measurements are validated but omitted from the report, with an omitted count.
+
+## Can I Check Traces Before Setting Up Summary Export?
+
+Yes. The source-checkout `inspect` command reads OTLP JSON, JSON lines, or binary
+trace requests from local files or stdin. It reports which questions the capture
+can answer and how to fill gaps. It does not replay historical traces through a
+collector or turn them into comparison windows. See the [capture recipes](../examples/inspect/README.md).
+
+Inspection uses the collector's default accounting rules, checked against the
+same versioned fixtures in both repositories. Token counts with no provenance
+are unknown-origin, even when they are zero. Distinct-value estimates describe
+the capture, not all traffic or the total series count of a Prometheus deployment.
+
+Every run creates a fresh hashing key. `--secret-env NAME` can reuse a key, and
+`--show-hashes` can show pseudonymous hashes; neither is needed for a normal
+readiness report. Unknown attribute names get aliases; `--show-names` reveals
+names locally, never values. Names can themselves be sensitive, so use the default
+report for sharing. Keep raw captures private.
 
 ## Why Summaries Instead Of Raw Traces?
 
@@ -204,6 +222,8 @@ produce no report, although shell redirection may create an empty file first.
 ## What Are The File Limits?
 
 Only local regular files are accepted. Symlinks and special files are rejected.
+The following limits apply to summary comparisons; [inspection limits](INSPECT.md#limits)
+also bound records, spans, and attribute dimensions.
 Each side allows at most 1,024 directory entries, 512 JSON files, and 32 MiB of
 encoded input. Each file is limited to 8 MiB. Every JSON file is validated, including
 files outside an explicitly selected window. Validation completes before report

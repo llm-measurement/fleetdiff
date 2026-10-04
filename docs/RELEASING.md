@@ -26,13 +26,15 @@ also runs the offline/non-root smoke test. Dependency inventory alone is not a
 vulnerability verdict; the source reachability scan is a separate check.
 
 The native archive check also runs `TestReleaseBinaryTopK` against the unpacked
-executable. It checks user/session attribution, the strict share threshold,
-missing usage, absent older measurements, and hidden private metadata. To repeat
+executable. `TestReleaseBinaryInspect` checks stdin inspection, token accounting,
+label filtering, and opt-in name display. Together they check user/session attribution,
+the strict share threshold, missing usage, absent older measurements, and hidden
+private metadata. To repeat
 that check locally after verifying and extracting an archive:
 
 ```sh
 FLEETDIFF_RELEASE_BINARY=/path/to/fleetdiff go test ./internal/cli \
-  -run '^TestReleaseBinaryTopK$' -count=1 -v
+  -run '^TestReleaseBinary(TopK|Inspect)$' -count=1 -v
 ```
 
 For a release, use a clean reviewed commit, update the changelog, and create a

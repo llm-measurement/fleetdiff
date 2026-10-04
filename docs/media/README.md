@@ -1,5 +1,26 @@
 # Demo Chart And Walkthrough
 
+## Sessions GIF
+
+The README opens with [the sessions demo](sessions.gif). Its headline and table
+come directly from `sh examples/investigate.sh --sessions`, using the checked-in
+synthetic summary files. The animation pauses for readability, rather than showing
+execution speed. The [complete plain-text output](sessions-transcript.txt) is also
+available without animation.
+
+Refresh it from the repository root, using the Pillow environment below and Go:
+
+```sh
+.cache/media-venv/bin/python docs/media/sessions_gif.py
+.cache/media-venv/bin/python -B -m unittest discover -s docs/media -p 'test_*.py'
+```
+
+The renderer runs the actual demo and updates both files. It needs Menlo (macOS)
+or DejaVu Sans Mono (Linux); `--font` accepts another monospace font. It checks
+that the output fits and that a flagged session is present. No FFmpeg is needed.
+
+## Demo Chart
+
 ![Reported token usage by operator before and after the change](fleet-usage.png)
 
 The README chart is generated from the demo's `comparison.json` and
