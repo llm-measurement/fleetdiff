@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+from unittest import mock
 import urllib.error
 import urllib.request
 import uuid
@@ -122,15 +123,7 @@ def collector(output, encoding="json", isolated=False):
             return
         port = docker("port", container, "4318/tcp").rsplit(":", 1)[1]
         endpoint = f"http://127.0.0.1:{port}/v1/traces"
-        deadline = time.monotonic() + 15
-        while True:
-            try:
-                send(endpoint, b'{"resourceSpans":[]}')
-                break
-            except (urllib.error.URLError, TimeoutError, http.client.RemoteDisconnected):
-                if time.monotonic() > deadline:
-                    raise RuntimeError("capture collector did not start") from None
-                time.sleep(0.1)
+        wait_for_collector(endpoint)
         yield endpoint, network
     finally:
         if container:
@@ -147,6 +140,34 @@ def send(endpoint, data):
         result = json.loads(response.read())
         if result.get("partialSuccess", {}).get("rejectedSpans", "0") not in (0, "0"):
             raise ValueError("collector rejected synthetic spans")
+
+
+def wait_for_collector(endpoint, timeout=15):
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            send(endpoint, b'{"resourceSpans":[]}')
+            return
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.RemoteDisconnected):
+            if time.monotonic() >= deadline:
+                raise RuntimeError("capture collector did not start") from None
+            time.sleep(0.1)
+
+
+class CaptureReadinessTests(unittest.TestCase):
+    def test_startup_connection_reset_is_retried(self):
+        with mock.patch(__name__ + ".send", side_effect=[ConnectionResetError(), None]) as send_mock, mock.patch("time.sleep"):
+            wait_for_collector("http://127.0.0.1:14318/v1/traces")
+            self.assertEqual(send_mock.call_count, 2)
+
+    def test_probe_is_bounded_and_rejection_is_not_retried(self):
+        with mock.patch(__name__ + ".send", side_effect=ConnectionResetError()), mock.patch("time.monotonic", side_effect=[0, 2]):
+            with self.assertRaisesRegex(RuntimeError, "did not start"):
+                wait_for_collector("http://127.0.0.1:14318/v1/traces", timeout=1)
+        with mock.patch(__name__ + ".send", side_effect=ValueError("rejected")) as send_mock:
+            with self.assertRaisesRegex(ValueError, "rejected"):
+                wait_for_collector("http://127.0.0.1:14318/v1/traces")
+            send_mock.assert_called_once()
 
 
 class SDKCaptureTests(unittest.TestCase):
@@ -236,15 +257,7 @@ class DockerCaptureTests(unittest.TestCase):
             try:
                 self.assertIn("Capturing for", process.stdout.readline())
                 endpoint = "http://127.0.0.1:14318/v1/traces"
-                deadline = time.monotonic() + 2
-                while True:
-                    try:
-                        send(endpoint, b'{"resourceSpans":[]}')
-                        break
-                    except (urllib.error.URLError, TimeoutError, http.client.RemoteDisconnected):
-                        if time.monotonic() > deadline:
-                            raise
-                        time.sleep(0.1)
+                wait_for_collector(endpoint, timeout=2)
                 for line in sdk_file.read_bytes().splitlines():
                     send(endpoint, line)
                 _, errors = process.communicate(timeout=30)
