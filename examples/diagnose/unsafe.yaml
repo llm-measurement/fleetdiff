@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+# Synthetic CI failure: identity must not become a plaintext metric label.
+receivers:
+  otlp:
+    protocols:
+      grpc: {endpoint: "127.0.0.1:14317"}
+connectors:
+  genaisketch:
+    operation_filter: {llm_operations: [chat, invoke_agent, execute_tool]}
+    slices:
+      - {name: identity_label, keys: [enduser.id]}
+exporters:
+  prometheus: {endpoint: "127.0.0.1:18889"}
+service:
+  pipelines:
+    traces: {receivers: [otlp], exporters: [genaisketch]}
+    metrics: {receivers: [genaisketch], exporters: [prometheus]}

@@ -23,6 +23,29 @@ const MaxInputBytes = 32 << 20
 // ReadWindow reads one file or a bounded, nonrecursive directory of canonical
 // summary JSON. Diagnostics never copy paths, filenames, or input content.
 func ReadWindow(path string, selected *int64) ([]summary.Envelope, error) {
+	documents, err := ReadSeries(path)
+	if err != nil {
+		return nil, err
+	}
+	var window []summary.Envelope
+	for _, doc := range documents {
+		if selected != nil && doc.WindowStart != *selected {
+			continue
+		}
+		if len(window) > 0 && doc.WindowStart != window[0].WindowStart {
+			return nil, errors.New("input contains multiple windows; select a window explicitly")
+		}
+		window = append(window, doc)
+	}
+	if len(window) == 0 {
+		return nil, errors.New("no snapshots for the selected window; missing data is not zero")
+	}
+	return window, nil
+}
+
+// ReadSeries uses the same file and total-byte limits as a two-window input.
+// It validates every file, including snapshots not selected for a report.
+func ReadSeries(path string) ([]summary.Envelope, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return nil, errors.New("cannot inspect input path")
@@ -84,16 +107,7 @@ func ReadWindow(path string, selected *int64) ([]summary.Envelope, error) {
 		if err != nil {
 			return nil, fmt.Errorf("input file %d: invalid or noncanonical summary", i+1)
 		}
-		if selected != nil && doc.WindowStart != *selected {
-			continue
-		}
-		if len(documents) > 0 && doc.WindowStart != documents[0].WindowStart {
-			return nil, errors.New("input contains multiple windows; select a window explicitly")
-		}
 		documents = append(documents, doc)
-	}
-	if len(documents) == 0 {
-		return nil, errors.New("no snapshots for the selected window; missing data is not zero")
 	}
 	return documents, nil
 }

@@ -38,6 +38,8 @@ Local and read-only.
 
 Usage:
   fleetdiff inspect [options] CAPTURE
+  fleetdiff diagnose [options] CONFIG
+  fleetdiff scan [options] PATH --expected PRODUCER[,PRODUCER]
   fleetdiff investigate --before PATH --after PATH --expected PRODUCER[,PRODUCER] [options]
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
@@ -58,8 +60,10 @@ Options:
   --version                 Print version, revision, Go toolchain, and platform
 
 inspect reads local OTLP captures; run fleetdiff inspect --help for capture options.
+diagnose checks supported collector configuration; scan checks retained summary history.
 Runs offline using local files. Default output uses aliases for identities.
 Exit status: 0 report/help, 1 input/comparison/output error, 2 invalid command/options.
+diagnose and scan additionally use 3 for findings and 4 for unavailable evidence.
 `
 
 func Run(args []string, out, errout io.Writer) int {
@@ -71,6 +75,12 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	fail := func(code int, message string) int { fmt.Fprintln(errout, message); return code }
 	if len(args) > 0 && args[0] == "inspect" {
 		return runInspect(args[1:], in, out, errout)
+	}
+	if len(args) > 0 && args[0] == "diagnose" {
+		return runDiagnose(args[1:], in, out, errout)
+	}
+	if len(args) > 0 && args[0] == "scan" {
+		return runScan(args[1:], out, errout)
 	}
 	if len(args) == 1 && args[0] == "--version" {
 		info, _ := debug.ReadBuildInfo()

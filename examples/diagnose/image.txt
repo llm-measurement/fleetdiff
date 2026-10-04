@@ -1,0 +1,1 @@
+ghcr.io/llm-measurement/otelcol-genai-sketches@sha256:c7fef29869ada99345725cf8504c8bd265357f570a23f1344769d362e595211c

@@ -26,5 +26,7 @@ jobs:
         run: |
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 2m -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 2m -parallel 2
+          go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 2m -parallel 2
+          go test ./internal/diagnose -run '^$' -fuzz '^FuzzDiagnose$' -fuzztime 2m -parallel 2
           go test ./internal/inspect -run '^$' -fuzz '^FuzzTraceRecord$' -fuzztime 2m -parallel 2
       - run: go test -race ./...

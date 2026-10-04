@@ -5,6 +5,7 @@ package compare
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -51,7 +52,11 @@ func TestInvestigationUsageSource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			q := r.Questions[len(r.Questions)-1]
+			index := slices.IndexFunc(r.Questions, func(q Question) bool { return q.ID == "usage_source" })
+			if index < 0 {
+				t.Fatal("missing usage_source question")
+			}
+			q := r.Questions[index]
 			if q.ID != "usage_source" || q.Status != tc.status {
 				t.Fatal(q)
 			}
@@ -82,8 +87,9 @@ func TestLegacyProvenanceCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if q := r.Questions[len(r.Questions)-1]; q.Status != "cannot_determine" {
-		t.Fatal(q)
+	index := slices.IndexFunc(r.Questions, func(q Question) bool { return q.ID == "usage_source" })
+	if index < 0 || r.Questions[index].Status != "cannot_determine" {
+		t.Fatal("legacy provenance must remain unknown", r.Questions)
 	}
 	got, err := a[0].MarshalBinary()
 	if err != nil || !reflect.DeepEqual(original, got) {

@@ -1,5 +1,27 @@
 # Input Resource Measurements
 
+## Scan Engine (Source Checkout)
+
+On 2026-10-04, `BenchmarkScan30Windows` measured 30 already-decoded synthetic
+windows with ten user keys per window, a 24-window baseline, and two recent
+windows. The three runs took 1.629, 1.881, and 1.843 ms per scan. The slowest
+run was 1.881 ms; allocations were 7,105,415 to 7,105,841 bytes per scan and
+18,160 to 18,161 allocations. Allocated bytes are not peak resident memory.
+
+Environment: Apple M4 Max, 16 cores, 64 GiB RAM; macOS 27.0.1; Go 1.26.8,
+darwin/arm64, without race instrumentation. Fixture generation, file reading,
+JSON decoding, CLI startup, and report formatting are excluded. No CPU isolation
+or background-activity controls were applied; other local tests were running.
+This is an in-memory engine
+microbenchmark from the unreleased source checkout, not a release-binary latency
+or a bound for larger histories. Reproduce after building this checkout:
+
+```sh
+go test ./internal/compare -run '^$' -bench '^BenchmarkScan30Windows$' -benchmem -count=3
+```
+
+## Published Comparison Binary
+
 On one Apple M4 Max, synthetic inputs near the size limits compared in 29 ms to
 4.708 s, with at most 136.5 MiB peak memory. Commands to reproduce follow below.
 

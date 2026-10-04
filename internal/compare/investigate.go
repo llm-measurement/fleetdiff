@@ -27,6 +27,18 @@ type Question struct {
 	Answer       string        `json:"answer"`
 	Volume       *VolumeChange `json:"volume,omitempty"`
 	Contributors []Contributor `json:"contributors,omitempty"`
+	Cache        *CacheChange  `json:"cache,omitempty"`
+}
+
+type CacheChange struct {
+	BeforeInputTokens          uint64  `json:"before_input_tokens"`
+	AfterInputTokens           uint64  `json:"after_input_tokens"`
+	BeforeCacheReadInputTokens uint64  `json:"before_cache_read_input_tokens"`
+	AfterCacheReadInputTokens  uint64  `json:"after_cache_read_input_tokens"`
+	BeforeShare                float64 `json:"before_share"`
+	AfterShare                 float64 `json:"after_share"`
+	DeltaPercentagePoints      float64 `json:"delta_percentage_points"`
+	Direction                  string  `json:"direction"`
 }
 
 type VolumeChange struct {
@@ -135,7 +147,7 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 			break
 		}
 	}
-	return Investigation{Version: 1, Questions: []Question{volume, contributors, sessions, coverage, users, source}, Evidence: r}, nil
+	return Investigation{Version: 1, Questions: []Question{volume, contributors, sessions, coverage, users, source, cacheQuestion(r, before, after)}, Evidence: r}, nil
 }
 
 func attributionQuestion(q Question, r Report, names []string, tokenLimited bool, threshold *big.Rat) Question {

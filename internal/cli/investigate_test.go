@@ -32,14 +32,14 @@ func TestSessionsDemo(t *testing.T) {
 				t.Fatal("session result must lead the report", out.String())
 			}
 			for _, want := range []string{"Reported tokens: 400 -> 3300", "model attempts: 4 -> 13",
-				"+1592 tokens", "+1308 tokens", "0 -> 3000", "flagged for review",
-				"More answers with more data: enable usage provenance"} {
+				"+1592 tokens", "+1308 tokens", "0 -> 3000", "flagged for review"} {
 				if !strings.Contains(out.String(), want) {
 					t.Fatalf("missing %q in report", want)
 				}
 			}
 			if strings.Contains(out.String(), "cannot_determine") || strings.Contains(out.String(), "runaway candidate") ||
-				strings.Count(out.String(), "Shares use") != 1 || strings.Count(out.String(), "Reported tokens:") != 1 {
+				strings.Count(out.String(), "Shares use") != 1 || strings.Count(out.String(), "Reported tokens:") != 1 ||
+				strings.Contains(out.String(), "Turn on ") || strings.Contains(out.String(), "More answers with more data:") {
 				t.Fatal("text report repeats details or exposes JSON-only wording", out.String())
 			}
 			continue
@@ -124,16 +124,16 @@ func TestSingleAppAndTwoStackInvestigation(t *testing.T) {
 				t.Fatal("private fixture content in report")
 			}
 			if format == "text" {
-				if strings.Contains(out.String(), "cannot_determine") || strings.Count(out.String(), "More answers with more data:") != 1 ||
-					!strings.Contains(out.String(), "session_key topk_keys") || !strings.Contains(out.String(), "user_key topk_keys") {
+				if strings.Contains(out.String(), "cannot_determine") || strings.Contains(out.String(), "More answers with more data:") ||
+					strings.Count(out.String(), "Turn on user and session rankings (topk_keys) for more answers.") != 1 {
 					t.Fatal(out.String())
 				}
 				if mode == "missing-usage" {
 					if !strings.HasPrefix(out.String(), "Token-change breakdown unavailable.") {
 						t.Fatal("missing usage must be visible in the headline")
 					}
-					if !strings.Contains(out.String(), "complete producer and usage coverage") {
-						t.Fatal("missing usage needs an actionable closing hint")
+					if !strings.Contains(out.String(), "attempts with both usage fields") {
+						t.Fatal("missing usage coverage must remain visible")
 					}
 				} else if !strings.HasPrefix(out.String(), "Reported tokens: 200 -> 600 (+400); model attempts: 2 -> 3.") {
 					t.Fatal("volume result must lead the report")

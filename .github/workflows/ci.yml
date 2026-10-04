@@ -43,6 +43,24 @@ jobs:
             "$RUNNER_TEMP/capture-venv/bin/python" -m unittest discover -s examples/inspect -p test_capture.py -v
       - name: One-command walkthrough
         run: sh examples/demo.sh
+      - name: Cache, configuration, and unusual-window examples
+        run: |
+          sh examples/cache.sh
+          sh examples/diagnose.sh
+          sh examples/scan.sh
+          sh examples/scan.sh --quiet
+      - name: Validate the fixed shadow proposal with the released collector
+        if: runner.os == 'Linux'
+        run: |
+          go build -o bin/fleetdiff ./cmd/fleetdiff
+          bin/fleetdiff diagnose --shadow-config examples/diagnose/safe.yaml > "$RUNNER_TEMP/shadow.yaml"
+          chmod 644 "$RUNNER_TEMP/shadow.yaml"
+          image="$(cat examples/diagnose/image.txt)"
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            -e GENAI_SKETCH_SECRET=synthetic-validation-secret-at-least-32-bytes \
+            --mount "type=bind,src=$RUNNER_TEMP/shadow.yaml,dst=/shadow.yaml,readonly" \
+            "$image" validate --config=/shadow.yaml
       - name: Single-application investigation and two-stack extension
         run: |
           sh examples/investigate.sh
@@ -76,6 +94,8 @@ jobs:
         run: |
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10s -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10s -parallel 2
+          go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 10s -parallel 2
+          go test ./internal/diagnose -run '^$' -fuzz '^FuzzDiagnose$' -fuzztime 10s -parallel 2
           go test ./internal/inspect -run '^$' -fuzz '^FuzzTraceRecord$' -fuzztime 10s -parallel 2
       - name: Two operators through the released collector
         if: runner.os == 'Linux'

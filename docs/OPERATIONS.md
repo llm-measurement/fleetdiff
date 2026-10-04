@@ -170,6 +170,12 @@ Raw trace captures are more sensitive than summaries. Protect them before runnin
 the command; use a fresh per-run key and default aliases for shared reports.
 The limits below apply to `compare` and `investigate`.
 
+Source-checkout additions have separate guides: [diagnose](DIAGNOSE.md) bounds
+static YAML inspection; [scan](SCAN.md) applies the summary input budget to the
+whole history and also limits candidate comparisons. These commands are not in
+the published v0.4.0 binary. The optional [archive helper](SUMMARY_ARCHIVE.md)
+is a separate, explicitly writing process; fleetdiff itself stays read-only.
+
 Each side permits at most 512 JSON files, 1,024 directory entries, and 32 MiB of
 encoded input. One summary is limited to 8 MiB. Expected producers are limited
 to 128; summaries permit at most 16 sketch payloads and 128 counters. These are
@@ -205,6 +211,12 @@ your scheduler. Exit 0 means a report was written; 1 means an input, comparison,
 or write failure; 2 means invalid CLI options. Help and version also exit 0.
 Report generation validates everything before writing, but a failed stdout write
 can leave a prefix of the report. Never consume a file from a failed run.
+
+The source-checkout `diagnose` and `scan` commands additionally use exit 3 for
+findings and 4 for unavailable evidence. Treat 4, errors, and terminated processes
+as unknown, not healthy. `scan` uses stable finding IDs for external deduplication
+and keeps no alert state. Give its archive authenticated inputs, a private owner,
+an explicit retention policy, and a separate disk-space/freshness check.
 
 ## Upgrading And Rollback
 

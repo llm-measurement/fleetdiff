@@ -2,6 +2,23 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.5.0] - 2026-10-04
+
+See the [release notes](docs/releases/v0.5.0.md) for examples and upgrade details.
+
+- Compare recorded cached-input token shares in `investigate`, checking field
+  coverage, conflicts, subset validity, and observation completeness.
+- Add offline `diagnose` for the supported collector configuration and optional
+  shadow configuration output, with grouped findings, YAML paths, line numbers,
+  and known attribute names. JSON retains detailed checks and static limits.
+- Add `scan` over retained summary windows: robust preceding baselines,
+  coverage changes, bound-aware contributor and tool-error findings, persistence,
+  stable finding IDs, and distinct unusual/not-ready exit codes.
+- Add cache, diagnosis, and scan examples, a separate bounded archive helper,
+  and packaged-command checks on all four supported platforms.
+- Lead reports with compact answers, group scan findings by window, and show the
+  first and last baseline window starts separately from the checked windows.
+
 ## [0.4.0] - 2026-10-04
 
 See the [release notes](docs/releases/v0.4.0.md) for capture and upgrade instructions.

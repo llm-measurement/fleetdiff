@@ -117,6 +117,26 @@ backend. Captures contain raw telemetry: keep them private and share the report
 instead. Inspection runs offline and writes no files.
 See [formats, accounting, and limits](docs/INSPECT.md).
 
+## Set Up And Keep Watching
+
+The following additions are available **from this checkout**, not the v0.4.0
+release binary. Each example builds the current source:
+
+| Question | Try it |
+| --- | --- |
+| Did caching get worse after a change? | `sh examples/cache.sh`: compare cached input-token shares, with field coverage |
+| Is my collector configuration ready? | `sh examples/diagnose.sh`: find unsafe labels and check the supported configuration |
+| Which recent windows need attention? | `sh examples/scan.sh`: explain unusual usage, coverage, and contributor changes |
+
+Start with `inspect` on your own traces, use `diagnose` to review configuration,
+then `scan` retained windows and `investigate` a particular change. Keep your
+existing trace backend throughout. The commands run offline; the optional
+archive helper is a separate, explicitly file-writing step.
+
+See [cache comparison](docs/CACHE.md), [configuration diagnosis](docs/DIAGNOSE.md),
+and [scanning history](docs/SCAN.md). Unknown cache detail is not zero cache use;
+a coverage drop is not evidence of lower consumption.
+
 ## Using LiteLLM?
 
 Start with the [local capture recipe](examples/inspect/README.md#route-3-litellm-to-the-capture-collector)

@@ -77,3 +77,18 @@ func TestInvestigationHeadlinePreservesIntegerUncertainty(t *testing.T) {
 		t.Fatal("rounded shares hid integer uncertainty", got)
 	}
 }
+
+func TestCacheDoesNotChangeHeadlinePriority(t *testing.T) {
+	for _, q := range []compare.Question{
+		{ID: "volume", Status: "observed", Volume: &compare.VolumeChange{BeforeTokens: 100, AfterTokens: 200}},
+		{ID: "volume", Status: "cannot_determine", Answer: "Output usage is missing."},
+		{ID: "sessions", Status: "observed", Contributors: []compare.Contributor{{Measurement: "top_sessions", Flag: "runaway_candidate", AfterShare: &compare.Share{Lower: .8, Upper: .8}}}},
+	} {
+		r := compare.Investigation{Questions: []compare.Question{q}}
+		want := investigationHeadline(r)
+		r.Questions = append(r.Questions, compare.Question{ID: "cache", Status: "observed", Cache: &compare.CacheChange{BeforeShare: .8, AfterShare: .1, DeltaPercentagePoints: -70, Direction: "decreased"}})
+		if got := investigationHeadline(r); got != want {
+			t.Fatalf("cache changed headline from %q to %q", want, got)
+		}
+	}
+}

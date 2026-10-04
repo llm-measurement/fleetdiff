@@ -6,8 +6,10 @@ package cli
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/compare"
 )
@@ -15,7 +17,6 @@ import (
 func renderInvestigation(out io.Writer, r compare.Investigation, threshold float64) {
 	headline := investigationHeadline(r)
 	fmt.Fprintln(out, headline)
-	var more []string
 	volumeShown, attributed, flagged := false, false, false
 	for _, q := range r.Questions {
 		if v := q.Volume; v != nil {
@@ -25,20 +26,6 @@ func renderInvestigation(out io.Writer, r compare.Investigation, threshold float
 			}
 			fmt.Fprintf(out, "  %+.0f tokens from attempt count; %+.0f tokens from tokens per attempt.\n", v.RequestContribution, v.TokensPerRequestContribution)
 			fmt.Fprintf(out, "  Tokens per attempt: %.2f -> %.2f.\n", v.BeforeAverage, v.AfterAverage)
-		}
-		if q.Status == "cannot_determine" {
-			switch q.ID {
-			case "volume":
-				more = append(more, "use complete producer and usage coverage with model attempts in both windows to split token change")
-			case "contributors":
-				more = append(more, "supply prompt_key topk_keys with recorded weight in both windows")
-			case "sessions":
-				more = append(more, "supply session_key topk_keys with recorded weight in both windows")
-			case "users":
-				more = append(more, "supply user_key topk_keys with recorded weight in both windows")
-			case "usage_source":
-				more = append(more, "enable usage provenance to label provider-reported counts")
-			}
 		}
 		if q.ID == "usage_source" && q.Status != "cannot_determine" {
 			fmt.Fprintln(out, "Provider origin: "+q.Answer)
@@ -114,19 +101,53 @@ func renderInvestigation(out io.Writer, r compare.Investigation, threshold float
 		}
 		_ = table.Flush()
 	}
-	fmt.Fprintln(out, "\nNotes")
+	for _, q := range r.Questions {
+		if q.ID != "cache" {
+			continue
+		}
+		fmt.Fprintln(out, "\nDid caching get worse?")
+		if c := q.Cache; c != nil {
+			fmt.Fprintf(out, "Cached-token share: %.2f%% -> %.2f%% (%+.2f percentage points; %s).\n", c.BeforeShare*100, c.AfterShare*100, c.DeltaPercentagePoints, c.Direction)
+			fmt.Fprintf(out, "  Recorded cache-read/input tokens: %d/%d -> %d/%d.\n", c.BeforeCacheReadInputTokens, c.BeforeInputTokens, c.AfterCacheReadInputTokens, c.AfterInputTokens)
+			for _, entry := range []struct {
+				name   string
+				window compare.Window
+			}{{"Before", r.Evidence.Before}, {"After", r.Evidence.After}} {
+				fmt.Fprintf(out, "  %s: %s for %s.\n", entry.name, time.Unix(0, entry.window.Start).UTC().Format(time.RFC3339Nano), time.Duration(entry.window.Duration))
+			}
+			fmt.Fprintln(out, "  Share of recorded input tokens served from cache.")
+		} else {
+			fmt.Fprintln(out, "Cached-token share unavailable: "+q.Answer)
+		}
+	}
+	var notes []string
 	if attributed {
-		fmt.Fprintln(out, "  Shares use each sketch's attributed weight; activity without a key is excluded. Aliases are local to each measurement. Rows show tracked candidates up to --top.")
+		notes = append(notes, "Shares use ranked activity; missing keys are excluded. Aliases are local to each measurement.")
 	}
 	if flagged {
-		fmt.Fprintf(out, "  Flags mark a share lower bound above %g%% with complete relevant observations. Open the session's traces to see why.\n", threshold*100)
+		notes = append(notes, fmt.Sprintf("Flags need a share lower bound above %g%% and complete coverage; check the session's traces.", threshold*100))
 	}
 	if len(r.Evidence.DroppedMeasurements) != 0 {
-		fmt.Fprintln(out, "  Some optional attribution is missing from input snapshots; see JSON dropped_measurements.")
+		notes = append(notes, "Some rankings are missing from input snapshots.")
 	}
-	fmt.Fprintln(out, "  Use --format json for integer bounds and all counters.")
-	if len(more) > 0 {
-		fmt.Fprintln(out, "More answers with more data: "+strings.Join(more, "; ")+".")
+	notes = append(notes, "Use --format json for full details.")
+	fmt.Fprintln(out, "\nNotes: "+strings.Join(notes, " "))
+	var missingRankings []string
+	for _, kind := range []string{"user", "session"} {
+		needsRanking := slices.ContainsFunc(r.Questions, func(q compare.Question) bool {
+			return q.ID == kind+"s" && q.Status == "cannot_determine" && len(q.Contributors) == 0
+		})
+		for _, name := range []string{"top_" + kind + "s", "top_" + kind + "s_requests"} {
+			if slices.Contains(r.Evidence.DroppedMeasurements, name) || slices.ContainsFunc(r.Evidence.Concentration, func(c compare.Concentration) bool { return c.Name == name }) {
+				needsRanking = false
+			}
+		}
+		if needsRanking {
+			missingRankings = append(missingRankings, kind)
+		}
+	}
+	if len(missingRankings) > 0 {
+		fmt.Fprintf(out, "Turn on %s rankings (topk_keys) for more answers.\n", strings.Join(missingRankings, " and "))
 	}
 }
 

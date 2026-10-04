@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+# Synthetic indeterminate case: transforms and interpolation are not evaluated.
+receivers:
+  otlp:
+    protocols:
+      grpc: {endpoint: "${env:SHADOW_ENDPOINT}"}
+processors:
+  transform/custom:
+    trace_statements: []
+connectors:
+  genaisketch:
+    operation_filter: {llm_operations: [chat]}
+    slices: [{name: by_custom, keys: [app.custom.dimension]}]
+exporters:
+  prometheus: {endpoint: "127.0.0.1:18889"}
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [transform/custom]
+      exporters: [genaisketch]
+    metrics: {receivers: [genaisketch], exporters: [prometheus]}

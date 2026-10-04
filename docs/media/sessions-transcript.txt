@@ -36,8 +36,7 @@ Which tracked users contribute tokens or model attempts?
   user-4 / top_users  100 -> 100       3.03%
   user-5 / top_users  100 -> 100       3.03%
 
-Notes
-  Shares use each sketch's attributed weight; activity without a key is excluded. Aliases are local to each measurement. Rows show tracked candidates up to --top.
-  Flags mark a share lower bound above 25% with complete relevant observations. Open the session's traces to see why.
-  Use --format json for integer bounds and all counters.
-More answers with more data: enable usage provenance to label provider-reported counts.
+Did caching get worse?
+Cached-token share unavailable: Required request, input-token, or cache-read-token counters are unavailable. Supply these counters; absence is not zero.
+
+Notes: Shares use ranked activity; missing keys are excluded. Aliases are local to each measurement. Flags need a share lower bound above 25% and complete coverage; check the session's traces. Use --format json for full details.
