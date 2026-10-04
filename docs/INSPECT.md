@@ -2,7 +2,7 @@
 
 `fleetdiff inspect` answers "will my data work?" before summary export is set up.
 It reads a local capture, checks seven questions, and gives a next action. This
-command is new in v0.4.0; until that release is published, build it from this checkout.
+command is included in v0.4.0. Use the verified binary or build from source:
 
 ```sh
 go build -o bin/fleetdiff ./cmd/fleetdiff

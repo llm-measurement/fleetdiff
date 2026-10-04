@@ -16,7 +16,7 @@ API key is needed.
 Comparison inputs are summary exports from
 [otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
 or [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit).
-The new `inspect` command checks a local OTLP capture before you set up summary export.
+The `inspect` command checks a local OTLP capture before you set up summary export.
 
 ## Try It In A Minute
 
@@ -50,7 +50,7 @@ this counter.
 sh examples/investigate.sh --sessions
 ```
 
-The v0.3.1 report opens with:
+The report opens with:
 
 ```text
 1 of 8 tracked sessions flagged for review: 90.91% of attributed tokens.
@@ -64,7 +64,7 @@ See the [scenario, expected answers and reproduction command](examples/sessions/
 ## Install A Binary
 
 No Go compiler is needed to use a release binary. Download the
-[v0.3.1 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.3.1)
+[v0.4.0 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.4.0)
 for Linux or macOS, on AMD64 or ARM64. Follow the
 [download and verification instructions](docs/OPERATIONS.md#install-and-verify)
 before extracting it. Then run `./fleetdiff --version` or investigate your exports:
@@ -103,13 +103,12 @@ It shows which usage, user, prompt, and session questions your fields can answer
 what to add next, and which attributes would be risky metric labels. Missing usage
 and unknown token origin stay visible. User and session rankings use aliases.
 
-**`inspect` is available from this checkout, not the v0.3.1 release binary.**
-Build it and inspect your own file, a capture directory, or stdin:
+**`inspect` is included in v0.4.0.** With the verified binary, inspect your own
+file, a capture directory, or stdin:
 
 ```sh
-go build -o bin/fleetdiff ./cmd/fleetdiff
-bin/fleetdiff inspect ./traces.jsonl
-bin/fleetdiff inspect --format json --input-format json - < ./traces.jsonl
+./fleetdiff inspect ./traces.jsonl
+./fleetdiff inspect --format json --input-format json - < ./traces.jsonl
 ```
 
 Start with one of the three [capture recipes](examples/inspect/README.md):
@@ -188,7 +187,7 @@ fraction, for example `--flag-share 0.40`. Shares use attributed weight, excludi
 activity without a key. Flags require complete relevant observations and identify
 concentration worth investigating. See the
 [investigation contract](docs/INVESTIGATION.md#user-and-session-contributors).
-Use fleetdiff v0.3.1 with collector v0.3.0's optional
+Use fleetdiff v0.4.0 with collector v0.3.0's optional
 [`topk_keys`](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/TOPK_KEYS.md),
 or compatible sketchkit exports.
 

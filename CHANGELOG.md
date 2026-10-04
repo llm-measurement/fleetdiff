@@ -2,7 +2,7 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## [0.4.0] - 2026-10-03
+## [0.4.0] - 2026-10-04
 
 See the [release notes](docs/releases/v0.4.0.md) for capture and upgrade instructions.
 

@@ -17,7 +17,7 @@ measurements are validated but omitted from the report, with an omitted count.
 
 ## Can I Check Traces Before Setting Up Summary Export?
 
-Yes. The source-checkout `inspect` command reads OTLP JSON, JSON lines, or binary
+Yes. `inspect`, included in v0.4.0, reads OTLP JSON, JSON lines, or binary
 trace requests from local files or stdin. It reports which questions the capture
 can answer and how to fill gaps. It does not replay historical traces through a
 collector or turn them into comparison windows. See the [capture recipes](../examples/inspect/README.md).
