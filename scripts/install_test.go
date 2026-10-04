@@ -15,6 +15,8 @@ import (
 	"testing"
 )
 
+const installTestVersion = "v0.4.0"
+
 func TestInstall(t *testing.T) {
 	for _, tc := range []struct {
 		name, os, arch, target, failure string
@@ -46,7 +48,7 @@ func TestInstall(t *testing.T) {
 				}
 				writeTestFile(t, filepath.Join(destination, "keep"), "unchanged", 0600)
 			}
-			cmd := exec.Command("sh", script, "v0.3.1", destination)
+			cmd := exec.Command("sh", script, installTestVersion, destination)
 			cmd.Env = env
 			output, err := cmd.CombinedOutput()
 			if tc.failure == "" {
@@ -150,7 +152,7 @@ func installEnvironment(t *testing.T, system, arch, target, failure string) (str
 			t.Fatal(err)
 		}
 	}
-	name := "fleetdiff_v0.3.1_" + target + ".tar.gz"
+	name := "fleetdiff_" + installTestVersion + "_" + target + ".tar.gz"
 	var archive strings.Builder
 	gz := gzip.NewWriter(&archive)
 	tw := tar.NewWriter(gz)
@@ -180,7 +182,7 @@ func installEnvironment(t *testing.T, system, arch, target, failure string) (str
 set -eu
 [ "$TEST_FAILURE" != download ] || exit 1
 for url do :; done
-case "$url" in https://github.com/llm-measurement/fleetdiff/releases/download/v0.3.1/*) ;; *) exit 1 ;; esac
+case "$url" in "https://github.com/llm-measurement/fleetdiff/releases/download/$TEST_VERSION/"*) ;; *) exit 1 ;; esac
 asset=${url##*/}
 if [ "$TEST_FAILURE" = missing ] && [ "$asset" = "$TEST_ARCHIVE" ]; then exit 0; fi
 cp "$TEST_ASSETS/$asset" "$asset"
@@ -194,12 +196,12 @@ asset=$3
 [ "$6" = --repo ] && [ "$7" = llm-measurement/fleetdiff ]
 [ "$8" = --signer-workflow ] && [ "$9" = llm-measurement/fleetdiff/.github/workflows/release.yml ]
 shift 9
-[ "$1" = --source-ref ] && [ "$2" = refs/tags/v0.3.1 ] && [ "$3" = --deny-self-hosted-runners ]
+[ "$1" = --source-ref ] && [ "$2" = "refs/tags/$TEST_VERSION" ] && [ "$3" = --deny-self-hosted-runners ]
 if [ "$TEST_FAILURE" = archive ] && [ "$asset" = "$TEST_ARCHIVE" ]; then exit 1; fi
 if [ "$TEST_FAILURE" = manifest ] && [ "$asset" = SHA256SUMS ]; then exit 1; fi
 `, 0700)
 	env := append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"TEST_SYSTEM="+system, "TEST_ARCH="+arch, "TEST_FAILURE="+failure,
+		"TEST_SYSTEM="+system, "TEST_ARCH="+arch, "TEST_FAILURE="+failure, "TEST_VERSION="+installTestVersion,
 		"TEST_ASSETS="+assets, "TEST_ARCHIVE="+name, "TEST_LOG="+filepath.Join(root, "attestations"))
 	return root, env
 }
