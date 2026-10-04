@@ -1,7 +1,7 @@
 # Diagnose Collector Configuration
 
-Available from this source checkout; the published v0.4.0 binary does not include
-this command. Build with `go build -o bin/fleetdiff ./cmd/fleetdiff`.
+Included in fleetdiff v0.5.0. Use the [verified release binary](OPERATIONS.md#install-and-verify)
+or build with `go build -o bin/fleetdiff ./cmd/fleetdiff`.
 
 `fleetdiff diagnose` is a local, static check for supported collector YAML. It
 does not run the collector, load extensions, inspect environment values, read

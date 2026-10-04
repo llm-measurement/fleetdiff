@@ -6,11 +6,11 @@ umask 077
 
 usage() {
   printf '%s\n' 'Usage: sh scripts/install.sh [VERSION [NEW_DIRECTORY]]' \
-    'Defaults: v0.4.0 ./fleetdiff-install. Requires curl, gh, shasum, and tar.'
+    'Defaults: v0.5.0 ./fleetdiff-install. Requires curl, gh, shasum, and tar.'
 }
 case "${1:-}" in --help|-h) usage; exit 0 ;; esac
 if [ "$#" -gt 2 ]; then usage >&2; exit 2; fi
-version=${1-v0.4.0}
+version=${1-v0.5.0}
 destination=${2-./fleetdiff-install}
 case "$version" in
   ''|*[!a-zA-Z0-9.-]*) printf '%s\n' 'Supply a release version such as v0.3.0.' >&2; exit 2 ;;

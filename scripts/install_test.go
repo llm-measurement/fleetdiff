@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.4.0"
+const installTestVersion = "v0.5.0"
 
 func TestInstall(t *testing.T) {
 	for _, tc := range []struct {

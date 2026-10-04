@@ -3,8 +3,8 @@
 
 # Cached-Token Share
 
-**Checkout-only, pending the next release.** Build from this source checkout;
-this document does not change the released binary version or example defaults.
+Included in fleetdiff v0.5.0. Use the [verified release binary](OPERATIONS.md#install-and-verify)
+or build from this source checkout.
 
 `fleetdiff investigate` appends `cache` after the existing six questions:
 **Did caching get worse?** No new sketch or collector configuration is required.

@@ -13,9 +13,9 @@ below. These require compatible attribution sketches in the input summaries.
 Release v0.3.1 adds the concise text layout shown in the examples and whole-token
 contributions. The JSON version and calculated values remain unchanged.
 
-This checkout also adds question ID `cache`: recorded cached-input token share
-before and after, with coverage and quality checks. It is not included in the
-v0.4.0 binary. See [cached-token comparison](CACHE.md). Consumers should select
+Release v0.5.0 adds question ID `cache`: recorded cached-input token share
+before and after, with coverage and quality checks.
+See [cached-token comparison](CACHE.md). Consumers should select
 questions by ID rather than list position and tolerate additive questions.
 
 ```sh

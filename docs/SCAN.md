@@ -7,14 +7,14 @@
 names the change, shows its typical value, and identifies leading contributors
 when the exported sketches support that question. Start with one application.
 
-Available from this source checkout; the published v0.4.0 binary does not include
-this command. Build with `go build -o bin/fleetdiff ./cmd/fleetdiff`.
+Included in fleetdiff v0.5.0. Use the [verified release binary](OPERATIONS.md#install-and-verify)
+or build with `go build -o bin/fleetdiff ./cmd/fleetdiff`.
 
 ```sh
 sh examples/scan.sh
 sh examples/scan.sh --quiet
-bin/fleetdiff scan ./archive --expected app
-bin/fleetdiff scan ./archive --expected app --recent 10 --persist 2 --format json
+fleetdiff scan ./archive --expected app
+fleetdiff scan ./archive --expected app --recent 10 --persist 2 --format json
 ```
 
 The demo generates 30 synthetic one-minute windows without Docker or model calls.

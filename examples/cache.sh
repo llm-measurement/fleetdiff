@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 # Code authors: Vijay and Codex
-# Checkout-only synthetic example, pending the next release.
+# Synthetic example for the cached-token comparison included in v0.5.0.
 set -eu
 umask 077
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -20,6 +20,6 @@ export GOWORK=off
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/fleetdiff-cache.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 go build -mod=readonly -o "$tmp/fleetdiff" ./cmd/fleetdiff
-printf '%s\n' 'Checkout-only synthetic cache example: 60% -> 20% recorded cached-token share.' >&2
+printf '%s\n' 'Synthetic cache example: 60% -> 20% recorded cached-token share.' >&2
 "$tmp/fleetdiff" investigate --before examples/cache/data/before \
   --after examples/cache/data/after --expected app --format "$format"

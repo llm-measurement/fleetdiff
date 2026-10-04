@@ -7,7 +7,7 @@ offline and unprivileged. All input and output stays on your machine.
 
 The initial supported targets are Linux and macOS on AMD64 and ARM64. Native
 Windows binaries are not provided. Download a binary from the
-[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.4.0).
+[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.5.0).
 Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
@@ -19,7 +19,7 @@ subshell stops on any download or verification failure:
 ```sh
 (
 set -eu
-version=v0.4.0
+version=v0.5.0
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
@@ -53,7 +53,7 @@ From a reviewed repository checkout, the same download and verification steps
 are available as a script (no Go compiler needed):
 
 ```sh
-sh scripts/install.sh v0.4.0 ./fleetdiff-install
+sh scripts/install.sh v0.5.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -100,7 +100,7 @@ Install a published version with a currently patched Go 1.25 or 1.26 toolchain:
 go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 ```
 
-Use `@v0.4.0` instead of `@latest` to pin that release. The binary is installed
+Use `@v0.5.0` instead of `@latest` to pin that release. The binary is installed
 under `GOBIN`, or `$(go env GOPATH)/bin` when unset; put that directory on `PATH`.
 This path uses Go module verification rather than the archive attestation above,
 and does not include unreleased checkout features.
@@ -120,7 +120,7 @@ Check `--version` on the binary you actually run:
 | Build | Version | Revision |
 |---|---|---|
 | Unstamped checkout build above | Go's embedded module/VCS version, or `dev` when unavailable | `unknown` |
-| Tagged `go install ...@v0.4.0` | `v0.4.0`, from Go's module metadata | `unknown` |
+| Tagged `go install ...@v0.5.0` | `v0.5.0`, from Go's module metadata | `unknown` |
 | Verified release archive | Stamped release version | Stamped source revision |
 
 A checkout may report a pseudo-version and `+dirty`, depending on the Go toolchain
@@ -170,10 +170,9 @@ Raw trace captures are more sensitive than summaries. Protect them before runnin
 the command; use a fresh per-run key and default aliases for shared reports.
 The limits below apply to `compare` and `investigate`.
 
-Source-checkout additions have separate guides: [diagnose](DIAGNOSE.md) bounds
+The v0.5.0 commands have separate guides: [diagnose](DIAGNOSE.md) bounds
 static YAML inspection; [scan](SCAN.md) applies the summary input budget to the
-whole history and also limits candidate comparisons. These commands are not in
-the published v0.4.0 binary. The optional [archive helper](SUMMARY_ARCHIVE.md)
+whole history and also limits candidate comparisons. The optional [archive helper](SUMMARY_ARCHIVE.md)
 is a separate, explicitly writing process; fleetdiff itself stays read-only.
 
 Each side permits at most 512 JSON files, 1,024 directory entries, and 32 MiB of
@@ -212,7 +211,7 @@ or write failure; 2 means invalid CLI options. Help and version also exit 0.
 Report generation validates everything before writing, but a failed stdout write
 can leave a prefix of the report. Never consume a file from a failed run.
 
-The source-checkout `diagnose` and `scan` commands additionally use exit 3 for
+The `diagnose` and `scan` commands additionally use exit 3 for
 findings and 4 for unavailable evidence. Treat 4, errors, and terminated processes
 as unknown, not healthy. `scan` uses stable finding IDs for external deduplication
 and keeps no alert state. Give its archive authenticated inputs, a private owner,

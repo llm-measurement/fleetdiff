@@ -64,7 +64,7 @@ See the [scenario, expected answers and reproduction command](examples/sessions/
 ## Install A Binary
 
 No Go compiler is needed to use a release binary. Download the
-[v0.4.0 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.4.0)
+[v0.5.0 archive](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.5.0)
 for Linux or macOS, on AMD64 or ARM64. Follow the
 [download and verification instructions](docs/OPERATIONS.md#install-and-verify)
 before extracting it. Then run `./fleetdiff --version` or investigate your exports:
@@ -103,7 +103,7 @@ It shows which usage, user, prompt, and session questions your fields can answer
 what to add next, and which attributes would be risky metric labels. Missing usage
 and unknown token origin stay visible. User and session rankings use aliases.
 
-**`inspect` is included in v0.4.0.** With the verified binary, inspect your own
+**`inspect` is included in v0.4.0 and later.** With the verified binary, inspect your own
 file, a capture directory, or stdin:
 
 ```sh
@@ -119,8 +119,8 @@ See [formats, accounting, and limits](docs/INSPECT.md).
 
 ## Set Up And Keep Watching
 
-The following additions are available **from this checkout**, not the v0.4.0
-release binary. Each example builds the current source:
+These commands are included in **v0.5.0**. Each example below builds the current
+source; the verified release binary can run them directly on your own files:
 
 | Question | Try it |
 | --- | --- |
@@ -207,7 +207,7 @@ fraction, for example `--flag-share 0.40`. Shares use attributed weight, excludi
 activity without a key. Flags require complete relevant observations and identify
 concentration worth investigating. See the
 [investigation contract](docs/INVESTIGATION.md#user-and-session-contributors).
-Use fleetdiff v0.4.0 with collector v0.3.0's optional
+Use fleetdiff v0.5.0 with collector v0.3.0's optional
 [`topk_keys`](https://github.com/llm-measurement/otelcol-genai-sketches/blob/main/docs/TOPK_KEYS.md),
 or compatible sketchkit exports.
 
