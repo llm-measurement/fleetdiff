@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+# Reviewed synthetic test data only. Each exception is bound to one commit,
+# file, rule, and line; new occurrences still require review.
+
+# Dummy hashing secret used only by the isolated collector config validator.
+b214e8466291879aa7862f7d26875778ee20ea95:.github/workflows/ci.yml:generic-api-key:61
+b214e8466291879aa7862f7d26875778ee20ea95:internal/diagnose/shadow_test.go:generic-api-key:43
+
+# Planted sentinels asserting that CLI and config input never enters reports.
+b214e8466291879aa7862f7d26875778ee20ea95:internal/cli/diagnose_test.go:generic-api-key:85
+b214e8466291879aa7862f7d26875778ee20ea95:internal/diagnose/diagnose_test.go:generic-api-key:65
