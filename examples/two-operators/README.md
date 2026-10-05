@@ -15,7 +15,7 @@ using controlled synthetic traffic.
 
 ## Run Locally
 
-Requirements: Linux or macOS, a running Docker engine, and Go 1.25 or 1.26 with a
+Requirements: Linux or macOS, a running Docker engine, and Go 1.26 with a
 current security patch. Docker downloads the pinned release; Go may download the
 published sketchkit dependency. No sibling checkout or cloud account is required.
 See the collector's [image verification instructions](https://github.com/llm-measurement/otelcol-genai-sketches/blob/v0.1.0/docs/DEPLOYMENT.md#verify-an-image).

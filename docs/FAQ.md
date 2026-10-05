@@ -240,7 +240,7 @@ processing time. See the [comparison contract](COMPARISON.md) for details.
 
 ## What If The Demo Fails?
 
-- **Go is missing:** install Go 1.25 or 1.26 with a current security patch, open a
+- **Go is missing:** install Go 1.26 with a current security patch, open a
   new terminal, and rerun `sh examples/demo.sh`.
 - **The first build cannot download dependencies:** check network access to the
   configured Go module proxy. No private sibling checkout is required.

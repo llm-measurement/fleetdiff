@@ -6,7 +6,7 @@ umask 077
 
 usage() {
   printf '%s\n' 'Usage: sh examples/demo.sh [--live]' \
-    'Default: compare the included sample files. Requires Go 1.25 or 1.26.' \
+    'Default: compare the included sample files. Requires Go 1.26.' \
     '--live: first generate exports with two local collectors. Also requires Docker.'
 }
 
@@ -19,7 +19,7 @@ case "${1:-}" in
 esac
 
 if ! command -v go >/dev/null 2>&1; then
-  printf '%s\n' 'Install Go 1.25 or 1.26 from https://go.dev/dl/, then run this command again.' >&2
+  printf '%s\n' 'Install Go 1.26 from https://go.dev/dl/, then run this command again.' >&2
   exit 1
 fi
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

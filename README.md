@@ -26,7 +26,7 @@ cd fleetdiff
 sh examples/investigate.sh
 ```
 
-Needs Git and [Go](https://go.dev/dl/) 1.25 or 1.26 with a current security patch,
+Needs Git and [Go](https://go.dev/dl/) 1.26 with a current security patch,
 on Linux or macOS. No Docker. The command builds current source and prints a
 single-application report from synthetic collector exports:
 

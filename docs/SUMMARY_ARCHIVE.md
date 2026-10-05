@@ -7,7 +7,7 @@ identifiers, summary metadata, paths, filenames, or raw operating-system errors.
 
 ## Build and Run
 
-From the fleetdiff checkout, explicitly build the helper with a local Go 1.25+
+From the fleetdiff checkout, explicitly build the helper with a local Go 1.26+
 toolchain and dependencies already present in the local module cache:
 
 ```sh

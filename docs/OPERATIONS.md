@@ -107,7 +107,8 @@ and does not include unreleased checkout features.
 
 ### Build From Source
 
-Build with a currently patched Go 1.25 or 1.26 toolchain:
+Build the current source checkout with a currently patched Go 1.26 toolchain.
+The OTLP dependency requires Go 1.26; published v0.5.0 binaries are unchanged.
 
 ```sh
 go mod verify
