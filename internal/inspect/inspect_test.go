@@ -341,6 +341,32 @@ func TestWirePreflightPreventsRepeatedMessageAllocation(t *testing.T) {
 	}
 }
 
+func TestWirePreflightGeneratedDescriptorLimits(t *testing.T) {
+	wrap := func(field protowire.Number, b []byte) []byte {
+		return protowire.AppendBytes(protowire.AppendTag(nil, field, protowire.BytesType), b)
+	}
+	for _, tc := range []struct {
+		name string
+		wire []byte
+		ok   bool
+	}{
+		{"span list above attribute limit", wrap(1, wrap(2, bytes.Repeat([]byte{0x12, 0}, 1400))), true},
+		{"resource limit", bytes.Repeat([]byte{0x0a, 0}, 1024), true},
+		{"too many resources", bytes.Repeat([]byte{0x0a, 0}, 1025), false},
+		{"scope limit", wrap(1, bytes.Repeat([]byte{0x12, 0}, 1024)), true},
+		{"too many scopes", wrap(1, bytes.Repeat([]byte{0x12, 0}, 1025)), false},
+		{"total spans across scopes", wrap(1, bytes.Repeat(wrap(2, bytes.Repeat([]byte{0x12, 0}, MaxSpans/2)), 2)), true},
+		{"too many spans across scopes", wrap(1, bytes.Repeat(wrap(2, bytes.Repeat([]byte{0x12, 0}, MaxSpans/2+1)), 2)), false},
+		{"too many attributes", wrap(1, wrap(2, wrap(2, bytes.Repeat([]byte{0x4a, 0}, 257)))), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := preflightProto(tc.wire); (err == nil) != tc.ok {
+				t.Fatalf("preflight: %v; want accepted=%v", err, tc.ok)
+			}
+		})
+	}
+}
+
 func TestLabelConversionAndNominalPrecision(t *testing.T) {
 	req := captureRequest(t)
 	s := req.ResourceSpans[0].ScopeSpans[0].Spans[0]

@@ -6,11 +6,18 @@ package inspect
 import (
 	"errors"
 
+	tracepb "go.opentelemetry.io/proto/slim/otlp/trace/v1"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 const maxMessageObjects = 250000
+
+var (
+	spanDescriptor          = (&tracepb.Span{}).ProtoReflect().Descriptor()
+	resourceSpansDescriptor = (&tracepb.ResourceSpans{}).ProtoReflect().Descriptor()
+	scopeSpansDescriptor    = (&tracepb.ScopeSpans{}).ProtoReflect().Descriptor()
+)
 
 // Count structural objects before protobuf allocates them. Length limits alone
 // do not bound the number of empty repeated messages an attacker can encode.
@@ -26,7 +33,7 @@ func checkMessage(data []byte, desc protoreflect.MessageDescriptor, depth int, l
 	if *left < 0 || depth > maxJSONDepth {
 		return errors.New("protobuf capture exceeds structural limits")
 	}
-	if desc.FullName() == "opentelemetry.proto.trace.v1.Span" {
+	if desc == spanDescriptor {
 		*spans++
 		if *spans > MaxSpans {
 			return errors.New("capture exceeds 100000 spans")
@@ -57,10 +64,10 @@ func checkMessage(data []byte, desc protoreflect.MessageDescriptor, depth int, l
 			}
 			counts[number]++
 			limit := 256
-			switch field.Message().FullName() {
-			case "opentelemetry.proto.trace.v1.Span":
+			switch field.Message() {
+			case spanDescriptor:
 				limit = MaxSpans
-			case "opentelemetry.proto.trace.v1.ResourceSpans", "opentelemetry.proto.trace.v1.ScopeSpans":
+			case resourceSpansDescriptor, scopeSpansDescriptor:
 				limit = 1024
 			}
 			if counts[number] > limit {
