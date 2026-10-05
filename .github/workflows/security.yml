@@ -18,7 +18,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.8'
+          # Fixes timed-fuzz cancellation failures: https://go.dev/issue/75804.
+          go-version: '1.27.1'
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
       - name: Redacted history secret scan
         run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact=100 --verbose --log-opts=--all --no-banner .
