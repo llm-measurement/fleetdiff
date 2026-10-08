@@ -1,5 +1,7 @@
 # fleetdiff
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/llm-measurement/fleetdiff/badge)](https://scorecard.dev/viewer/?uri=github.com/llm-measurement/fleetdiff)
+
 **See what changed in your agent application, using summaries instead of raw traces.**
 
 ![Sessions demo: one of eight tracked sessions is flagged for review, accounting for 90.91% of attributed tokens.](docs/media/sessions.gif)
