@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.8'
+          go-version: '1.26.9'
       - run: |
           go test -race ./...
           go vet ./...
@@ -107,7 +107,7 @@ jobs:
           sh scripts/smoke-binary.sh ./unpacked/fleetdiff
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.8'
+          go-version: '1.26.9'
       - name: Verify investigation, inspection, diagnosis, and scanning from the packaged binary
         env:
           FLEETDIFF_RELEASE_BINARY: ${{ github.workspace }}/unpacked/fleetdiff
