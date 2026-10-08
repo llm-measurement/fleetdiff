@@ -306,6 +306,7 @@ Run the checks yourself with `go test -race ./...` and `go vet ./...`.
 
 The `0.3.x` release line provides local, read-only `investigate` and `compare` commands.
 Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
+See [Contributing](CONTRIBUTING.md) for checks and signed, signed-off commits.
 Do not include raw traces, secrets, or unapproved exports; see the
 [security policy](SECURITY.md) for confidential vulnerability reports.
 
