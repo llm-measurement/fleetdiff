@@ -137,7 +137,7 @@ func TestCustomNamesAreOptInAndUsageIsNotALabel(t *testing.T) {
 		}
 		for _, d := range r.Dimensions {
 			for _, field := range tokenFields {
-				for _, source := range field.sources {
+				for _, source := range field.Sources {
 					if d.Attribute == source {
 						t.Fatal("numeric usage field listed as label candidate")
 					}
@@ -164,7 +164,7 @@ func TestEveryTokenSourceIsExcludedFromLabelReview(t *testing.T) {
 	}
 	defer clear(a.secret)
 	for _, field := range tokenFields {
-		for _, source := range field.sources {
+		for _, source := range field.Sources {
 			if err := a.observeDimension(source, integer(40)); err != nil {
 				t.Fatal(err)
 			}

@@ -23,6 +23,34 @@ producer. It runs locally and only reads files: no account, upload or model API 
 
 [Run this demo](examples/sessions/README.md) | [Read the transcript](docs/media/sessions-transcript.txt)
 
+Install the current **v0.5.0** release (Bash, `curl`, `gh`, `shasum` and `tar` required):
+
+```sh
+bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/e75518e1b62ead77a6870cfeabd3ddae944a1e0a/scripts/install.sh | sh -s -- v0.5.0 ./fleetdiff-install'
+```
+
+The verified binary is `./fleetdiff-install/fleetdiff`. The installer checks
+release attestations and checksums before extraction; it requires a new directory.
+Prefer to read the script first? Use the [download-and-inspect path](docs/OPERATIONS.md#install-and-verify).
+
+## Using LiteLLM?
+
+**In this development branch:** investigate a request-level spend-log export
+directly, with no collector. This new path requires a source build; v0.5.0 keeps
+the existing summary, trace and configuration commands.
+
+```sh
+go build -o bin/fleetdiff ./cmd/fleetdiff
+bin/fleetdiff investigate --litellm-spend examples/litellm-spend/synthetic.csv --before-period 2026-10-07 --after-period 2026-10-08
+```
+
+The synthetic example shows 8,000 to 16,000 recorded tokens. Two keys account
+for the increase; one model's requests became both more frequent and larger.
+Zero-only rows remain marked "origin unknown." Start with the
+[SQL export recipe and expected report](examples/litellm-spend/README.md).
+CSV, JSON and JSONL run locally; reports use aliases or keyed hashes.
+With enough history, omitting the period flags selects two complete seven-day UTC periods.
+
 ## Try It In A Minute
 
 The `inspect` command checks a local OTLP capture before you set up summary export.
@@ -144,7 +172,7 @@ See [cache comparison](docs/CACHE.md), [configuration diagnosis](docs/DIAGNOSE.m
 and [scanning history](docs/SCAN.md). Unknown cache detail is not zero cache use;
 a coverage drop is not evidence of lower consumption.
 
-## Using LiteLLM?
+## Keep Watching LiteLLM
 
 Start with the [local capture recipe](examples/inspect/README.md#route-3-litellm-to-the-capture-collector)
 to check whether usage is present and whether its origin is declared.

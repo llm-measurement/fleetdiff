@@ -2,6 +2,23 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## Unreleased
+
+- Investigate LiteLLM request-level SQL exports in CSV, JSON or JSONL locally,
+  without a collector. Compare complete UTC periods, recorded request count and
+  size by model, and keyed contributor rankings with concentration bounds.
+- Show ambiguous zero-only rows, missing/invalid usage, failures and exact
+  decimal recorded spend separately. Share token accounting with `inspect` and
+  preserve the collector's accounting fixtures.
+- Bound file, row, field, nesting, model and duplicate-tracking resources;
+  recognize daily aggregate exports and direct operators to request-level rows.
+- Include native Anthropic Messages and Responses spend rows using pinned
+  logging/writer probes. Lead partial comparisons with call-type coverage and
+  keep unpinned token columns separate from analyzed totals.
+- Accept up to 10 million rows with full-length keyed request digests in bounded
+  blocks; export CSV in one database pass, with JSONL opt-in. Compute increase
+  concentration before display truncation and keep tied aliases in file order.
+
 ## [0.5.0] - 2026-10-04
 
 See the [release notes](docs/releases/v0.5.0.md) for examples and upgrade details.

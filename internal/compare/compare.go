@@ -383,6 +383,33 @@ func concentration(name string, a, b summary.Payload, options Options) (Concentr
 	if err != nil {
 		return Concentration{}, errors.New("invalid frequent-items sketch")
 	}
+	return RankChanges(name, x, y, options)
+}
+
+// RankChanges compares in-memory rankings without inventing summary envelopes.
+func RankChanges(name string, x, y *frequentitems.Sketch, options Options) (Concentration, error) {
+	if options.Top < 1 || options.Top > 100 || x == nil || y == nil {
+		return Concentration{}, errors.New("invalid ranking options")
+	}
+	c, err := RankCandidates(name, x, y)
+	if err != nil {
+		return Concentration{}, err
+	}
+	c.Movers = c.Movers[:min(options.Top, len(c.Movers))]
+	if !options.ShowHashes {
+		for i := range c.Movers {
+			c.Movers[i].Hash = ""
+		}
+	}
+	return c, nil
+}
+
+// RankCandidates retains the full bounded candidate set for aggregate answers
+// that must not depend on how many rows the caller displays.
+func RankCandidates(name string, x, y *frequentitems.Sketch) (Concentration, error) {
+	if x == nil || y == nil {
+		return Concentration{}, errors.New("invalid ranking sketches")
+	}
 	left, err := x.FrequentItems(frequentitems.NoFalseNegatives)
 	if err != nil {
 		return Concentration{}, errors.New("cannot query frequent items")
@@ -431,12 +458,10 @@ func concentration(name string, a, b summary.Payload, options Options) (Concentr
 	if unit, ok := topKUnits[name]; ok {
 		c.WeightUnit = unit
 	}
-	for i, item := range items[:min(options.Top, len(items))] {
+	for i, item := range items {
 		m := item.mover
 		m.Item = fmt.Sprintf("item-%d", i+1)
-		if options.ShowHashes {
-			m.Hash = fmt.Sprintf("%016x", item.key)
-		}
+		m.Hash = fmt.Sprintf("%016x", item.key)
 		c.Movers = append(c.Movers, m)
 	}
 	return c, nil
