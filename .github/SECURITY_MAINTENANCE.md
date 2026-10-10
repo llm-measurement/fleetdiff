@@ -1,0 +1,30 @@
+# Actions Permissions
+
+In **Settings > Actions > General > Workflow permissions**, keep the default
+token read-only and turn off **Allow GitHub Actions to create and approve pull
+requests**. This is a manual repository setting, not something a workflow changes.
+
+No fleetdiff workflow creates or approves pull requests. Release publishing uses
+job-scoped permissions for release assets and attestations; it does not need this
+setting. Dependabot opens its PRs through its own GitHub App, not the workflow
+token. The signature and DCO checks read PR metadata without checking out PR code.
+
+After changing the setting, confirm the next PR's checks run normally. Keep
+publishing permissions scoped to the release or Scorecard job that needs them.
+No personal access token or additional GitHub App is needed.
+
+See GitHub's [workflow permission settings](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#setting-the-permissions-of-the-github_token).
+
+## CodeQL Workflow
+
+The checked-in CodeQL workflow scans Go, Python examples, and Actions on pull
+requests, main updates, and a weekly schedule. Upload permission belongs only to
+its analysis job.
+
+When switching from GitHub's default setup to this workflow, a maintainer must
+disable **default setup** under **Settings > Advanced Security > CodeQL analysis**,
+then rerun the new workflow and confirm all language results upload. Keep the
+workflow enabled. GitHub rejects advanced-workflow uploads while default setup
+is enabled; see [the migration warning](https://docs.github.com/en/code-security/reference/code-scanning/sarif-files/troubleshoot-sarif-uploads/default-setup-enabled).
+
+This change does not add review requirements or modify repository rulesets.

@@ -1,24 +1,29 @@
 # fleetdiff
 
-**See what changed in your agent application, using summaries instead of raw traces.**
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/llm-measurement/fleetdiff/badge)](https://scorecard.dev/viewer/?uri=github.com/llm-measurement/fleetdiff)
+
+fleetdiff is a command-line tool that compares summary files from LLM and agent
+traffic and reports what changed between two time windows: whether token use rose
+from more requests or larger ones, which users or sessions drove the change, and
+whether usage data is complete. It reads summaries exported by the
+[otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
+collector or any [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit)
+producer. It runs locally and only reads files: no account, upload or model API key.
+
+| | |
+| --- | --- |
+| Commands | `investigate` (one application, two windows), `scan` (unusual windows over history), `compare` (several systems), `inspect` (check an OTLP capture), `diagnose` (review a collector config) |
+| Install | Signed release binaries for Linux and macOS (amd64 and arm64), or `go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest` |
+| Status | Pre-1.0; see the [changelog](CHANGELOG.md) |
+| License | Apache-2.0 |
 
 ![Sessions demo: one of eight tracked sessions is flagged for review, accounting for 90.91% of attributed tokens.](docs/media/sessions.gif)
 
 [Run this demo](examples/sessions/README.md) | [Read the transcript](docs/media/sessions-transcript.txt)
 
-Did token usage rise because you made more requests, or because each request
-used more tokens? Which tracked contributors changed? Is the comparison missing
-usage data? fleetdiff reads small summary files and answers locally. Start with
-one application; combine compatible exports when you add workers or separately
-operated systems. Keep your existing trace backend. No account, upload, or model
-API key is needed.
-
-Comparison inputs are summary exports from
-[otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
-or [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit).
-The `inspect` command checks a local OTLP capture before you set up summary export.
-
 ## Try It In A Minute
+
+The `inspect` command checks a local OTLP capture before you set up summary export.
 
 ```sh
 git clone https://github.com/llm-measurement/fleetdiff.git
@@ -306,6 +311,7 @@ Run the checks yourself with `go test -race ./...` and `go vet ./...`.
 
 The `0.3.x` release line provides local, read-only `investigate` and `compare` commands.
 Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
+See [Contributing](CONTRIBUTING.md) for checks and signed, signed-off commits.
 Do not include raw traces, secrets, or unapproved exports; see the
 [security policy](SECURITY.md) for confidential vulnerability reports.
 
