@@ -2,10 +2,12 @@
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/llm-measurement/fleetdiff/badge)](https://scorecard.dev/viewer/?uri=github.com/llm-measurement/fleetdiff)
 
-fleetdiff is a command-line tool that compares summary files from LLM and agent
-traffic and reports what changed between two time windows: whether token use rose
-from more requests or larger ones, which users or sessions drove the change, and
-whether usage data is complete. It reads summaries exported by the
+**Why did LLM token usage spike, and which users or sessions drove the change?**
+
+fleetdiff is a local command-line tool that compares LLM usage summaries,
+flags unusual windows, and checks trace captures and collector configurations.
+
+It reads summaries exported by the
 [otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
 collector or any [llm-sketchkit](https://github.com/llm-measurement/llm-sketchkit)
 producer. It runs locally and only reads files: no account, upload or model API key.
