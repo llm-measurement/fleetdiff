@@ -57,6 +57,20 @@ sh scripts/install.sh v0.5.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
+To download and inspect the pinned installer before running it:
+
+```sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/e75518e1b62ead77a6870cfeabd3ddae944a1e0a/scripts/install.sh \
+  --output fleetdiff-install.sh
+less fleetdiff-install.sh
+sh fleetdiff-install.sh v0.5.0 ./fleetdiff-install
+./fleetdiff-install/fleetdiff --version
+```
+
+The LiteLLM spend importer is a development-source feature pending release;
+the current v0.5.0 binary retains the released commands.
+
 The script refuses an existing directory and extracts only after verification.
 A failed run leaves downloads in its new directory for inspection; do not use
 partial output. No administrator privileges or global installation are required.

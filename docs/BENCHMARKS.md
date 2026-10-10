@@ -1,5 +1,47 @@
 # Input Resource Measurements
 
+## LiteLLM Spend Import (Source Checkout)
+
+On October 10, 2026, the source-built importer read one million synthetic rows
+in **4.90-15.25 seconds**, with peak RSS below **172 MiB**. Both CSV cases met
+the predeclared target of 60 seconds and 512 MiB on the M4 Max.
+
+| Format | Keys | Wall seconds | Peak RSS bytes | OS measurement |
+| --- | --- | ---: | ---: | --- |
+| CSV | Three repeated keys | 4.92 | 178,356,224 | [record](benchmarks/litellm-spend-2026-10-10-csv.txt) |
+| CSV | One million unique keys | 4.90 | 178,077,696 | [record](benchmarks/litellm-spend-2026-10-10-unique.txt) |
+| JSONL | Three repeated keys | 13.71 | 179,372,032 | [record](benchmarks/litellm-spend-2026-10-10-jsonl.txt) |
+| JSON array | 100,000 shared keys | 15.25 | 179,191,808 | [record](benchmarks/litellm-spend-2026-10-10-json.txt) |
+
+Machine: Apple M4 Max, 16 cores, 64 GiB RAM; macOS 27.0.1 (26A434), arm64;
+Go 1.26.9, `-trimpath`, without race instrumentation. One fresh CLI process per
+case, no CPU isolation or cache purge. Each run includes file reading, bounded
+decoding, exact request-ID duplicate tracking, accounting, sketches, and JSON
+output. Generation is excluded. All four reports contained 1,000,000 rows and
+400,000,000 before / 800,000,000 after recorded tokens.
+
+Reproduce from this source checkout on macOS; choose a new destination:
+
+```sh
+go build -trimpath -o bin/fleetdiff ./cmd/fleetdiff
+bench_dir="$(mktemp -d "${TMPDIR:-/tmp}/fleetdiff-spend.XXXXXX")"
+python3 -B examples/litellm-spend/generate.py --rows 1000000 --format csv \
+  --output "$bench_dir/input.csv"
+FLEETDIFF_BENCH_SECRET=llm-measurement-p1-public-benchmark-key \
+  /usr/bin/time -l bin/fleetdiff investigate --litellm-spend "$bench_dir/input.csv" \
+  --before-period 2026-10-07 --after-period 2026-10-08 \
+  --hash-secret-env FLEETDIFF_BENCH_SECRET --format json \
+  > "$bench_dir/report.json" 2> "$bench_dir/resources.txt"
+```
+
+For the other rows, add `--unique-keys` to generation, or use `--format jsonl`,
+or `--format json --key-cardinality 100000`; match the input extension in both
+commands. The secret above is public test data. See the
+[generator and integration checks](../examples/litellm-spend/TESTING.md).
+These runs use explicit periods, two models, and synthetic records; automatic
+period selection adds a first pass. They measure this machine and workload,
+not a worst-case ceiling for every accepted export.
+
 ## Scan Engine (Source Checkout)
 
 On 2026-10-04, `BenchmarkScan30Windows` measured 30 already-decoded synthetic

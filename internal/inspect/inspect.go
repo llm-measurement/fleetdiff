@@ -115,7 +115,7 @@ func newAnalyzer(env string) (*analyzer, error) {
 	}
 	for _, f := range tokenFields {
 		for _, state := range []string{"reported", "missing", "invalid", "conflict", "subset_violation"} {
-			a.result.TokenObservations[f.name+"/"+state] = 0
+			a.result.TokenObservations[f.Name+"/"+state] = 0
 		}
 	}
 	for _, f := range []string{"input", "output"} {
@@ -185,22 +185,22 @@ func (a *analyzer) consume(req *traceRequest) error {
 				if err != nil {
 					return err
 				}
-				if err = mergeCounts(a.result.Metrics, counts.metrics); err != nil {
+				if err = mergeCounts(a.result.Metrics, counts.Metrics); err != nil {
 					return err
 				}
-				if err = mergeCounts(a.result.TokenObservations, counts.quality); err != nil {
+				if err = mergeCounts(a.result.TokenObservations, counts.Quality); err != nil {
 					return err
 				}
-				if err = mergeCounts(a.result.UsageProvenance, counts.provenance); err != nil {
+				if err = mergeCounts(a.result.UsageProvenance, counts.Provenance); err != nil {
 					return err
 				}
-				if counts.provenance["input/unknown"] == 0 && counts.provenance["output/unknown"] == 0 {
+				if counts.Provenance["input/unknown"] == 0 && counts.Provenance["output/unknown"] == 0 {
 					a.knownOrigin++
 				}
-				clean := counts.metrics[metricPrefix+"missing_token_usage_total"] == 0
+				clean := counts.Metrics[metricPrefix+"missing_token_usage_total"] == 0
 				for _, f := range tokenFields {
 					for _, issue := range []string{"invalid", "conflict", "subset_violation"} {
-						if counts.quality[f.name+"/"+issue] > 0 {
+						if counts.Quality[f.Name+"/"+issue] > 0 {
 							clean = false
 						}
 					}
@@ -230,12 +230,12 @@ func (a *analyzer) consume(req *traceRequest) error {
 					if err = id.attempts.AddHash(h, 1); err != nil {
 						return errOverflow
 					}
-					if counts.metrics[metricPrefix+"missing_token_usage_total"] == 0 {
+					if counts.Metrics[metricPrefix+"missing_token_usage_total"] == 0 {
 						id.tokenCovered++
 						if clean {
 							id.cleanTokens++
 						}
-						weight := counts.metrics[metricPrefix+"total_tokens_total"]
+						weight := counts.Metrics[metricPrefix+"total_tokens_total"]
 						if weight > 0 {
 							if err = id.tokens.AddHash(h, int64(weight)); err != nil {
 								return errOverflow
@@ -273,7 +273,7 @@ func (a *analyzer) digest(domain string, b []byte) []byte {
 
 func (a *analyzer) observeDimension(key string, v *commonpb.AnyValue) error {
 	for _, field := range tokenFields {
-		if slices.Contains(field.sources, key) {
+		if slices.Contains(field.Sources, key) {
 			return nil
 		}
 	}

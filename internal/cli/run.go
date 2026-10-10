@@ -41,6 +41,7 @@ Usage:
   fleetdiff diagnose [options] CONFIG
   fleetdiff scan [options] PATH --expected PRODUCER[,PRODUCER]
   fleetdiff investigate --before PATH --after PATH --expected PRODUCER[,PRODUCER] [options]
+  fleetdiff investigate --litellm-spend FILE [--before-period DATE --after-period DATE] [options]
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
 PATH is one canonical summary JSON file or a directory of summary JSON files.
@@ -56,12 +57,20 @@ Options:
   --flag-share DECIMAL       Session after lower-share threshold, 0..1 (default 0.25)
   --allow-partial            Permit missing producers or incomplete observation intervals
   --show-hashes              Include pseudonymous, linkable hashes in output
+  --litellm-spend FILE        Read a request-level SQL export: CSV, JSON array or JSONL
+  --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
+  --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
+  --group-by KIND            key (default), team, user, end-user or session
+  --hash-secret-env NAME     Use an existing secret for repeat spend comparisons
   --help                    Show this help
   --version                 Print version, revision, Go toolchain, and platform
 
 inspect reads local OTLP captures; run fleetdiff inspect --help for capture options.
 diagnose checks supported collector configuration; scan checks retained summary history.
 Runs offline using local files. Default output uses aliases for identities.
+Spend periods default to the latest two complete 7-day UTC intervals in the file.
+With fewer than 14 complete days, supply both period flags. Daily UI aggregates
+need a request-level SQL export; see examples/litellm-spend/README.md.
 Exit status: 0 report/help, 1 input/comparison/output error, 2 invalid command/options.
 diagnose and scan additionally use 3 for findings and 4 for unavailable evidence.
 `
@@ -110,6 +119,11 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	flagShareText := flags.String("flag-share", strconv.FormatFloat(compare.DefaultFlagShare, 'f', -1, 64), "")
 	partial := flags.Bool("allow-partial", false, "")
 	hashes := flags.Bool("show-hashes", false, "")
+	spendPath := flags.String("litellm-spend", "", "")
+	beforePeriod := flags.String("before-period", "", "")
+	afterPeriod := flags.String("after-period", "", "")
+	group := flags.String("group-by", "key", "")
+	secret := flags.String("hash-secret-env", "", "")
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			if _, err := io.WriteString(out, help); err != nil {
@@ -123,6 +137,22 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			}
 		}
 		return fail(2, "invalid compare options; run fleetdiff compare --help")
+	}
+	spendMode, incompatible := false, false
+	flags.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "litellm-spend", "before-period", "after-period", "group-by", "hash-secret-env":
+			spendMode = true
+		case "format", "top", "show-hashes":
+		default:
+			incompatible = true
+		}
+	})
+	if spendMode {
+		if args[0] != "investigate" || *spendPath == "" || incompatible || flags.NArg() != 0 {
+			return fail(2, "use investigate --litellm-spend FILE with period flags, not summary paths or expected producers")
+		}
+		return runSpend(*spendPath, *beforePeriod, *afterPeriod, *group, *secret, *format, *top, *hashes, out, errout)
 	}
 	for _, required := range []struct{ name, value string }{{"before", *before}, {"after", *after}, {"expected", *expected}} {
 		if strings.TrimSpace(required.value) == "" {

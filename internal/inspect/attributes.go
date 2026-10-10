@@ -163,7 +163,7 @@ func publicAttribute(key string) bool {
 		return true
 	}
 	for _, f := range tokenFields {
-		for _, source := range f.sources {
+		for _, source := range f.Sources {
 			if key == source {
 				return true
 			}

@@ -383,6 +383,14 @@ func concentration(name string, a, b summary.Payload, options Options) (Concentr
 	if err != nil {
 		return Concentration{}, errors.New("invalid frequent-items sketch")
 	}
+	return RankChanges(name, x, y, options)
+}
+
+// RankChanges compares in-memory rankings without inventing summary envelopes.
+func RankChanges(name string, x, y *frequentitems.Sketch, options Options) (Concentration, error) {
+	if options.Top < 1 || options.Top > 100 || x == nil || y == nil {
+		return Concentration{}, errors.New("invalid ranking options")
+	}
 	left, err := x.FrequentItems(frequentitems.NoFalseNegatives)
 	if err != nil {
 		return Concentration{}, errors.New("cannot query frequent items")
