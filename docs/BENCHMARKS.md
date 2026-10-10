@@ -2,7 +2,87 @@
 
 ## LiteLLM Spend Import (Source Checkout)
 
-On October 10, 2026, the source-built importer read one million synthetic rows
+Ten million synthetic rows took **114.55-331.77 seconds**, with peak RSS below
+**635 MiB**, on one M4 Max. The three explicit-period runs met the registered
+targets: CSV within 180 seconds, JSON/JSONL within 360 seconds, and peak RSS
+within 1 GiB. Measurements were taken on October 10, 2026, using the runtime
+source in [`06f2a52`](https://github.com/llm-measurement/fleetdiff/commit/06f2a52fe87ae669f169f16814ef2cf17510e67f).
+
+| Format | Keys | Wall seconds | Peak RSS bytes | OS measurement |
+| --- | --- | ---: | ---: | --- |
+| CSV | Ten million unique keys | 114.55 | 662,323,200 | [record](benchmarks/litellm-spend-2026-10-10-10m-csv.txt) |
+| JSONL | Three repeated keys | 300.68 | 664,993,792 | [record](benchmarks/litellm-spend-2026-10-10-10m-jsonl.txt) |
+| JSON array | 100,000 shared keys | 331.77 | 664,567,808 | [record](benchmarks/litellm-spend-2026-10-10-10m-json.txt) |
+| CSV, automatic periods over 16 days | Three repeated keys | 140.90 | 661,438,464 | [record](benchmarks/litellm-spend-2026-10-10-10m-auto.txt) |
+
+The three explicit-period reports contain 10M rows and 4 billion before / 8 billion after
+recorded tokens. The [measurement manifest](benchmarks/litellm-spend-2026-10-10-10m.json)
+binds the source revision, binary hash, generator options, periods and totals.
+The automatic run selected September 24-October 1 and October 1-8 (UTC, end
+exclusive), each with 4,375,000 requests and 5.25 billion recorded tokens.
+It read all 10M rows and excluded 1.25M rows in the partial edge days.
+
+Machine: Apple M4 Max, 16 cores, 64 GiB RAM; macOS 27.0.1 (26A434), arm64;
+Go 1.26.9, `-trimpath`, without race instrumentation. Each measurement starts a
+fresh CLI process and includes file reads, decoding, full-digest duplicate
+checks, accounting, sketches, file-consistency checks and JSON output.
+Generation is excluded. OS caches and other machine activity were uncontrolled.
+These are measurements of the stated synthetic workloads.
+
+Reproduce the CSV case from this source revision on macOS:
+
+```sh
+go build -trimpath -o bin/fleetdiff ./cmd/fleetdiff
+bench_dir="$(mktemp -d "${TMPDIR:-/tmp}/fleetdiff-spend-10m.XXXXXX")"
+python3 -B examples/litellm-spend/generate.py --rows 10000000 --format csv \
+  --unique-keys --output "$bench_dir/input.csv"
+FLEETDIFF_BENCH_SECRET=llm-measurement-p1-public-benchmark-key \
+  /usr/bin/time -l bin/fleetdiff investigate --litellm-spend "$bench_dir/input.csv" \
+  --before-period 2026-10-07 --after-period 2026-10-08 \
+  --hash-secret-env FLEETDIFF_BENCH_SECRET --format json \
+  > "$bench_dir/report.json" 2> "$bench_dir/resources.txt"
+```
+
+For JSONL, use `--format jsonl` and omit `--unique-keys`. For the JSON array,
+use `--format json --key-cardinality 100000`. Match the file extension in both
+commands. The secret is public test data.
+
+For the automatic-period case, use the same build and measurement command,
+generate CSV with `--days 16` instead of `--unique-keys`, and omit both period
+flags. That adds the initial period-selection pass.
+
+### Duplicate Tracking
+
+The largest retained structure is the request-ID digest collection: 320 MB
+of full 256-bit keyed digests at 10M rows. Fixed-size blocks keep its retained
+storage near that payload size and sort in place. An isolated comparison with
+the earlier map measured:
+
+| Structure | Cumulative allocation bytes | Retained after GC bytes | Peak RSS bytes |
+| --- | ---: | ---: | ---: |
+| Map | 1,343,499,784 | 671,755,312 | 888,274,944 |
+| Fixed blocks | 320,880,112 | 320,872,560 | 330,432,512 |
+
+Records: [map allocation](benchmarks/litellm-spend-2026-10-10-10m-duplicates-map-bench.txt),
+[map RSS](benchmarks/litellm-spend-2026-10-10-10m-duplicates-map-time.txt),
+[block allocation](benchmarks/litellm-spend-2026-10-10-10m-duplicates-blocks-bench.txt),
+[block RSS](benchmarks/litellm-spend-2026-10-10-10m-duplicates-blocks-time.txt).
+This isolates storage for deterministic unique digests; the whole-command
+measurements above also include parsing, hashing and attribution. Reproduce
+each subbenchmark in a separate process:
+
+```sh
+go test -c -o "$bench_dir/duplicate.test" ./internal/spend
+/usr/bin/time -l "$bench_dir/duplicate.test" -test.run '^$' \
+  -test.bench '^BenchmarkSpendDuplicateState10M/Map32$' -test.benchtime=1x -test.benchmem
+/usr/bin/time -l "$bench_dir/duplicate.test" -test.run '^$' \
+  -test.bench '^BenchmarkSpendDuplicateState10M/RequestDigests32$' -test.benchtime=1x -test.benchmem
+```
+
+### Initial One-Million-Row Baseline
+
+At [`2c68b1d`](https://github.com/llm-measurement/fleetdiff/commit/2c68b1df771000efd11f8e681e0d29e27097c88e),
+on October 10, 2026, the earlier importer read one million synthetic rows
 in **4.90-15.25 seconds**, with peak RSS below **172 MiB**. Both CSV cases met
 the predeclared target of 60 seconds and 512 MiB on the M4 Max.
 
@@ -20,7 +100,8 @@ decoding, exact request-ID duplicate tracking, accounting, sketches, and JSON
 output. Generation is excluded. All four reports contained 1,000,000 rows and
 400,000,000 before / 800,000,000 after recorded tokens.
 
-Reproduce from this source checkout on macOS; choose a new destination:
+To reproduce this earlier baseline on macOS, use a separate checkout of
+`2c68b1d` and choose a new destination:
 
 ```sh
 go build -trimpath -o bin/fleetdiff ./cmd/fleetdiff

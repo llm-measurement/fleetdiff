@@ -307,6 +307,26 @@ class FixtureTests(unittest.TestCase):
 
 @unittest.skipUnless(CLI, "set FLEETDIFF_BIN to the source-built CLI")
 class ImporterTests(unittest.TestCase):
+    def test_sixteen_day_export_selects_complete_weeks(self):
+        with tempfile.TemporaryDirectory(dir="/tmp") as temp:
+            path = Path(temp) / "weeks.csv"
+            records = list(rows(1600, days=16))
+            with path.open("w", newline="") as output:
+                write_rows(output, iter(records), "csv")
+            result = run([CLI, "investigate", "--litellm-spend", str(path), "--format", "json"])
+            assert_private(result, (path, path.parent), records)
+            require(result.returncode == 0, "16-day export did not select default periods")
+            report = json.loads(result.stdout)
+            for side, start, end in (("before", "2026-09-24", "2026-10-01"),
+                                     ("after", "2026-10-01", "2026-10-08")):
+                window = report[side]
+                require(window["period"] == {"start": start + "T00:00:00Z",
+                                             "end_exclusive": end + "T00:00:00Z"},
+                        "default weekly boundaries differ")
+                require(window["logged_model_requests"] == 700 and window["recorded_tokens"] == 840000,
+                        "default weekly arithmetic differs")
+            require(report["outside_period_rows"] == 200, "partial edge days were included")
+
     def test_readme_selected_output_matches_run(self):
         readme = (ROOT / "README.md").read_text()
         block = readme.split("```text\n", 1)[1].split("```", 1)[0]
