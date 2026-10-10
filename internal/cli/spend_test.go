@@ -43,7 +43,7 @@ func TestSpendCLIPrivacyAndErrors(t *testing.T) {
 					}
 				}
 				if format == "text" {
-					for _, want := range []string{"Tue 2026-09-01", "Wed 2026-09-02", "Who drove the increase?", "100.00%", "origin unknown"} {
+					for _, want := range []string{"Tue 2026-09-01", "Wed 2026-09-02", "Who drove the increase?", "100%", "No other usage problems found."} {
 						if !strings.Contains(out.String(), want) {
 							t.Fatal(want, out.String())
 						}

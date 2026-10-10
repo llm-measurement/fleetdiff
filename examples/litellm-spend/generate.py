@@ -3,6 +3,7 @@
 """Streaming synthetic fixture and scale generator; no importer or provider code."""
 import argparse
 import csv
+from datetime import date, timedelta
 import json
 import os
 from pathlib import Path
@@ -19,10 +20,12 @@ COLUMNS = (
 TOKEN_COLUMNS = ("prompt_tokens", "completion_tokens", "total_tokens")
 
 
-def rows(count=20, *, unique_keys=False, key_cardinality=None):
+def rows(count=20, *, unique_keys=False, key_cardinality=None, days=None):
     """Repeat the reviewed 20-row fixture with unique request and session IDs."""
     base = json.loads((ROOT / "synthetic.json").read_text(encoding="ascii"))
     period_counts = {"2026-10-07": 0, "2026-10-08": 0}
+    dates = [(date(2026, 9, 23) + timedelta(days=i)).isoformat()
+             for i in range(days or 0)]
     for index in range(count):
         row = dict(base[index % len(base)])
         if index >= len(base):
@@ -35,6 +38,10 @@ def rows(count=20, *, unique_keys=False, key_cardinality=None):
             key = period_counts[day] % key_cardinality
             row["api_key"] = f"synthetic-scale-key-{key:09d}"
             period_counts[day] += 1
+        if dates:
+            day = dates[min(index * len(dates) // count, len(dates) - 1)]
+            row["startTime"] = day + "T12:00:00Z"
+            row["endTime"] = day + "T12:00:01Z"
         yield row
 
 
@@ -60,16 +67,20 @@ def main():
     parser.add_argument("--rows", type=int, default=1_000_000)
     parser.add_argument("--format", choices=("csv", "json", "jsonl"), default="csv")
     parser.add_argument("--output", type=Path, help="new output file; default is stdout")
+    parser.add_argument("--days", type=int, help="spread rows over 1..16 days starting 2026-09-23")
     keys = parser.add_mutually_exclusive_group()
     keys.add_argument("--unique-keys", action="store_true", help="one distinct api_key per row")
     keys.add_argument("--key-cardinality", type=int,
                       help="cycle a shared key pool independently in each period")
     args = parser.parse_args()
-    if not 1 <= args.rows <= 1_000_001:
-        parser.error("rows must be 1..1000001 (the final value tests rejection)")
-    if args.key_cardinality is not None and not 1 <= args.key_cardinality <= 1_000_000:
-        parser.error("key cardinality must be 1..1000000")
-    records = rows(args.rows, unique_keys=args.unique_keys, key_cardinality=args.key_cardinality)
+    if not 1 <= args.rows <= 10_000_001:
+        parser.error("rows must be 1..10000001 (the final value tests rejection)")
+    if args.key_cardinality is not None and not 1 <= args.key_cardinality <= 10_000_000:
+        parser.error("key cardinality must be 1..10000000")
+    if args.days is not None and not 1 <= args.days <= 16:
+        parser.error("days must be 1..16")
+    records = rows(args.rows, unique_keys=args.unique_keys, key_cardinality=args.key_cardinality,
+                  days=args.days)
     if args.output is None:
         write_rows(sys.stdout, records, args.format)
     else:

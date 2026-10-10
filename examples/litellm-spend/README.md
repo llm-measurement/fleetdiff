@@ -19,10 +19,11 @@ bin/fleetdiff investigate --litellm-spend examples/litellm-spend/synthetic.csv \
 Selected lines from an actual run on this fixture:
 
 ```text
-Recorded tokens: 8000 -> 16000 (+8000); logged model requests: 8 -> 12.
-  model-1: 4000 -> 12000 recorded tokens; 4 -> 6 requests.
-    1000.00 -> 2000.00 recorded tokens per request; +3000 from request count, +5000 from request size.
-  2 leading tracked keys account for 100.00% of the net recorded increase.
+Recorded tokens doubled (8,000 -> 16,000).
+model-1 accounts for 100% of the net recorded increase (+8,000 tokens).
+  model-1: 4,000 -> 12,000 recorded tokens; 4 -> 6 requests.
+    1,000.00 -> 2,000.00 recorded tokens per request; +3,000 from request count, +5,000 from request size.
+  2 leading tracked keys account for 100% of the net recorded increase.
   Zero-only records, origin unknown: 2 -> 4.
   Failed records (overlap usage categories): 1 -> 2.
 ```
@@ -43,26 +44,35 @@ umask 077
 export_dir="$HOME/litellm-export"
 mkdir "$export_dir"
 psql 'service=litellm_readonly' -Xq -v ON_ERROR_STOP=1 \
-  -v start_utc=2026-10-07T00:00:00Z -v end_utc=2026-10-09T00:00:00Z \
+  -v start_utc=2026-09-23T00:00:00Z -v end_utc=2026-10-09T00:00:00Z \
   -v csv_file="$export_dir/spend.csv" \
-  -v json_file="$export_dir/spend.json" \
-  -v jsonl_file="$export_dir/spend.jsonl" \
   -f examples/litellm-spend/export.sql \
   >"$export_dir/private-psql.out" 2>"$export_dir/private-psql.err"
 ```
 
-The SQL projection is defined once and reused for all three files in a single
-**REPEATABLE READ, READ ONLY transaction**. Outputs are local to the `psql`
-client. See PostgreSQL's [transaction documentation](https://www.postgresql.org/docs/17/sql-set-transaction.html)
+The recipe writes **CSV only by default**, using one `COPY` pass with no
+database sort, in a **REPEATABLE READ, READ ONLY transaction**. The historical
+16-day interval leaves room for the importer's default two seven-day windows
+inside the file's edge days. Sparse logs may still need explicit periods;
+the interval alone does not certify coverage.
+
+To select JSONL **instead of CSV**, replace the `-v csv_file=...` line with
+`-v jsonl_file="$export_dir/spend.jsonl"`. Defining `jsonl_file` selects a single
+row-at-a-time JSON query and suppresses CSV even if `csv_file` is also supplied.
+The recipe never aggregates or exports a JSON array; the reader still accepts
+existing JSON arrays. Output is local to the `psql` client. See PostgreSQL's
+[transaction documentation](https://www.postgresql.org/docs/17/sql-set-transaction.html)
 and [psql documentation](https://www.postgresql.org/docs/17/app-psql.html).
 
 ## Investigate Your Export
 
 ```sh
 bin/fleetdiff investigate --litellm-spend "$export_dir/spend.csv" \
-  --before-period 2026-10-07 --after-period 2026-10-08 \
   --group-by key --format json
 ```
+
+For the optional JSONL export, use `"$export_dir/spend.jsonl"` as the input.
+The small fixture above intentionally keeps its explicit one-day periods.
 
 Use `--group-by key|team|user|end-user|session`; model breakdowns are automatic.
 `user` means key owner, while `end-user` means the application's end user.
@@ -86,6 +96,30 @@ The pinned image's actual writer and SQL export are tested with values of 25,
 [schema](https://github.com/BerriAI/litellm/blob/79645770fedc7ec2627e6468d31062f20f82aecc/schema.prisma#L646),
 and [integration checks](TESTING.md).
 
+### Claude Code And Codex Requests
+
+The importer reads `anthropic_messages` / `aanthropic_messages` and `responses` /
+`aresponses`, alongside Chat Completions and text completions. The pinned
+LiteLLM logging lifecycle converts their native usage into the spend columns:
+
+| Path | Native input | Cache read / write | Spend `prompt_tokens` | Output / total |
+| --- | ---: | ---: | ---: | ---: |
+| Anthropic Messages | 100 uncached | 80 / 20 | 200 | 10 / 210 |
+| OpenAI Responses | 200 inclusive | 80 / absent | 200 | 10 / 210 |
+
+These are checked synthetic values from the pinned image, not provider traffic.
+The importer adds the spend columns once; cache details stay subsets. Responses
+spend columns use the standard-logging fallback built by the logging lifecycle.
+The [logging source](https://github.com/BerriAI/litellm/blob/79645770fedc7ec2627e6468d31062f20f82aecc/litellm/litellm_core_utils/litellm_logging.py)
+and [writer probe](writer_probe.py) capture this contract.
+
+If either selected period contains an unpinned call type, the first line says
+**Comparison incomplete**. It lists each type's request counts and recorded
+token columns as **unanalyzed**, separately from the supported totals. A period
+containing only unsupported rows still yields this partial report when the other
+period has analyzable requests. When neither period has any, the command names
+the call types and asks for a supported request-level export.
+
 ## Data And Limits
 
 - Accepted inputs are request-level SQL projections as headered CSV, a JSON
@@ -95,9 +129,9 @@ and [integration checks](TESTING.md).
 - fleetdiff reads a local file without a collector, database connection, model
   key, or provider call. Counts describe supplied logged model requests, not
   proven provider sends. Hidden retries and missing records cannot be recovered.
-- Supported call types are `completion`, `acompletion`, `text_completion`, and
-  `atext_completion`. Embeddings, Responses, agent, tool, and other rows are
-  counted separately as out of scope.
+- Supported call types are Chat Completions, text completions, Anthropic Messages
+  and Responses, including their asynchronous names. Other call types remain
+  separate in the coverage inventory; unfamiliar names are locally aliased.
 - Check your database's timestamp convention. The pinned schema stores UTC in
   `timestamp(3)` columns without a timezone; SQL emits explicit UTC RFC3339.
   Do not apply that interpretation to local-wall-time data. Requests belong to
@@ -120,16 +154,20 @@ and [integration checks](TESTING.md).
 - Output aliases hide raw identities, including models; displayed hashes are
   linkable. Use a private secret for real exports, never the fixed test secret.
   Sessions are scoped to keys but may be generated trace IDs, not conversations.
+- Tied contributors and models follow their first appearance in the file.
+  Concentration uses the full tracked candidate set before `--top` truncates
+  display rows. Its denominator is the net recorded increase, so offsets from
+  declining contributors can produce shares above 100%.
 - The SQL excludes prompts, responses, code, request bodies, IP addresses,
   API bases, and whole metadata objects. Exports and database diagnostics still
   contain sensitive information: keep them private. Use only successful exports;
   failed SQL can leave partial files. Retry into a new directory because `psql`
   can overwrite files. A consistent snapshot does not establish complete logging.
-- Limits: **1,000,000 rows; 2 GiB/file; 64 KiB/row; 8 KiB/field; 64 fields/row;
-  JSON depth 8; 128 models.** Limits also apply to ignored content. Select a
-  narrower SQL interval when necessary. The recipe writes all three formats,
-  uses a database-side aggregate for the JSON array, and has a two-minute
-  per-statement timeout; review large exports with your database operator.
+- Limits: **10,000,000 rows; 16 GiB/file; 64 KiB/row; 8 KiB/field; 64 fields/row;
+  JSON depth 8; 128 models; 64 call types.** Limits also apply to ignored content. Select a
+  narrower SQL interval when necessary. The recipe writes one selected format
+  without sorting or aggregating rows and has a two-minute per-statement
+  timeout; review large exports with your database operator.
 
 ## Checks And Scale Inputs
 
@@ -158,3 +196,5 @@ python3 -B examples/litellm-spend/generate.py --rows 1000000 --format jsonl \
 gives every row a different key; `--key-cardinality N` cycles a shared key pool
 independently in each period. Use `--format json` or `jsonl` for other encodings.
 Benchmark setup and resource measurements are in [TESTING.md](TESTING.md).
+For a default-period scale check, add `--days 16` and run the importer without
+period flags. Increase `--rows` to `10000000` to exercise the supported row cap.

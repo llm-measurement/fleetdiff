@@ -18,6 +18,40 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
+def native_response(call_type, cached, trace_id):
+    """Exercise the pinned logging normalizers, then pass their output to DB writer."""
+    from litellm.litellm_core_utils.litellm_logging import Logging
+    from litellm.types.llms.openai import ResponsesAPIResponse
+
+    # The pinned Messages adapters set the logging operation to the canonical
+    # name. Exercise both stored writer spellings with that normalized usage.
+    context = Logging(model="claude-sonnet-4-5" if "anthropic" in call_type else "gpt-4.1",
+                      messages=[], stream=False,
+                      call_type="anthropic_messages" if "anthropic" in call_type else call_type,
+                      start_time=datetime(2026, 10, 7, tzinfo=timezone.utc),
+                      litellm_call_id="synthetic-native", function_id="synthetic-native",
+                      litellm_trace_id=trace_id)
+    context.optional_params = {}
+    if "anthropic" in call_type:
+        raw = {"id": "synthetic-native-message", "type": "message", "role": "assistant",
+               "model": context.model, "content": [{"type": "text", "text": "synthetic"}],
+               "stop_reason": "end_turn", "stop_sequence": None,
+               "usage": {"input_tokens": 100, "output_tokens": 10,
+                         "cache_read_input_tokens": 80 if cached else 0,
+                         "cache_creation_input_tokens": 20 if cached else 0}}
+    else:
+        raw = ResponsesAPIResponse(id="synthetic-native-response", object="response",
+            created_at=0, status="completed", model="gpt-4.1", output=[],
+            parallel_tool_calls=False, tool_choice="auto", tools=[],
+            usage={"input_tokens": 200 if cached else 100, "output_tokens": 10,
+                   "total_tokens": 210 if cached else 110,
+                   "input_tokens_details": {"cached_tokens": 80 if cached else 0},
+                   "output_tokens_details": {"reasoning_tokens": 5}})
+    _, _, result = context._success_handler_helper_fn(
+        result=raw, end_time=datetime(2026, 10, 7, 0, 0, 1, tzinfo=timezone.utc))
+    return result, context.model_call_details["standard_logging_object"]
+
+
 def payloads():
     import litellm
     from litellm.proxy.spend_tracking import spend_tracking_utils as writer
@@ -45,6 +79,12 @@ def payloads():
                        call_type=operation, startTime=f"2026-10-{day:02}T19:00:00Z",
                        endTime=f"2026-10-{day:02}T19:00:01Z")
             cases.append((row["request_id"], row, "complete"))
+        for operation in ("anthropic_messages", "aanthropic_messages", "responses", "aresponses"):
+            for mode in ("native_cached", "native_uncached", "missing", "failure_partial"):
+                row = dict(base[0], request_id=f"synthetic-{day}-{operation}-{mode}",
+                           call_type=operation, startTime=f"2026-10-{day:02}T20:00:00Z",
+                           endTime=f"2026-10-{day:02}T20:00:01Z")
+                cases.append((row["request_id"], row, mode))
     for label, stamp in (
         ("outside_before", "2026-10-06T23:59:59.999Z"),
         ("at_start", "2026-10-07T00:00:00Z"),
@@ -78,6 +118,12 @@ def payloads():
                  ("prompt_tokens", "completion_tokens", "total_tokens")}
         response = {"usage": usage}
         expected = tuple(usage.values())
+        if mode in ("native_cached", "native_uncached"):
+            response, standard = native_response(row["call_type"], mode == "native_cached", row["session_id"])
+            kwargs["standard_logging_object"] = standard
+            response.id = label
+            expected = (200, 10, 210) if mode == "native_cached" else (100, 10, 110)
+            kwargs["custom_llm_provider"] = "anthropic" if "anthropic" in row["call_type"] else "openai"
         if label == "synthetic-000":
             usage["prompt_tokens_details"] = {"cached_tokens": 25, "cache_write_tokens": 10}
             usage["completion_tokens_details"] = {"reasoning_tokens": 5}
@@ -119,6 +165,13 @@ def payloads():
                     details.get("cache_creation_input_tokens") == 10 and
                     details.get("completion_tokens_details", {}).get("reasoning_tokens") == 5,
                     "writer optional usage paths changed")
+        if mode == "native_cached":
+            details = json.loads(payload["metadata"])["additional_usage_values"]
+            require(details.get("cache_read_input_tokens") == 80,
+                    "native cache-read field changed")
+            if "anthropic" in row["call_type"]:
+                require(details.get("cache_creation_input_tokens") == 20,
+                        "native cache-write field changed")
         projected = {k: payload.get(k) for k in COLUMNS}
         for name in ("startTime", "endTime"):
             projected[name] = payload[name].astimezone(timezone.utc).isoformat()

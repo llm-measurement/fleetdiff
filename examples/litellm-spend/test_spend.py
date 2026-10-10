@@ -27,7 +27,8 @@ DOCKER = os.environ.get("FLEETDIFF_SPEND_DOCKER") == "1"
 SECRET = "fleetdiff-synthetic-only-fixed-secret-20261010"
 FORMATS = ("csv", "json", "jsonl")
 GROUPS = ("key", "team", "user", "end-user", "session")
-OPERATIONS = {"completion", "acompletion", "text_completion", "atext_completion"}
+OPERATIONS = {"completion", "acompletion", "text_completion", "atext_completion",
+              "anthropic_messages", "aanthropic_messages", "responses", "aresponses"}
 
 
 def require(condition, message):
@@ -117,6 +118,14 @@ def assert_arithmetic(report, records):
                     r["startTime"].startswith(f"2026-10-{day:02}")]
         window = report[name]
         require(window["logged_model_requests"] == len(selected), "report request arithmetic differs")
+        for field, metric in (("prompt_tokens", "input_tokens"),
+                              ("completion_tokens", "output_tokens"),
+                              ("cache_read_input_tokens", "cache_read_input_tokens"),
+                              ("cache_write_input_tokens", "cache_write_input_tokens"),
+                              ("reasoning_output_tokens", "reasoning_output_tokens")):
+            require(window["counters"]["gen_ai_sketch_" + metric + "_total"] ==
+                    sum(int(r.get(field) or 0) for r in selected),
+                    "report usage counter arithmetic differs")
         require(window["recorded_tokens"] == sum(r["prompt_tokens"] + r["completion_tokens"] for r in selected),
                 "report recorded token arithmetic differs")
         require(window["quality"]["failed_records"] == sum(r["status"] == "failure" for r in selected),
@@ -210,14 +219,37 @@ def seed_database(container, records):
 
 
 def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:00:00Z", details=False):
-    psql(container, "-v", "start_utc=" + start, "-v", "end_utc=" + end,
-         "-v", "csv_file=/tmp/spend.csv", "-v", "json_file=/tmp/spend.json",
-         "-v", "jsonl_file=/tmp/spend.jsonl", "-v", "usage_details=" + str(details).lower(),
-         "-f", "/example/export.sql", reader=True)
-    return {fmt: docker("exec", container, "cat", "/tmp/spend." + fmt) for fmt in FORMATS}
+    exports = {}
+    for fmt in ("csv", "jsonl"):
+        directory = "/tmp/export-" + uuid.uuid4().hex
+        docker("exec", container, "mkdir", "-m", "700", directory)
+        arguments = ["-v", "start_utc=" + start, "-v", "end_utc=" + end,
+                     "-v", "csv_file=" + directory + "/spend.csv"]
+        if fmt == "jsonl":
+            # The JSONL selector must suppress CSV even when both are specified.
+            arguments.extend(("-v", "jsonl_file=" + directory + "/spend.jsonl"))
+        if details:
+            arguments.extend(("-v", "usage_details=true"))
+        output = psql(container, *arguments, "-f", "/example/export.sql", reader=True)
+        require(not output.strip(), "SQL export leaked output outside its selected file")
+        files = docker("exec", container, "ls", "-1", directory).splitlines()
+        require(files == [("spend." + fmt).encode()], "SQL created an unexpected output file")
+        exports[fmt] = docker("exec", container, "cat", directory + "/spend." + fmt)
+    # Reader parity still covers JSON arrays, assembled locally from the CSV.
+    exports["json"] = json.dumps(list(csv.DictReader(
+        io.StringIO(exports["csv"].decode("utf-8"))))).encode("utf-8")
+    return exports
 
 
 class FixtureTests(unittest.TestCase):
+    def test_sql_recipe_uses_one_unsorted_export_without_array_aggregation(self):
+        sql = (ROOT / "export.sql").read_text().upper()
+        require(sql.count("COPY (") == 1, "SQL recipe must have one CSV COPY pass")
+        require("ORDER BY" not in sql, "SQL export must not require a database sort")
+        require("JSON_AGG" not in sql and "JSONB_AGG" not in sql,
+                "SQL export must not aggregate a JSON array")
+        require("JSON_FILE" not in sql, "SQL recipe must not export a JSON array")
+
     def test_reviewed_arithmetic_and_format_equality(self):
         fixtures = [decode((ROOT / ("synthetic." + fmt)).read_bytes(), fmt) for fmt in FORMATS]
         require(fixtures[0] == fixtures[1] == fixtures[2], "fixture formats differ")
@@ -275,6 +307,29 @@ class FixtureTests(unittest.TestCase):
 
 @unittest.skipUnless(CLI, "set FLEETDIFF_BIN to the source-built CLI")
 class ImporterTests(unittest.TestCase):
+    def test_readme_selected_output_matches_run(self):
+        readme = (ROOT / "README.md").read_text()
+        block = readme.split("```text\n", 1)[1].split("```", 1)[0]
+        result = investigate(ROOT / "synthetic.csv", encoding="text")
+        actual = result.stdout.decode().splitlines()
+        require(all(line in actual for line in block.splitlines()),
+                "README output does not match the source-built report")
+
+    def test_agent_route_change_keeps_all_usage(self):
+        with tempfile.TemporaryDirectory(dir="/tmp") as temp:
+            for operation in ("anthropic_messages", "aanthropic_messages", "responses", "aresponses"):
+                for count in (6, 12):
+                    records = list(rows())
+                    for row in records[8:8+count]:
+                        row["call_type"] = operation
+                    path = Path(temp) / "agents.json"
+                    path.write_text(json.dumps(records))
+                    report = investigate(path, records=records)
+                    require(report["before"]["recorded_tokens"] == 8000 and
+                            report["after"]["recorded_tokens"] == 16000 and
+                            not report["comparison_incomplete"],
+                            "agent route change created a false usage drop")
+
     def test_fixture_reports_equal_for_every_group(self):
         records = list(rows())
         for group in GROUPS:
@@ -325,6 +380,11 @@ class ImporterTests(unittest.TestCase):
             investigate(csv_path, success=False)
             investigate(root / "SENTINEL_MISSING_73b9.json", success=False)
 
+            originals[-1]["call_type"] = "SENTINEL_CUSTOM_ROUTE_73b9"
+            path.write_text(json.dumps(originals))
+            for fmt in ("text", "json"):
+                investigate(path, encoding=fmt, records=originals)
+
 
 @unittest.skipUnless(DOCKER, "set FLEETDIFF_SPEND_DOCKER=1 for the pinned-image DB test")
 class DatabaseTests(unittest.TestCase):
@@ -342,13 +402,33 @@ class DatabaseTests(unittest.TestCase):
         cls.exports = export_database(cls.db)
         cls.detail_exports = export_database(cls.db, details=True)
 
+    def test_jsonl_selector_does_not_require_csv_destination(self):
+        directory = "/tmp/export-" + uuid.uuid4().hex
+        docker("exec", self.db, "mkdir", "-m", "700", directory)
+        output = psql(self.db, "-v", "start_utc=2026-10-07T00:00:00Z",
+                      "-v", "end_utc=2026-10-09T00:00:00Z",
+                      "-v", "jsonl_file=" + directory + "/spend.jsonl",
+                      "-f", "/example/export.sql", reader=True)
+        require(not output.strip(), "JSONL-only export leaked output")
+        require(docker("exec", self.db, "ls", "-1", directory).splitlines() == [b"spend.jsonl"],
+                "JSONL-only export created an unexpected file")
+        data = docker("exec", self.db, "cat", directory + "/spend.jsonl")
+        expected = sorted(decode(self.exports["csv"], "csv"), key=lambda r: r["request_id"])
+        require(sorted(decode(data, "jsonl"), key=lambda r: r["request_id"]) == expected,
+                "JSONL-only export changed projected records")
+
     def test_real_database_projection_and_utc_boundaries(self):
-        parsed = [decode(self.exports[fmt], fmt) for fmt in FORMATS]
+        parsed = [sorted(decode(self.exports[fmt], fmt), key=lambda r: r["request_id"])
+                  for fmt in FORMATS]
         require(parsed[0] == parsed[1] == parsed[2], "database export formats differ")
-        require(len(parsed[0]) == 44, "database export row count differs")
+        start = datetime(2026, 10, 7, tzinfo=timezone.utc)
+        end = datetime(2026, 10, 9, tzinfo=timezone.utc)
         expected = [r for r in self.records if
-                    "2026-10-07" <= r["startTime"][:10] < "2026-10-09"]
-        expected.sort(key=lambda r: (r["startTime"], r["request_id"]))
+                    start <= datetime.fromisoformat(r["startTime"].replace("Z", "+00:00")) < end]
+        expected.sort(key=lambda r: r["request_id"])
+        require(OPERATIONS <= {r["call_type"] for r in expected},
+                "writer probe omits supported operation coverage")
+        require(len(parsed[0]) == len(expected), "database export row count differs")
         for actual, original in zip(parsed[0], expected):
             require(set(actual) == set(COLUMNS), "SQL selected an unexpected column")
             for field in COLUMNS:
@@ -372,19 +452,35 @@ class DatabaseTests(unittest.TestCase):
         require(all(decode(empty[fmt], fmt) == [] for fmt in FORMATS), "empty SQL export is invalid")
 
     def test_optional_aliases_come_from_actual_writer_metadata(self):
-        aliases = ("cache_read_input_tokens", "cache_write_input_tokens", "reasoning_output_tokens")
+        paths = {"cache_read_input_tokens": ("cache_read_input_tokens",),
+                 "cache_write_input_tokens": ("cache_creation_input_tokens",),
+                 "reasoning_output_tokens": ("completion_tokens_details", "reasoning_tokens")}
         parsed = []
         for fmt in FORMATS:
-            records = decode(self.detail_exports[fmt], fmt)
+            records = sorted(decode(self.detail_exports[fmt], fmt), key=lambda r: r["request_id"])
             for row in records:
-                for alias in aliases:
+                require(set(row) == set(COLUMNS) | set(paths), "SQL selected an unexpected detail column")
+                for alias in paths:
                     row[alias] = None if row[alias] in (None, "") else int(row[alias])
             parsed.append(records)
         require(parsed[0] == parsed[1] == parsed[2], "optional detail formats differ")
+        originals = {r["request_id"]: r for r in self.records}
+        plain = {r["request_id"]: r for r in decode(self.exports["csv"], "csv")}
+        require(len(parsed[0]) == len(plain), "optional export row count differs")
+        require({r["request_id"] for r in parsed[0]} == set(plain) <= set(originals),
+                "optional export membership differs from writer records")
         for row in parsed[0]:
-            values = tuple(row[a] for a in aliases)
-            require(values == ((25, 10, 5) if row["request_id"] == "synthetic-000" else (None, None, None)),
-                    "optional usage values were filled or mapped incorrectly")
+            require({field: row[field] for field in COLUMNS} == plain[row["request_id"]],
+                    "optional projection changed base fields")
+            metadata = originals[row["request_id"]]["metadata"]
+            if isinstance(metadata, str):
+                metadata = json.loads(metadata)
+            for alias, path in paths.items():
+                value = (metadata or {}).get("additional_usage_values")
+                for key in path:
+                    value = value.get(key) if isinstance(value, dict) else None
+                require(row[alias] == (None if value is None else int(value)),
+                        "optional usage values differ from actual writer metadata")
 
     @unittest.skipUnless(CLI, "set FLEETDIFF_BIN for the DB-export-to-importer check")
     def test_real_database_exports_through_importer(self):

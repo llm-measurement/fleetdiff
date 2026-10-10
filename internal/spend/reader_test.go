@@ -407,9 +407,9 @@ func (r *readerRepeatingSource) Read(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func TestReaderMillionRowLimit(t *testing.T) {
+func TestReaderTenMillionRowLimit(t *testing.T) {
 	if testing.Short() {
-		t.Skip("million-row boundary")
+		t.Skip("ten-million-row boundary")
 	}
 	for _, count := range []int{MaxRows, MaxRows + 1} {
 		body := io.LimitReader(&readerRepeatingSource{text: ",,,,,\n"}, int64(count*6))
@@ -428,7 +428,7 @@ func TestReaderMillionRowLimit(t *testing.T) {
 	}
 }
 
-func BenchmarkReaderCSVTwoPassMillion(b *testing.B) {
+func BenchmarkReaderCSVTwoPassTenMillion(b *testing.B) {
 	path := filepath.Join(b.TempDir(), "spend.csv")
 	f, err := os.Create(path)
 	if err != nil {

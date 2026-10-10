@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: Apache-2.0
 -- Code authors: Vijay and Codex
--- psql -Xq -v ON_ERROR_STOP=1; see README.md for the five required variables.
+-- psql -Xq -v ON_ERROR_STOP=1; see README.md for bounds and output variables.
 \set ON_ERROR_STOP on
 \set QUIET on
 \pset format unaligned
@@ -47,15 +47,16 @@ SELECT format($projection$
   FROM public."LiteLLM_SpendLogs"
   WHERE "startTime" >= (%L::timestamptz AT TIME ZONE 'UTC')
     AND "startTime" < (%L::timestamptz AT TIME ZONE 'UTC')
-  ORDER BY "startTime", request_id
 $projection$, :'detail_projection', :'start_utc', :'end_utc') AS export_query
 \gset
 
--- These are client-local files. All three queries see one database snapshot.
-COPY (:export_query) TO STDOUT WITH (FORMAT CSV, HEADER true)
-\g :csv_file
-SELECT COALESCE(json_agg(row_to_json(r)), '[]'::json) FROM (:export_query) AS r
-\g :json_file
+-- Write one client-local file in one pass; JSONL replaces the default CSV.
+-- psql emits JSONL directly so COPY text escaping cannot alter JSON strings.
+\if :{?jsonl_file}
 SELECT row_to_json(r) FROM (:export_query) AS r
 \g :jsonl_file
+\else
+COPY (:export_query) TO STDOUT WITH (FORMAT CSV, HEADER true)
+\g :csv_file
+\endif
 COMMIT;

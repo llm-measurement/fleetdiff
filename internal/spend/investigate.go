@@ -198,28 +198,48 @@ func Investigate(path string, opts Options) (Report, error) {
 	}
 	windows := [2]*aggregate{newAggregate(before, true), newAggregate(after, true)}
 	models := map[[32]byte][2]*aggregate{}
-	seen := map[[32]byte]struct{}{}
+	modelOrder := map[[32]byte]int{}
+	// Sort full HMAC digests after reading instead of retaining a hash table.
+	// This keeps duplicate detection exact at its existing 256-bit identity.
+	var seen requestDigests
+	callTypes := map[string]int{}
 	r := Report{Schema: "fleetdiff-litellm-spend/v1", AccountingID: accounting.ID, SourceContract: "litellm-spend-rows/v1", GroupBy: opts.GroupBy, Hashing: mode, Models: []Model{}, ZeroFilled: "cannot determine from this export", ProviderOrigin: "not declared by the supported SQL projection"}
 	secondDigest := sha256.New()
 	enc := json.NewEncoder(secondDigest)
 	err = Read(path, func(row Row) error {
 		r.Rows++
-		if automatic {
-			if e := enc.Encode(row.Values); e != nil {
-				return e
-			}
+		if e := enc.Encode(row.Values); e != nil {
+			return e
 		}
 		if row.Values["request_id"] == "" {
 			return errors.New("each request-level row needs a nonempty request_id")
 		}
 		id := requestDigest(key, row.Values["request_id"])
-		if _, ok := seen[id]; ok {
-			return errors.New("duplicate request_id; export each request once from one consistent database snapshot")
-		}
-		seen[id] = struct{}{}
+		seen.add(id)
 		start, e := timestamp(row.Values["startTime"])
 		if e != nil {
 			return e
+		}
+		side := -1
+		if before.contains(start) {
+			side = 0
+		} else if after.contains(start) {
+			side = 1
+		}
+		supported := operation(row.Values["call_type"]) != ""
+		if !supported {
+			r.ExcludedRows++
+		}
+		if side < 0 {
+			r.OutsidePeriods++
+			return nil
+		}
+		if e := recordCallType(&r, callTypes, row, side); e != nil {
+			return e
+		}
+		if !supported {
+			r.Incomplete = true
+			return nil
 		}
 		if endText := row.Values["endTime"]; endText != "" {
 			end, e := timestamp(endText)
@@ -232,20 +252,6 @@ func Investigate(path string, opts Options) (Report, error) {
 			if end.After(opts.Now) {
 				return errors.New("export contains unfinished or future records; export completed requests")
 			}
-		}
-		if operation(row.Values["call_type"]) == "" {
-			r.ExcludedRows++
-			return nil
-		}
-		side := -1
-		if before.contains(start) {
-			side = 0
-		} else if after.contains(start) {
-			side = 1
-		}
-		if side < 0 {
-			r.OutsidePeriods++
-			return nil
 		}
 		a, e := accounting.Tokens(attributes(row))
 		if e != nil {
@@ -289,20 +295,34 @@ func Investigate(path string, opts Options) (Report, error) {
 			}
 			pair = [2]*aggregate{newAggregate(before, false), newAggregate(after, false)}
 			models[model] = pair
+			modelOrder[model] = row.Number
 		}
 		return pair[side].add(row, a, q)
 	})
 	if err != nil {
 		return Report{}, err
 	}
+	if seen.duplicated() {
+		return Report{}, errors.New("duplicate request_id; export each request once from one consistent database snapshot")
+	}
+	seen = nil
 	if automatic && !bytes.Equal(firstDigest.Sum(nil), secondDigest.Sum(nil)) {
 		return Report{}, errors.New("export changed while reading; use a completed immutable export")
 	}
 	r.Before, r.After = windows[0].result(), windows[1].result()
-	if r.Before.Requests == 0 || r.After.Requests == 0 {
-		return Report{}, errors.New("each selected period needs a supported logged model request; choose explicit periods or review call_type")
+	if r.Before.Requests == 0 && r.After.Requests == 0 {
+		names := []string{}
+		for _, c := range r.CallTypes {
+			names = append(names, c.Name)
+		}
+		if len(names) == 0 {
+			return Report{}, errors.New("no rows in either selected period; choose periods containing request-level rows")
+		}
+		return Report{}, fmt.Errorf("no analyzable model requests in either period; call types: %s; use Chat Completions, Messages or Responses request-level rows", strings.Join(names, ", "))
 	}
-	r.Volume = volume(r.Before, r.After)
+	if !r.Incomplete {
+		r.Volume = volume(r.Before, r.After)
+	}
 	type modelEntry struct {
 		hash [32]byte
 		pair [2]*aggregate
@@ -319,7 +339,7 @@ func Investigate(path string, opts Options) (Report, error) {
 		if da < db {
 			return 1
 		}
-		return bytes.Compare(a.hash[:], b.hash[:])
+		return modelOrder[a.hash] - modelOrder[b.hash]
 	})
 	for i, v := range ordered {
 		m := Model{Item: fmt.Sprintf("model-%d", i+1), Before: v.pair[0].result(), After: v.pair[1].result()}
@@ -329,15 +349,24 @@ func Investigate(path string, opts Options) (Report, error) {
 		}
 		r.Models = append(r.Models, m)
 	}
-	r.Rankings, err = compare.RankChanges("top_"+opts.GroupBy, windows[0].top, windows[1].top, compare.Options{Top: opts.Top, ShowHashes: opts.ShowHashes})
+	r.Rankings, err = compare.RankCandidates("top_"+opts.GroupBy, windows[0].top, windows[1].top)
 	if err != nil {
 		return Report{}, err
 	}
 	r.Rankings.WeightUnit = "attributed-recorded-tokens"
+	if err := orderCandidates(path, &r, key, secondDigest.Sum(nil)); err != nil {
+		return Report{}, err
+	}
+	if !r.Incomplete {
+		r.Increase = increase(r.Rankings, r.Before.Tokens, r.After.Tokens)
+	}
+	r.Rankings.Movers = r.Rankings.Movers[:min(opts.Top, len(r.Rankings.Movers))]
 	for i := range r.Rankings.Movers {
 		r.Rankings.Movers[i].Item = fmt.Sprintf("%s-%d", opts.GroupBy, i+1)
+		if !opts.ShowHashes {
+			r.Rankings.Movers[i].Hash = ""
+		}
 	}
-	r.Increase = increase(r.Rankings, r.Before.Tokens, r.After.Tokens)
 	r.Notes = []string{
 		"Periods are half-open UTC intervals selected by request startTime; rows crossing a boundary remain in their start period.",
 		"Counts describe supplied logged model requests. Export completeness and hidden provider retries are not established by spend rows.",

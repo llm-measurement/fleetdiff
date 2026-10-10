@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	MaxRows       = 1_000_000
-	MaxFileBytes  = 2 << 30
+	MaxRows       = 10_000_000
+	MaxFileBytes  = 16 << 30
 	MaxRowBytes   = 64 << 10
 	MaxFieldBytes = 8 << 10
 	MaxFields     = 64
@@ -44,8 +44,8 @@ var (
 	errSpendFile      = errors.New("spend input must be a readable regular file, not a directory, symlink, or special file; export one SQL-projection file")
 	errSpendRead      = errors.New("cannot read spend input; check access and export a new SQL-projection file")
 	errSpendType      = errors.New("unsupported spend file extension; use .csv, .json, or .jsonl from the SQL projection")
-	errSpendSize      = errors.New("spend input exceeds 2 GiB; export a smaller SQL-projection file")
-	errSpendRows      = errors.New("spend input exceeds 1000000 rows; export a smaller SQL-projection file")
+	errSpendSize      = errors.New("spend input exceeds 16 GiB; export a smaller SQL-projection file")
+	errSpendRows      = errors.New("spend input exceeds 10,000,000 rows; export a smaller SQL-projection file")
 	errSpendRow       = errors.New("spend record exceeds 64 KiB; exclude content columns using the SQL projection")
 	errSpendField     = errors.New("spend field exceeds 8 KiB; shorten the field or exclude content columns using the SQL projection")
 	errSpendFields    = errors.New("spend record exceeds 64 fields; select only SQL-projection columns")

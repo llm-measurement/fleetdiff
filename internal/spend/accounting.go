@@ -12,11 +12,11 @@ import (
 	commonpb "go.opentelemetry.io/proto/slim/otlp/common/v1"
 )
 
-// The initial profile supports Chat Completions and text completions only.
-// Other call types remain counted as out of scope until their mappings are pinned.
+// The pinned logging lifecycle normalizes native Messages and Responses usage
+// before the spend writer: prompt_tokens already includes cache read/write.
 func operation(v string) string {
 	switch v {
-	case "completion", "acompletion":
+	case "completion", "acompletion", "anthropic_messages", "aanthropic_messages", "responses", "aresponses":
 		return "chat"
 	case "text_completion", "atext_completion":
 		return "text_completion"
@@ -36,9 +36,20 @@ func attributes(row Row) map[string]*commonpb.AnyValue {
 	} {
 		if v, ok := row.Values[f.column]; ok && v != "" {
 			a[f.attribute] = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: v}}
+			if _, _, err := accounting.Number(a[f.attribute]); err != nil {
+				// Invalid row values are quality observations, not aggregate overflow.
+				a[f.attribute] = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "invalid"}}
+			}
 		}
 	}
 	a["gen_ai.operation.name"] = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: operation(row.Values["call_type"])}}
+	input, _, _ := accounting.Number(a["gen_ai.usage.input_tokens"])
+	output, _, _ := accounting.Number(a["gen_ai.usage.output_tokens"])
+	if _, err := accounting.AddBounded(input, output); err != nil {
+		for _, name := range []string{"input", "output"} {
+			a["gen_ai.usage."+name+"_tokens"] = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "invalid"}}
+		}
+	}
 	return a
 }
 

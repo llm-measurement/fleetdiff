@@ -28,9 +28,15 @@ PostgreSQL multi-platform index was resolved from the official `17-bookworm`
 image on October 10, 2026. Runtime versions, image digests, and the LiteLLM
 writer/schema source hashes are checked. There are no implicit pulls in tests.
 
+Native Messages and Responses first pass through the pinned logging usage
+conversions, including the Responses standard-logging fallback. Messages uses
+the canonical logging operation used by the pinned adapters; the writer is
+exercised with both synchronous and asynchronous stored call-type names.
 The test calls the real image's `get_logging_payload`, inserts its synthetic
 payloads into an actual PostgreSQL table, then runs the public SQL recipe as a
-SELECT-only role. [test-schema.sql](test-schema.sql) mirrors the relevant
+SELECT-only role, once for default CSV and separately for optional JSONL.
+JSON arrays for reader parity are generated locally from CSV, never by a
+database aggregate. [test-schema.sql](test-schema.sql) mirrors the relevant
 pinned spend-column types; it is not LiteLLM's entire migration suite. This
 tests the writer payload and export contract, not HTTP routing, the gateway's
 asynchronous database writer, or a paid provider.
@@ -50,16 +56,26 @@ manually; do not prune unrelated Docker resources.
   from the actual importer output.
 - The actual writer adds absent usage, partial failures, input-only mismatches,
   logging fallback, discarded arbitrary provenance markers, and UTC boundary
-  cases. Its four accepted operation names are exercised; other operations
-  stay excluded. Two rows at the outer boundaries are omitted by SQL.
+  cases. Accepted Chat Completions, text completions, native Anthropic Messages,
+  and Responses operation names are exercised. Unpinned operations are inventoried
+  separately and make the selected-period comparison incomplete.
+  Expected export membership comes from actual writer timestamps and the
+  half-open UTC bounds, not a fixed row count or database row order.
 - The real writer produces the optional usage detail metadata. SQL aliases
-  must yield exactly 25 cache-read, 10 cache-write, and 5 reasoning tokens on
-  the one detailed row, and null elsewhere. No details are invented in the DB.
+  are compared to each actual payload's pinned metadata paths, including native
+  usage details and absent values. Base token counts must remain unchanged;
+  cache and reasoning details are not added to the writer's normalized totals.
+  No details are invented in the DB.
 - Only synthetic ignored content is added directly to the test table, proving
-  that the projection excludes it. Default and optional-detail exports match
-  across CSV, JSON, and JSONL. Empty intervals also produce valid files.
+  that the projection excludes it. The default SQL invocation must create only
+  CSV; setting `jsonl_file` must create only JSONL, with or without `csv_file`.
+  These checks cover both default and optional-detail projections. Records match
+  across both SQL formats and the locally assembled JSON array. Empty intervals
+  also produce valid files. A fixture-only check rejects database sorting,
+  JSON-array aggregation, and multiple CSV `COPY` passes in the recipe.
 - Fixed-secret JSON reports match for all five groups, with and without
-  displayed hashes. Importer totals are checked against exported row arithmetic.
+  displayed hashes. Importer totals and individual usage-detail counters are
+  checked against exported row arithmetic without adding subsets to totals.
 - Sentinels check stdout, stderr, JSON, and errors for raw keys, owners, teams,
   end users, sessions, model aliases, code, content, paths, and the test secret.
   Tests check source preservation and absence of unexpected importer artifacts.
@@ -84,22 +100,24 @@ The two options are mutually exclusive. Owners and teams stay low-cardinality;
 the model count is always two.
 
 ```sh
-python3 -B examples/litellm-spend/generate.py --rows 1000000 --format csv \
-  --unique-keys --output /tmp/litellm-million-unique.csv
-bin/fleetdiff investigate --litellm-spend /tmp/litellm-million-unique.csv \
+python3 -B examples/litellm-spend/generate.py --rows 10000000 --format csv \
+  --unique-keys --output /tmp/litellm-ten-million-unique.csv
+bin/fleetdiff investigate --litellm-spend /tmp/litellm-ten-million-unique.csv \
   --before-period 2026-10-07 --after-period 2026-10-08 \
   --group-by key --format json
 ```
 
 Measure the CLI separately from generation. `--output` creates a new mode-0600
 file and refuses to overwrite; omit it to stream to stdout. Choose CSV, JSON,
-or JSONL with `--format`. `--rows 1000001` creates a row-limit rejection case,
+or JSONL with `--format`. `--rows 10000001` creates a row-limit rejection case,
 not an accepted import size.
 
-The predeclared target is one million CSV rows within 60 seconds and 512 MiB
-peak RSS on an M4 Max, with both low and high key cardinality. Measure JSON
-and JSONL separately. The [recorded measurements](../../docs/BENCHMARKS.md#litellm-spend-import-source-checkout)
-meet that target. For new runs, record the exact
+The review target is ten million rows within 180 seconds for CSV, 360 seconds
+for JSON/JSONL, and 1 GiB peak RSS on an M4 Max. The
+[recorded measurements](../../docs/BENCHMARKS.md#litellm-spend-import-source-checkout)
+include the earlier one-million-row baseline. Add `--days 16` to generate a
+default-period trial; omit the importer's period flags for that run.
+For new runs, record the exact
 CLI build, format, row count, identity pattern, explicit windows, elapsed time,
 and operating-system peak RSS. Generation and small-fixture test duration are
 not importer throughput evidence.

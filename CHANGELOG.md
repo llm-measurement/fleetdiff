@@ -12,6 +12,12 @@ Notable user-visible changes are recorded here, newest first.
   preserve the collector's accounting fixtures.
 - Bound file, row, field, nesting, model and duplicate-tracking resources;
   recognize daily aggregate exports and direct operators to request-level rows.
+- Include native Anthropic Messages and Responses spend rows using pinned
+  logging/writer probes. Lead partial comparisons with call-type coverage and
+  keep unpinned token columns separate from analyzed totals.
+- Accept up to 10 million rows with full-length keyed request digests in bounded
+  blocks; export CSV in one database pass, with JSONL opt-in. Compute increase
+  concentration before display truncation and keep tied aliases in file order.
 
 ## [0.5.0] - 2026-10-04
 
