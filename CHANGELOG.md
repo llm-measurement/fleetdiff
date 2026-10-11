@@ -2,6 +2,33 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.6.0] - 2026-10-11
+
+See the [release notes](docs/releases/v0.6.0.md) for the LiteLLM workflow and
+upgrade details.
+
+- Investigate LiteLLM request-level SQL exports in CSV, JSON or JSONL locally,
+  without a collector. Compare complete UTC periods, recorded request count and
+  size by model, and keyed contributor rankings with concentration bounds.
+- Show ambiguous zero-only rows, missing/invalid usage, failures and exact
+  decimal recorded spend separately. Share token accounting with `inspect` and
+  preserve the collector's accounting fixtures.
+- Bound file, row, field, nesting, model and duplicate-tracking resources;
+  recognize daily aggregate exports and direct operators to request-level rows.
+- Include native Anthropic Messages and Responses spend rows using pinned
+  logging/writer probes. Lead partial comparisons with call-type coverage and
+  keep unpinned token columns separate from analyzed totals.
+- Accept up to 10 million rows with full-length keyed request digests in bounded
+  blocks; export CSV in one database pass, with JSONL opt-in. Compute increase
+  concentration before display truncation and keep tied aliases in file order.
+- Show offsetting contributor changes as token totals instead of percentages
+  above 100%, label the all-model decomposition, and distinguish clean usage
+  from reports with listed quality issues.
+- Lead the shorter README with export, verified installation and investigation;
+  retain summary, trace and configuration workflows in the documentation.
+- Build release artifacts with Go 1.26.9; source builds require Go 1.26 or later.
+  Add signed-commit and sign-off checks, CodeQL scanning and dependency reporting.
+
 ## [0.5.0] - 2026-10-04
 
 See the [release notes](docs/releases/v0.5.0.md) for examples and upgrade details.

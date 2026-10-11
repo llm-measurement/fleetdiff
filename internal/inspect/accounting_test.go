@@ -28,7 +28,7 @@ func TestUnavailableAndAliasAccounting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a.metrics[metricPrefix+"missing_token_usage_total"] != 1 || a.metrics[metricPrefix+"output_tokens_total"] != 12 || a.provenance["input/unavailable"] != 1 {
+	if a.Metrics[metricPrefix+"missing_token_usage_total"] != 1 || a.Metrics[metricPrefix+"output_tokens_total"] != 12 || a.Provenance["input/unavailable"] != 1 {
 		t.Fatalf("unavailable accounting: %+v", a)
 	}
 	attrs["gen_ai.usage.input_tokens"] = textValue("bad")
@@ -39,7 +39,7 @@ func TestUnavailableAndAliasAccounting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a.metrics[metricPrefix+"total_tokens_total"] != 21 || a.quality["input/invalid"] != 1 || a.quality["cache_read_input/subset_violation"] != 1 {
+	if a.Metrics[metricPrefix+"total_tokens_total"] != 21 || a.Quality["input/invalid"] != 1 || a.Quality["cache_read_input/subset_violation"] != 1 {
 		t.Fatalf("alias/subset accounting: %+v", a)
 	}
 }

@@ -26,6 +26,17 @@ jobs:
           go-version: "1.26.9"
       - run: go test -race ./...
       - run: go vet ./...
+      - name: LiteLLM spend files and privacy checks
+        run: |
+          go build -o bin/fleetdiff ./cmd/fleetdiff
+          FLEETDIFF_BIN="$PWD/bin/fleetdiff" python3 -m unittest discover -s examples/litellm-spend -p 'test_*.py' -v
+      - name: Pinned LiteLLM writer to read-only SQL export
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        run: |
+          docker pull ghcr.io/berriai/litellm@sha256:625981c83410a3ea68eb0697590a57ec1d764d634514d54fa5db0591077ee839
+          docker pull postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+          FLEETDIFF_BIN="$PWD/bin/fleetdiff" FLEETDIFF_SPEND_DOCKER=1 python3 -m unittest discover -s examples/litellm-spend -p 'test_*.py' -v
       - name: Offline capture accounting contract
         run: |
           (cd testdata/inspect-contract/v1 && shasum -a 256 -c SHA256SUMS)
@@ -92,6 +103,7 @@ jobs:
           diff -r examples/two-operators/fixtures "$RUNNER_TEMP/research-otlp"
       - name: Bounded fuzz smoke
         run: |
+          go test ./internal/spend -run '^$' -fuzz '^FuzzReaderBoundedFormats$' -fuzztime 1000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10s -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10s -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 10s -parallel 2

@@ -103,11 +103,9 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 	default:
 		// Validated counters are each at most MaxInt64, so this uint64 sum fits.
 		x, y := input.Before+output.Before, input.After+output.After
-		n0, n1 := float64(a.Requests), float64(b.Requests)
-		p0, p1 := float64(x)/n0, float64(y)/n1
 		volume.Status = "observed"
 		volume.Answer = "The arithmetic split shares the interaction equally between attempt count and tokens per attempt. Attempts include failures and retries."
-		volume.Volume = &VolumeChange{x, y, a.Requests, b.Requests, p0, p1, (n1 - n0) * (p0 + p1) / 2, (p1 - p0) * (n0 + n1) / 2}
+		volume.Volume = Decompose(x, y, a.Requests, b.Requests)
 	}
 	if !r.Complete || a == nil || b == nil || input == nil || output == nil || a.Missing != 0 || b.Missing != 0 {
 		coverage.Status = "limited"
@@ -148,6 +146,18 @@ func Investigate(before, after []summary.Envelope, options Options) (Investigati
 		}
 	}
 	return Investigation{Version: 1, Questions: []Question{volume, contributors, sessions, coverage, users, source, cacheQuestion(r, before, after)}, Evidence: r}, nil
+}
+
+// Decompose shares the interaction equally between request count and size.
+// Callers establish complete usage before asking for this arithmetic split.
+func Decompose(beforeTokens, afterTokens, beforeRequests, afterRequests uint64) *VolumeChange {
+	if beforeRequests == 0 || afterRequests == 0 {
+		return nil
+	}
+	n0, n1 := float64(beforeRequests), float64(afterRequests)
+	p0, p1 := float64(beforeTokens)/n0, float64(afterTokens)/n1
+	return &VolumeChange{beforeTokens, afterTokens, beforeRequests, afterRequests, p0, p1,
+		(n1 - n0) * (p0 + p1) / 2, (p1 - p0) * (n0 + n1) / 2}
 }
 
 func attributionQuestion(q Question, r Report, names []string, tokenLimited bool, threshold *big.Rat) Question {

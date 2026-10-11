@@ -1,0 +1,12 @@
+{
+  "litellm": "ghcr.io/berriai/litellm@sha256:625981c83410a3ea68eb0697590a57ec1d764d634514d54fa5db0591077ee839",
+  "litellm_version": "1.104.0",
+  "litellm_source_commit": "79645770fedc7ec2627e6468d31062f20f82aecc",
+  "schema_sha256": "dbb02f20858ed397ea83b0dfabe2d3cfe59ef658976fdcde373c5baad33df387",
+  "writer_sha256": "e4e468859ad5b42a17a1683782a0bb7671c7122d519801c25b29e088a20e280b",
+  "postgres": "postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826",
+  "postgres_version": "17.11",
+  "postgres_source_commit": "2603e26e245e558218728ee14e0a42dcb020dc7f",
+  "postgres_resolved_tag": "17-bookworm",
+  "postgres_verified_date": "2026-10-10"
+}
