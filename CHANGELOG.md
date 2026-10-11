@@ -4,6 +4,10 @@ Notable user-visible changes are recorded here, newest first.
 
 ## Unreleased
 
+## [0.6.1] - 2026-10-11
+
+See the [release notes](docs/releases/v0.6.1.md) for upgrade details.
+
 - Upgrade llm-sketchkit to v0.2.3 for parser allocation limits, more efficient
   summary combination and safer secret/error diagnostics. Keep the existing
   x/text v0.41.0 normalization dependency, identities and summary wire format.

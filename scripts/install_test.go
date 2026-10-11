@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.6.0"
+const installTestVersion = "v0.6.1"
 
 func TestInstallDefaultVersion(t *testing.T) {
 	root, env := installEnvironment(t, "Darwin", "arm64", "darwin_arm64", "")
