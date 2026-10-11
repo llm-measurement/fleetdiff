@@ -2,12 +2,10 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## Unreleased
-
-### v0.7.0 Release Preparation
+## [0.7.0] - 2026-10-11
 
 See the [release notes](docs/releases/v0.7.0.md) for the SQL export default and
-report upgrade. Publication is pending maintainer approval.
+report upgrade.
 
 - Compare recorded cache-read and cache-write shares and uncached input on
   LiteLLM exports, with keyed uncached-growth rankings and separate coverage.

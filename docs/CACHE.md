@@ -5,7 +5,7 @@
 
 Compare cache-read and cache-write shares before and after a change, then find
 the keys, teams or sessions whose recorded uncached input grew. The expanded
-view is prepared for **v0.7.0**, pending publication. Published v0.5.0 through v0.6.1 already provide
+view is available in **v0.7.0**. Versions v0.5.0 through v0.6.1 already provide
 aggregate cache-read-share comparison for summary windows.
 
 ## Try The Cache Drop
