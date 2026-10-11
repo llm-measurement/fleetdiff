@@ -29,6 +29,29 @@ FORMATS = ("csv", "json", "jsonl")
 GROUPS = ("key", "team", "user", "end-user", "session")
 OPERATIONS = {"completion", "acompletion", "text_completion", "atext_completion",
               "anthropic_messages", "aanthropic_messages", "responses", "aresponses"}
+DETAIL_PATHS = {"cache_read_input_tokens": ("cache_read_input_tokens",),
+                "cache_write_input_tokens": ("cache_creation_input_tokens",),
+                "reasoning_output_tokens": ("completion_tokens_details", "reasoning_tokens")}
+# Expected (inclusive prompt, cache read, cache write, reasoning) from this pin.
+# The documentation table is checked against these same DB-tested observations.
+WRITER_OBSERVATIONS = {
+    "Chat Completions": (("completion", "acompletion"), {
+        "details_cached": (200, 80, 20, 5),
+        "details_zero": (200, None, None, 0),
+        "details_absent": (200, None, None, None)}),
+    "Text completion": (("text_completion", "atext_completion"), {
+        "details_cached": (200, 80, 20, 5),
+        "details_zero": (200, None, None, 0),
+        "details_absent": (200, None, None, None)}),
+    "Anthropic Messages": (("anthropic_messages", "aanthropic_messages"), {
+        "native_cached": (200, 80, 20, 0),
+        "native_uncached": (100, 0, 0, 0),
+        "native_absent_details": (100, 0, 0, 0)}),
+    "Responses": (("responses", "aresponses"), {
+        "native_cached": (200, 80, None, None),
+        "native_uncached": (100, None, None, None),
+        "native_absent_details": (100, None, None, None)}),
+}
 
 
 def require(condition, message):
@@ -68,6 +91,9 @@ def decode(data, encoding):
         for key in COLUMNS:
             if row.get(key) is None:
                 row[key] = ""
+        for key in DETAIL_PATHS:
+            if key in row:
+                row[key] = None if row[key] in (None, "") else int(row[key])
     return records
 
 
@@ -137,6 +163,74 @@ def assert_arithmetic(report, records):
                 sum(r["prompt_tokens"] + r["completion_tokens"] != r["total_tokens"] for r in selected),
                 "report component/total mismatch arithmetic differs")
     require("recorded_volume_split" not in report, "unclear whole-period split must be withheld")
+
+
+def assert_cache_arithmetic(report, records):
+    # Use CSV rows, not report counters, as the independent coverage oracle.
+    selected = [r for r in records if r["call_type"] in OPERATIONS and
+                r["startTime"][:10] in ("2026-10-07", "2026-10-08")]
+    models = {name: [r for r in selected if r["model"] == name]
+              for name in dict.fromkeys(r["model"] for r in selected)}
+    # Model aliases follow descending token delta, then first appearance.
+    ordered = sorted(models, key=lambda name: -sum(
+        (1 if r["startTime"].startswith("2026-10-08") else -1) *
+        (int(r["prompt_tokens"]) + int(r["completion_tokens"])) for r in models[name]))
+    require(len(report["models"]) == len(ordered), "cache model count differs")
+    populations = [(report, selected)]
+    for index, name in enumerate(ordered):
+        model = report["models"][index]
+        require(model["item"] == f"model-{index + 1}", "cache model alias order differs")
+        populations.append((model, models[name]))
+    for population, source in populations:
+        for side, day in (("before", "2026-10-07"), ("after", "2026-10-08")):
+            rows = [r for r in source if r["startTime"].startswith(day)]
+            window = population[side]
+            cache = window["cache"]
+            require(cache["requests"] == window["logged_model_requests"] == len(rows),
+                    "cache request count differs from CSV population")
+            require(window["recorded_tokens"] == sum(
+                int(r["prompt_tokens"]) + int(r["completion_tokens"]) for r in rows),
+                "cache details were added to recorded tokens")
+            for kind, column in (("read", "cache_read_input_tokens"),
+                                 ("write", "cache_write_input_tokens")):
+                covered, reported, missing = [], 0, 0
+                for row in rows:
+                    value = row.get(column)
+                    if value in (None, ""):
+                        missing += 1
+                        continue
+                    try:
+                        tokens = int(value)
+                    except ValueError:
+                        continue
+                    if 0 <= tokens <= 2**63 - 1:
+                        reported += 1
+                        if tokens <= int(row["prompt_tokens"]):
+                            covered.append((int(row["prompt_tokens"]), tokens))
+                detail = cache[kind]
+                expected = {
+                    "coverage_known": bool(rows), "reported_requests": reported,
+                    "covered_requests": len(covered), "missing_detail_requests": missing,
+                    "invalid_detail_or_input_requests": len(rows) - missing - len(covered),
+                    "zero_origin_unknown_requests": sum(tokens == 0 for _, tokens in covered),
+                    "covered_input_tokens": sum(v[0] for v in covered) if covered else None,
+                    "tokens": sum(v[1] for v in covered) if covered else None,
+                }
+                require(all(detail[field] == value for field, value in expected.items()),
+                        "cache coverage or totals differ from CSV rows")
+                denominator, tokens = expected["covered_input_tokens"], expected["tokens"]
+                share = tokens / denominator if denominator else None
+                require(detail["share_of_recorded_input"] == share,
+                        "cache share used a different population denominator")
+                if kind == "read":
+                    uncached = denominator - tokens if covered else None
+                    require(cache["uncached_input_tokens"] == uncached,
+                            "uncached input differs from covered CSV rows")
+            if population is report:
+                # Compare stable fields only; additive summary fields are allowed.
+                require(all(report["cache"][side][field] == cache[field]
+                            for field in ("requests", "read", "write", "uncached_input_tokens")),
+                        "top-level and window cache summaries differ")
 
 
 @contextmanager
@@ -218,7 +312,7 @@ def seed_database(container, records):
     ''')
 
 
-def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:00:00Z", details=False):
+def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:00:00Z", details=None):
     exports = {}
     for fmt in ("csv", "jsonl"):
         directory = "/tmp/export-" + uuid.uuid4().hex
@@ -228,8 +322,8 @@ def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:
         if fmt == "jsonl":
             # The JSONL selector must suppress CSV even when both are specified.
             arguments.extend(("-v", "jsonl_file=" + directory + "/spend.jsonl"))
-        if details:
-            arguments.extend(("-v", "usage_details=true"))
+        if details is not None:
+            arguments.extend(("-v", "usage_details=" + str(details).lower()))
         output = psql(container, *arguments, "-f", "/example/export.sql", reader=True)
         require(not output.strip(), "SQL export leaked output outside its selected file")
         files = docker("exec", container, "ls", "-1", directory).splitlines()
@@ -421,6 +515,7 @@ class DatabaseTests(unittest.TestCase):
         seed_database(cls.db, cls.records)
         cls.exports = export_database(cls.db)
         cls.detail_exports = export_database(cls.db, details=True)
+        cls.plain_exports = export_database(cls.db, details=False)
 
     def test_jsonl_selector_does_not_require_csv_destination(self):
         directory = "/tmp/export-" + uuid.uuid4().hex
@@ -450,7 +545,8 @@ class DatabaseTests(unittest.TestCase):
                 "writer probe omits supported operation coverage")
         require(len(parsed[0]) == len(expected), "database export row count differs")
         for actual, original in zip(parsed[0], expected):
-            require(set(actual) == set(COLUMNS), "SQL selected an unexpected column")
+            require(set(actual) == set(COLUMNS) | set(DETAIL_PATHS),
+                    "SQL selected an unexpected column")
             for field in COLUMNS:
                 if field not in ("startTime", "endTime", "spend"):
                     require(actual[field] == (original[field] if original[field] is not None else ""),
@@ -471,21 +567,27 @@ class DatabaseTests(unittest.TestCase):
         empty = export_database(self.db, "2026-09-01T00:00:00Z", "2026-09-02T00:00:00Z")
         require(all(decode(empty[fmt], fmt) == [] for fmt in FORMATS), "empty SQL export is invalid")
 
-    def test_optional_aliases_come_from_actual_writer_metadata(self):
-        paths = {"cache_read_input_tokens": ("cache_read_input_tokens",),
-                 "cache_write_input_tokens": ("cache_creation_input_tokens",),
-                 "reasoning_output_tokens": ("completion_tokens_details", "reasoning_tokens")}
+    def test_default_aliases_and_opt_out_come_from_actual_writer_metadata(self):
         parsed = []
+        plain_parsed = []
         for fmt in FORMATS:
             records = sorted(decode(self.detail_exports[fmt], fmt), key=lambda r: r["request_id"])
+            default = sorted(decode(self.exports[fmt], fmt), key=lambda r: r["request_id"])
+            require(records == default, "default export differs from explicit usage_details=true")
+            plain_records = sorted(decode(self.plain_exports[fmt], fmt),
+                                   key=lambda r: r["request_id"])
+            require(all(set(row) == set(COLUMNS) for row in plain_records),
+                    "usage_details=false did not omit detail columns")
+            plain_parsed.append(plain_records)
             for row in records:
-                require(set(row) == set(COLUMNS) | set(paths), "SQL selected an unexpected detail column")
-                for alias in paths:
-                    row[alias] = None if row[alias] in (None, "") else int(row[alias])
+                require(set(row) == set(COLUMNS) | set(DETAIL_PATHS),
+                        "SQL selected an unexpected detail column")
             parsed.append(records)
         require(parsed[0] == parsed[1] == parsed[2], "optional detail formats differ")
+        require(plain_parsed[0] == plain_parsed[1] == plain_parsed[2],
+                "opt-out export formats differ")
         originals = {r["request_id"]: r for r in self.records}
-        plain = {r["request_id"]: r for r in decode(self.exports["csv"], "csv")}
+        plain = {r["request_id"]: r for r in decode(self.plain_exports["csv"], "csv")}
         require(len(parsed[0]) == len(plain), "optional export row count differs")
         require({r["request_id"] for r in parsed[0]} == set(plain) <= set(originals),
                 "optional export membership differs from writer records")
@@ -495,17 +597,43 @@ class DatabaseTests(unittest.TestCase):
             metadata = originals[row["request_id"]]["metadata"]
             if isinstance(metadata, str):
                 metadata = json.loads(metadata)
-            for alias, path in paths.items():
+            for alias, path in DETAIL_PATHS.items():
                 value = (metadata or {}).get("additional_usage_values")
                 for key in path:
                     value = value.get(key) if isinstance(value, dict) else None
                 require(row[alias] == (None if value is None else int(value)),
                         "optional usage values differ from actual writer metadata")
 
+    def test_observed_cache_contract_for_every_supported_spelling(self):
+        require({op for operations, _ in WRITER_OBSERVATIONS.values() for op in operations}
+                == OPERATIONS, "cache observations omit a supported operation")
+        for fmt in FORMATS:
+            records = {r["request_id"]: r for r in decode(self.exports[fmt], fmt)}
+            for operations, modes in WRITER_OBSERVATIONS.values():
+                for operation in operations:
+                    for day in (7, 8):
+                        for mode, expected in modes.items():
+                            row = records[f"synthetic-{day}-{operation}-{mode}"]
+                            require(tuple(row[field] for field in
+                                          ("prompt_tokens", *DETAIL_PATHS)) == expected,
+                                    "pinned writer detail observation changed")
+                            require(row["completion_tokens"] == 10 and
+                                    row["total_tokens"] == expected[0] + 10,
+                                    "inclusive prompt normalization was changed or counted twice")
+                        missing = records[f"synthetic-{day}-{operation}-missing"]
+                        require(all(missing[field] is None for field in DETAIL_PATHS),
+                                "absent writer paths became zero")
+            if fmt == "jsonl":
+                raw = [json.loads(line) for line in self.exports[fmt].splitlines()]
+                require(all(row[field] is None for row in raw
+                            if row["request_id"].endswith("-missing") for field in DETAIL_PATHS),
+                        "JSONL must encode missing detail paths as literal null")
+
     @unittest.skipUnless(CLI, "set FLEETDIFF_BIN for the DB-export-to-importer check")
     def test_real_database_exports_through_importer(self):
         with tempfile.TemporaryDirectory(prefix="SENTINEL_PATH_db-", dir="/tmp") as temp:
-            for exports in (self.exports, self.detail_exports):
+            for exports in (self.exports, self.plain_exports):
+                csv_records = list(csv.DictReader(io.StringIO(exports["csv"].decode("utf-8"))))
                 paths = []
                 for fmt in FORMATS:
                     path = Path(temp) / ("export." + fmt)
@@ -518,8 +646,34 @@ class DatabaseTests(unittest.TestCase):
                         require(reports[0] == reports[1] == reports[2],
                                 "database export importer reports differ")
                         assert_arithmetic(reports[0], decode(exports["json"], "json"))
+                        for report in reports:
+                            assert_cache_arithmetic(report, csv_records)
                 for path in paths:
-                    investigate(path, encoding="text", records=self.records)
+                    result = investigate(path, encoding="text", records=self.records)
+                    require((b"Whose uncached input grew?" in result.stdout) ==
+                            (exports is self.exports),
+                            "uncached growth heading differs from exported detail availability")
+
+    @unittest.skipUnless(CLI, "set FLEETDIFF_BIN for the DB-export-to-importer check")
+    def test_exported_csv_cache_invalid_details_do_not_become_missing_or_zero(self):
+        records = list(csv.DictReader(io.StringIO(self.exports["csv"].decode("utf-8"))))
+        # Mutate private export copies only; these are importer rejection probes,
+        # not claims that the pinned writer or SQL produced malformed counts.
+        for day in (7, 8):
+            for operation in ("completion", "text_completion", "anthropic_messages", "responses"):
+                mode = "native_cached" if operation in ("anthropic_messages", "responses") else "details_cached"
+                row = next(r for r in records if
+                           r["request_id"] == f"synthetic-{day}-{operation}-{mode}")
+                row["cache_read_input_tokens"] = "not-a-token-count"
+                row["cache_write_input_tokens"] = str(int(row["prompt_tokens"]) + 1)
+        with tempfile.TemporaryDirectory(prefix="SENTINEL_PATH_cache-", dir="/tmp") as temp:
+            path = Path(temp) / "invalid-cache.csv"
+            with path.open("w", newline="") as output:
+                writer = csv.DictWriter(output, fieldnames=list(records[0]))
+                writer.writeheader()
+                writer.writerows(records)
+            report = investigate(path, records=records)
+            assert_cache_arithmetic(report, records)
 
 
 if __name__ == "__main__":

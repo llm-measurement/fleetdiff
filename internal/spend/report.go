@@ -10,15 +10,16 @@ import (
 )
 
 type Window struct {
-	Period             Period            `json:"period"`
-	Requests           uint64            `json:"logged_model_requests"`
-	Tokens             uint64            `json:"recorded_tokens"`
-	Counters           map[string]uint64 `json:"counters"`
-	Quality            Quality           `json:"quality"`
-	RecordedSpend      string            `json:"recorded_spend_usd"`
-	AttributedTokens   uint64            `json:"attributed_tokens,omitempty"`
-	Distinct           float64           `json:"distinct_groups_estimate,omitempty"`
-	DistinctNominalRSE float64           `json:"distinct_nominal_rse,omitempty"`
+	Cache              compare.CacheWindow `json:"cache"`
+	Period             Period              `json:"period"`
+	Requests           uint64              `json:"logged_model_requests"`
+	Tokens             uint64              `json:"recorded_tokens"`
+	Counters           map[string]uint64   `json:"counters"`
+	Quality            Quality             `json:"quality"`
+	RecordedSpend      string              `json:"recorded_spend_usd"`
+	AttributedTokens   uint64              `json:"attributed_tokens,omitempty"`
+	Distinct           float64             `json:"distinct_groups_estimate,omitempty"`
+	DistinctNominalRSE float64             `json:"distinct_nominal_rse,omitempty"`
 }
 
 type Model struct {
@@ -36,6 +37,7 @@ type IncreaseShare struct {
 }
 
 type Report struct {
+	Cache          compare.CacheView     `json:"cache"`
 	Incomplete     bool                  `json:"comparison_incomplete"`
 	CallTypes      []CallType            `json:"call_types"`
 	Schema         string                `json:"schema"`
@@ -67,6 +69,8 @@ type CallType struct {
 // Raw column sums describe coverage only; unsupported mappings are never mixed
 // into analyzed token totals. Unknown call-type names receive local aliases.
 type CallTypeCounts struct {
+	CacheReadDetailRecorded  uint64 `json:"cache_read_detail_recorded_requests"`
+	CacheWriteDetailRecorded uint64 `json:"cache_write_detail_recorded_requests"`
 	Requests                 uint64 `json:"requests"`
 	PromptTokens             uint64 `json:"prompt_tokens"`
 	CompletionTokens         uint64 `json:"completion_tokens"`

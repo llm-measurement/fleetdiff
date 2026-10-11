@@ -106,7 +106,21 @@ func renderInvestigation(out io.Writer, r compare.Investigation, threshold float
 			continue
 		}
 		fmt.Fprintln(out, "\nDid caching get worse?")
-		if c := q.Cache; c != nil {
+		if v := q.CacheView; v != nil {
+			if !v.Before.HasDetail() && !v.After.HasDetail() {
+				fmt.Fprintln(out, "Cache detail not recorded in these summaries.")
+			} else {
+				var beforeTokens, afterTokens uint64
+				for _, counter := range r.Evidence.Counters {
+					if counter.Name == "input_tokens" || counter.Name == "output_tokens" {
+						beforeTokens += counter.Before
+						afterTokens += counter.After
+					}
+				}
+				renderCachePair(out, v.Before, v.After, beforeTokens, afterTokens)
+			}
+			fmt.Fprintln(out, "  "+v.GroupingGap)
+		} else if c := q.Cache; c != nil {
 			fmt.Fprintf(out, "Cached-token share: %.2f%% -> %.2f%% (%+.2f percentage points; %s).\n", c.BeforeShare*100, c.AfterShare*100, c.DeltaPercentagePoints, c.Direction)
 			fmt.Fprintf(out, "  Recorded cache-read/input tokens: %d/%d -> %d/%d.\n", c.BeforeCacheReadInputTokens, c.BeforeInputTokens, c.AfterCacheReadInputTokens, c.AfterInputTokens)
 			for _, entry := range []struct {

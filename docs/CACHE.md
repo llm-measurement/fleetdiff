@@ -1,130 +1,125 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Code authors: Vijay and Codex -->
 
-# Cached-Token Share
+# Compare Recorded Cache Reuse
 
-Included in fleetdiff v0.5.0. Use the [verified release binary](OPERATIONS.md#install-and-verify)
-or build from this source checkout.
+Compare cache-read and cache-write shares before and after a change, then find
+the keys, teams or sessions whose recorded uncached input grew. The expanded
+view is a **source preview**. Published v0.5.0 through v0.6.1 already provide
+aggregate cache-read-share comparison for summary windows.
 
-`fleetdiff investigate` appends `cache` after the existing six questions:
-**Did caching get worse?** No new sketch or collector configuration is required.
+## Try The Cache Drop
 
-For each window, the recorded cached-token share is:
+Build this checkout, then run the deterministic four-request example:
 
-```text
-cache_read_input_tokens / input_tokens
-change in percentage points = 100 * (after share - before share)
+```sh
+go build -o ./fleetdiff-cache ./cmd/fleetdiff
+./fleetdiff-cache investigate --litellm-spend examples/litellm-spend/cache-drop.csv \
+  --before-period 2026-10-07 --after-period 2026-10-08 --group-by key
 ```
 
-Text describes this as **Share of recorded input tokens served from cache.**
-The short explanation does not change the measurement or its evidence requirements.
-JSON keeps the full explanation, including the distinction from request hit rate,
-cost, savings, and provider billing.
+Selected output:
 
-A decrease means a smaller recorded fraction of input tokens was cache-read;
-an increase means a larger fraction. Neither establishes the cause. The JSON
-`cache` object retains exact before/after input and cache-read totals, fractional
-shares, `delta_percentage_points`, and `direction` (`decreased`, `increased`, or
-`unchanged`). Direction and change are computed with exact rational arithmetic
-before conversion to floating point. Text rounds percentages to two decimals,
-so tiny changes can display as zero; inspect JSON and integer totals for detail.
+```text
+    Cache-read share of recorded input: 92% -> 61%.
+    Cache-write share of recorded input: 5% -> 7.5%.
+    Uncached input tokens (read-covered requests): 160 -> 780.
+    Uncached input +620: cache-read share fell from 92% to 61%.
+  key-1: 80 -> 700 uncached input tokens; change +620.
+```
 
-This is **not a request cache-hit rate, cost, savings, or provider billing
-claim**. Input provenance may be unknown or inferred: a numeric field is not
-necessarily provider-reported. Even provider-reported declarations do not
-establish billing equivalence. A changed workload mix can change this share.
+Total input and output stay flat. One synthetic key accounts for the added
+uncached input. Use `--group-by team`, `user`, `end-user` or `session` for another
+view. Aliases refer to the same identities across the total-token and cache
+rankings in one report; `--show-hashes` also prints their keyed hashes.
+Sessions remain scoped to their API key.
 
-## Required Evidence
+## Measurements And Coverage
 
-Both windows need complete declared observation intervals for every expected
-producer and positive combined input-token totals. Partial observations remain
-`cannot_determine` even with `--allow-partial`. Normal summary validation still
-rejects invalid envelopes, overlaps, conflicting replays, and counter regression.
+The same quantities and wording apply to spend files and summary windows:
 
-Every supplied snapshot must contain the typed integer counters `requests`,
-`input_tokens`, and `cache_read_input_tokens`, plus all ten reviewed quality
-counters below. For each of `input` and `cache_read_input`:
-
-| Counter suffix in `token_observations.FIELD.STATE` | Required value |
+| Measurement | Calculation on the same covered requests |
 | --- | --- |
-| `reported` | Equal to that snapshot's `requests` |
-| `missing` | Present and zero |
-| `invalid` | Present and zero |
-| `conflict` | Present and zero |
-| `subset_violation` | Present and zero |
+| Cache-read share of recorded input | Sum of cache-read tokens / sum of input tokens |
+| Cache-write share of recorded input | Sum of cache-write tokens / sum of input tokens |
+| Uncached input tokens | Input tokens minus cache-read tokens, including cache writes |
 
-These are the collector's exported accounting states. Optional cache detail
-does **not** increment `missing` when absent, so `missing == 0` alone is
-insufficient. An invalid source can coexist with a reported value. A violating
-individual detail can also be hidden by otherwise valid aggregate totals.
-Accordingly, both reported coverage and every quality state are checked in each
-original snapshot before trusting the combined totals. Opposing producer errors
-cannot cancel. Each snapshot also requires cache-read tokens no greater than
-input tokens, and no positive input total with zero model attempts.
+LiteLLM exports get a breakdown per model. The [SQL export](../examples/litellm-spend/export.sql)
+includes cache and reasoning fields by default, with `usage_details=false` to
+omit them. Paths and normalization are pinned to the tested LiteLLM v1.104.0
+writer; consult the [verified path table](../examples/litellm-spend/README.md).
+Normalized `prompt_tokens` already includes cache reads and writes on the tested
+Messages path. Those details are subsets and are never added a second time.
 
-An explicit zero cache total with complete quality evidence is a real zero.
-Missing counters are unknown, never substituted with zero. Compatible older
-snapshots lacking these quality counters produce `cannot_determine`; do not
-reset their accounting fingerprint to manufacture compatibility. Different
-counter schemas or accounting identities still fail the existing summary
-compatibility checks, including mixed old/new schemas. This feature does not
-normalize contracts or repair summaries.
+Each field has its own covered-input denominator and request count. Missing,
+invalid or subset-violating details are excluded and counted separately. A read
+can remain usable when the write field is absent, and conversely. Explicit zero
+detail is a recorded zero; a missing detail or zero denominator has a null share.
+The report counts recorded zero details with unknown origin separately: the
+pinned Messages writer can fill absent detail with zero before export.
+If neither period contains cache detail, text prints one line:
+`Cache detail not recorded in this export.`
 
-Missing output usage, output-quality errors, and tool failures do not by
-themselves block this answer. Its numerator and denominator use input only.
-The overall usage-coverage or provider-origin question may therefore be limited
-while the recorded cached-token share is observed. Duplicate and cumulative
-snapshots retain the existing selection and merge semantics; only selected
-snapshots contribute to totals, but all supplied snapshots must pass cache
-quality checks.
+The uncached-growth ranking composes the existing keyed frequent-items sketches
+and their integer bounds. It uses read-covered requests with a group identity.
+Candidates are ordered by the lower bound of their increase; uncertain positive
+growth remains a range. Missing cache detail and missing identities stay outside
+ranking weights and have separate coverage counts. Both periods need at least
+one read-covered request before a growth comparison is available.
 
-Only the exact reviewed input/cache-read quality counter names are added to
-report evidence. Unknown fields, states, and arbitrary counter names remain
-omitted. Producer identifiers and metadata retain existing privacy behavior.
-No raw prompts, user identifiers, or remote telemetry are needed.
+A whole-model `Uncached input +X` explanation appears when both periods have
+complete read coverage, read share fell, and uncached input grew by at least half
+the net token increase (or total tokens stayed flat or fell). This is arithmetic
+visibility. Increasing input volume or a changed workload mix can also increase
+uncached tokens; the ranking alone does not establish a cache-share loss per key.
 
-## Offline Demo
-
-From a source checkout with a local Go toolchain:
+## Collector Summary Windows
 
 ```sh
 sh examples/cache.sh
 sh examples/cache.sh --json
 ```
 
-The script builds this checkout in a temporary directory. The build can download
-Go dependencies, as the other source demos do; the resulting investigation runs
-offline and makes no provider calls. With an already verified module cache and
-toolchain, set `GOWORK=off GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off` for an offline
-build too. Existing `GOCACHE` and `GOMODCACHE` settings are preserved.
+The released collector exports aggregate read/write totals and per-field
+observation-quality counters. Summary inputs must pass existing compatibility,
+replay, interval and producer-coverage checks. Each original snapshot must report
+input and the relevant cache field on every attempt, with zero missing, invalid,
+conflict and subset-violation counters. Missing optional fields do not increment
+the collector's missing counter, so reported coverage is also required.
 
-The counter-only synthetic fixtures contain ten attempts and 1,000 input tokens
-per window, starting at **2026-10-04 00:00 UTC** and **00:01 UTC**. Each window is
-one minute long. Recorded cache-read tokens fall from 600 to 200: **60% to 20%, a
-40-percentage-point decrease**. They contain no source-provenance declarations,
-so provider origin correctly remains unknown. They are arithmetic fixtures,
-not evidence of a real provider regression or savings.
+Read and write are validated independently. If partial cache detail exists,
+summaries cannot recover the matching input denominator: that share stays null.
+All supplied snapshots are checked for quality; only selected snapshots enter
+totals. This prevents opposing producer errors or superseded snapshots from
+hiding invalid accounting.
+When summary counters cannot establish distinct excluded-request counts, those
+counts stay null; the original overlapping quality counters remain in JSON.
 
-When user and session rankings are absent, the text report ends with:
+**Current data gap:** these summaries contain neither per-model cache counters
+nor cache-weighted key/session rankings. The report names the gap rather than
+inferring cache use from total-token rankings. No collector or wire-format
+change is needed for the aggregate view.
 
-```text
-Turn on user and session rankings (topk_keys) for more answers.
-```
+JSON adds `cache_view` to the summary cache question and `cache` to spend windows,
+models and reports, with explicit null quantities for unknown observations. The
+existing summary `cache` result remains available when its original full-coverage
+requirements hold, including exact-rational direction and percentage-point change.
 
-If only one ranking is missing, the hint names only that ranking. Configured
-rankings with no recorded weight or incomplete snapshots are not presented as
-disabled. Detailed coverage and provenance explanations remain in JSON.
+## Limits
 
-Regenerate into a new directory and compare without overwriting the fixtures:
+These are recorded token shares, not request hit rates or cause diagnoses.
+Usage origin can remain unknown, including gateway-filled values. Recorded spend
+continues to be summed as supplied; cache loss gets no price or savings estimate.
+Ranking bounds describe tracked contributors within the covered population.
+Percentages are rounded for text; JSON retains integer totals and bounds.
+Synthetic examples demonstrate arithmetic, not provider cache behavior.
+
+## Verification
 
 ```sh
-GOWORK=off GOPROXY=off GOSUMDB=off GOTOOLCHAIN=local go run ./examples/cache -out /tmp/fleetdiff-cache-new
-diff -ru examples/cache/data /tmp/fleetdiff-cache-new
-go test ./internal/compare -run Cache
-go test ./internal/cli ./examples/cache
+go test ./internal/spend ./internal/compare ./internal/cli -run Cache
+go test ./examples/cache
 ```
 
-Next, use complete real input/cache-read observations from the same accounting
-contract. If quality is missing or conflicting, fix instrumentation first and
-stop short of a cache-regression claim. For a valid decrease, inspect workload
-and provider context separately before attributing cause or estimating money.
+The pinned-image writer/DB checks and privacy sweeps are documented in
+[LiteLLM testing](../examples/litellm-spend/TESTING.md).

@@ -10,7 +10,7 @@ import (
 )
 
 func cacheQuestion(r Report, before, after []summary.Envelope) Question {
-	q := Question{ID: "cache", Question: "Did caching get worse?", Status: "cannot_determine"}
+	q := Question{ID: "cache", Question: "Did caching get worse?", Status: "cannot_determine", CacheView: summaryCacheView(r, before, after)}
 	if !r.Complete {
 		q.Answer = "An expected producer or observation interval is incomplete. Supply complete intervals for every expected producer."
 		return q

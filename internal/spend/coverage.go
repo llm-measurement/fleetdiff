@@ -44,6 +44,14 @@ func recordCallType(r *Report, index map[string]int, row Row, side int) error {
 		c = &r.CallTypes[i].After
 	}
 	c.Requests++
+	for _, field := range []struct {
+		name  string
+		count *uint64
+	}{{"cache_read_input_tokens", &c.CacheReadDetailRecorded}, {"cache_write_input_tokens", &c.CacheWriteDetailRecorded}} {
+		if row.Values[field.name] != "" {
+			*field.count++
+		}
+	}
 	invalid, missing := false, false
 	for _, f := range []struct {
 		name     string
@@ -88,16 +96,22 @@ func recordCallType(r *Report, index map[string]int, row Row, side int) error {
 // avoids an exact identity map growing with every user; its digest checks that
 // aliases and totals describe the same file contents.
 func orderCandidates(path string, r *Report, key, expected []byte) error {
-	if len(r.Rankings.Movers) == 0 {
+	groups := []*compare.Concentration{&r.Rankings}
+	if r.Cache.Rankings != nil {
+		groups = append(groups, r.Cache.Rankings)
+	}
+	if len(r.Rankings.Movers) == 0 && (r.Cache.Rankings == nil || len(r.Cache.Rankings.Movers) == 0) {
 		return nil
 	}
 	order := map[uint64]int{}
-	for _, m := range r.Rankings.Movers {
-		h, err := strconv.ParseUint(m.Hash, 16, 64)
-		if err != nil {
-			return errors.New("invalid internal candidate hash")
+	for _, g := range groups {
+		for _, m := range g.Movers {
+			h, err := strconv.ParseUint(m.Hash, 16, 64)
+			if err != nil {
+				return errors.New("invalid internal candidate hash")
+			}
+			order[h] = 0
 		}
-		order[h] = 0
 	}
 	digest := sha256.New()
 	enc := json.NewEncoder(digest)
@@ -129,17 +143,25 @@ func orderCandidates(path string, r *Report, key, expected []byte) error {
 		return errors.New("export changed while reading; use a completed immutable export")
 	}
 	strength := func(v compare.Interval) int64 { return max(v.Upper, -v.Lower) }
-	slices.SortFunc(r.Rankings.Movers, func(a, b compare.Mover) int {
-		x, y := strength(a.Delta), strength(b.Delta)
-		if x > y {
-			return -1
-		}
-		if x < y {
-			return 1
-		}
-		ha, _ := strconv.ParseUint(a.Hash, 16, 64)
-		hb, _ := strconv.ParseUint(b.Hash, 16, 64)
-		return order[ha] - order[hb]
-	})
+	for _, g := range groups {
+		slices.SortFunc(g.Movers, func(a, b compare.Mover) int {
+			x, y := strength(a.Delta), strength(b.Delta)
+			if g == r.Cache.Rankings {
+				x, y = a.Delta.Lower, b.Delta.Lower
+			}
+			if x > y {
+				return -1
+			}
+			if x < y {
+				return 1
+			}
+			ha, _ := strconv.ParseUint(a.Hash, 16, 64)
+			hb, _ := strconv.ParseUint(b.Hash, 16, 64)
+			return order[ha] - order[hb]
+		})
+	}
+	if r.Cache.Rankings != nil {
+		r.Cache.Rankings.Movers = slices.DeleteFunc(r.Cache.Rankings.Movers, func(m compare.Mover) bool { return m.Delta.Upper <= 0 })
+	}
 	return nil
 }

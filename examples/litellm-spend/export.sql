@@ -7,7 +7,7 @@
 \pset tuples_only on
 \if :{?usage_details}
 \else
-\set usage_details false
+\set usage_details true
 \endif
 BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SET LOCAL TIME ZONE 'UTC';
@@ -23,7 +23,8 @@ SELECT 1 / CASE WHEN
   THEN 1 ELSE 0 END AS valid_bounds
 \gset
 
--- Opt-in, pinned-writer paths only. Missing details stay NULL, never zero.
+-- Default-on, pinned-writer paths only; usage_details=false omits these columns.
+-- Missing details stay NULL, never zero.
 SELECT CASE WHEN :'usage_details'::boolean THEN $details$
        , (metadata #>> '{additional_usage_values,cache_read_input_tokens}')::bigint
            AS cache_read_input_tokens

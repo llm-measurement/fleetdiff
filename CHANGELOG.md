@@ -4,6 +4,15 @@ Notable user-visible changes are recorded here, newest first.
 
 ## Unreleased
 
+- Compare recorded cache-read and cache-write shares and uncached input on
+  LiteLLM exports, with keyed uncached-growth rankings and separate coverage.
+  Include version-pinned cache and reasoning columns in the SQL export by
+  default, preserving absent writer paths as NULL.
+- Extend summary cache comparisons with independent read/write coverage and
+  uncached totals; identify unavailable model and contributor breakdowns.
+- Ship a deterministic synthetic OTLP capture for binary-only inspection,
+  checked byte for byte against its generator in CI.
+
 ## [0.6.1] - 2026-10-11
 
 See the [release notes](docs/releases/v0.6.1.md) for upgrade details.

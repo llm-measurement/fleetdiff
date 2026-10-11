@@ -119,6 +119,11 @@ var counterUnits = map[string]string{
 	"token_observations.input.invalid": "observations", "token_observations.cache_read_input.invalid": "observations",
 	"token_observations.input.conflict": "observations", "token_observations.cache_read_input.conflict": "observations",
 	"token_observations.input.subset_violation": "observations", "token_observations.cache_read_input.subset_violation": "observations",
+	"token_observations.cache_write_input.reported":         "observations",
+	"token_observations.cache_write_input.missing":          "observations",
+	"token_observations.cache_write_input.invalid":          "observations",
+	"token_observations.cache_write_input.conflict":         "observations",
+	"token_observations.cache_write_input.subset_violation": "observations",
 }
 
 var sketchKinds = map[string]string{

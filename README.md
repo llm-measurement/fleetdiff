@@ -27,7 +27,7 @@ whether the usage records are complete.
 
 Use the [read-only SQL projection](examples/litellm-spend/export.sql) and your
 existing PostgreSQL access. The [export guide](examples/litellm-spend/README.md#export-request-level-rows)
-covers connection settings and optional cache fields. Once your approved
+covers connection settings and version-pinned cache fields. Once your approved
 read-only connection is named `litellm_readonly`, this example exports 16 UTC days:
 
 ```sh
@@ -77,7 +77,7 @@ to dates or explicit UTC start/end intervals.
 The report shows request count versus tokens per request by model, the leading
 contributors, and usage completeness. Choose `--group-by team`, `user`, `end-user`
 or `session` for another view; add `--format json` for automation.
-[Full command and export guide](examples/litellm-spend/README.md).
+[Export guide](examples/litellm-spend/README.md); [unreleased cache comparison](docs/CACHE.md).
 
 ## Try One Example
 

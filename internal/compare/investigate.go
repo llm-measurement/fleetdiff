@@ -28,6 +28,7 @@ type Question struct {
 	Volume       *VolumeChange `json:"volume,omitempty"`
 	Contributors []Contributor `json:"contributors,omitempty"`
 	Cache        *CacheChange  `json:"cache,omitempty"`
+	CacheView    *CacheView    `json:"cache_view,omitempty"`
 }
 
 type CacheChange struct {

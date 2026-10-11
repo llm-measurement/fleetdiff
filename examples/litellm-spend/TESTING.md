@@ -28,7 +28,9 @@ PostgreSQL multi-platform index was resolved from the official `17-bookworm`
 image on October 10, 2026. Runtime versions, image digests, and the LiteLLM
 writer/schema source hashes are checked. There are no implicit pulls in tests.
 
-Native Messages and Responses first pass through the pinned logging usage
+Chat Completions and text completion use writer-ready usage dictionaries with
+positive, explicit-zero, and absent nested cache/reasoning details. Native
+Messages and Responses first pass through the pinned logging usage
 conversions, including the Responses standard-logging fallback. Messages uses
 the canonical logging operation used by the pinned adapters; the writer is
 exercised with both synchronous and asynchronous stored call-type names.
@@ -39,7 +41,14 @@ JSON arrays for reader parity are generated locally from CSV, never by a
 database aggregate. [test-schema.sql](test-schema.sql) mirrors the relevant
 pinned spend-column types; it is not LiteLLM's entire migration suite. This
 tests the writer payload and export contract, not HTTP routing, the gateway's
-asynchronous database writer, or a paid provider.
+asynchronous database writer, provider support for text-completion cache fields,
+or a paid provider. Both stored sync/async spellings are checked, not executed
+as endpoint calls. The [observed behavior table](README.md#usage-details-default-on)
+is checked against the same expected values as the real database tests.
+
+**Version-pin warning:** these observations apply only to LiteLLM v1.104.0 and
+the checked image/source hashes. Re-run the writer and database probes before
+trusting these metadata paths on another version or configuration.
 
 Both containers use `--network=none`, no published ports, no inherited provider
 credentials, and read-only roots. PostgreSQL uses a unique Docker named volume,
@@ -61,15 +70,29 @@ manually; do not prune unrelated Docker resources.
   separately and make the selected-period comparison incomplete.
   Expected export membership comes from actual writer timestamps and the
   half-open UTC bounds, not a fixed row count or database row order.
-- The real writer produces the optional usage detail metadata. SQL aliases
+- The real writer produces the usage detail metadata. SQL aliases
   are compared to each actual payload's pinned metadata paths, including native
   usage details and absent values. Base token counts must remain unchanged;
   cache and reasoning details are not added to the writer's normalized totals.
-  No details are invented in the DB.
+  No details are invented in the DB. Default export and explicit
+  `usage_details=true` must match; `usage_details=false` omits all three detail
+  columns without changing the base projection or selected rows.
+- The observed behavior table covers positive, zero, and absent details for
+  all eight supported stored names. Nested Chat/text zeros do not populate
+  top-level cache aliases; Messages normalizes absent cache fields to zero;
+  Responses omits zero cache aliases, cache write, and exported reasoning even
+  when native reasoning is supplied. Missing writer paths remain SQL NULL,
+  empty CSV fields, and literal JSONL null. Entirely missing usage is checked
+  independently from a usage object with missing details.
+- Native Messages input 100 plus cache read 80 and creation 20 becomes inclusive
+  prompt 200 exactly once. Responses input 200 is already inclusive. Both retain
+  output 10 and total 210 through SQL and importer; subset counters must not
+  inflate recorded tokens. The normalizer's synthetic zero is not proof of a
+  provider-reported zero or independently observed cache behavior.
 - Only synthetic ignored content is added directly to the test table, proving
   that the projection excludes it. The default SQL invocation must create only
   CSV; setting `jsonl_file` must create only JSONL, with or without `csv_file`.
-  These checks cover both default and optional-detail projections. Records match
+  These checks cover both default-detail and opt-out projections. Records match
   across both SQL formats and the locally assembled JSON array. Empty intervals
   also produce valid files. A fixture-only check rejects database sorting,
   JSON-array aggregation, and multiple CSV `COPY` passes in the recipe.

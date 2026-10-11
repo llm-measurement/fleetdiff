@@ -86,6 +86,14 @@ func renderSpend(out io.Writer, r spend.Report) {
 		if m.Volume != nil {
 			renderSpendVolume(out, m.Volume)
 		}
+		if m.Before.Cache.HasDetail() || m.After.Cache.HasDetail() {
+			renderCachePair(out, m.Before.Cache, m.After.Cache, m.Before.Tokens, m.After.Tokens)
+		} else if r.Before.Cache.HasDetail() || r.After.Cache.HasDetail() {
+			fmt.Fprintln(out, "    Cache detail not recorded for this model.")
+		}
+	}
+	if !r.Before.Cache.HasDetail() && !r.After.Cache.HasDetail() {
+		fmt.Fprintln(out, "  Cache detail not recorded in this export.")
 	}
 	if !r.Incomplete && r.After.Tokens > r.Before.Tokens {
 		fmt.Fprintln(out, "\nWho drove the increase?")
@@ -136,6 +144,22 @@ func renderSpend(out io.Writer, r spend.Report) {
 		fmt.Fprintln(out, "  No tracked contributors with attributable recorded tokens.")
 	}
 	fmt.Fprintf(out, "  Attributed tokens: %s -> %s.\n", spendNumber(r.Before.AttributedTokens), spendNumber(r.After.AttributedTokens))
+	if r.Before.Cache.HasDetail() || r.After.Cache.HasDetail() {
+		renderCacheRankings(out, r.Cache)
+		for _, c := range r.CallTypes {
+			if !c.Analyzed {
+				continue
+			}
+			for _, side := range []struct {
+				name   string
+				counts spend.CallTypeCounts
+			}{{"before", c.Before}, {"after", c.After}} {
+				if side.counts.Requests != 0 && side.counts.CacheReadDetailRecorded == 0 && side.counts.CacheWriteDetailRecorded == 0 {
+					fmt.Fprintf(out, "  %s (%s): cache detail not recorded on %s requests.\n", c.Name, side.name, spendNumber(side.counts.Requests))
+				}
+			}
+		}
+	}
 	fmt.Fprintln(out, "\nHow complete is the export?")
 	problems := r.Incomplete
 	if r.Incomplete {
