@@ -47,6 +47,8 @@ Choose dates for your own data and continue only after the export succeeds.
 The SQL writes CSV in one pass and excludes prompts and responses. Keep the
 export directory private. Existing request-level JSON and JSONL work too.
 
+<a id="2-install-v060"></a>
+
 ### 2. Install v0.6.1
 
 Run this in Bash with `curl`, `gh`, `shasum` and `tar` available:
