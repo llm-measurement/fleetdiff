@@ -2,6 +2,13 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## Unreleased
+
+- Upgrade llm-sketchkit to v0.2.3 for parser allocation limits, more efficient
+  summary combination and safer secret/error diagnostics. Keep the existing
+  x/text v0.41.0 normalization dependency, identities and summary wire format.
+  This is the hardening backport; the v0.3.0 identity migration is separate.
+
 ## [0.6.0] - 2026-10-11
 
 See the [release notes](docs/releases/v0.6.0.md) for the LiteLLM workflow and
