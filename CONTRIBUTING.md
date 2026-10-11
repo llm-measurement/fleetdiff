@@ -13,6 +13,18 @@ go test -race ./...
 go vet ./...
 ```
 
+Linux CI also compares the built CLI's exit status, stdout and stderr with Docker
+bridge networking and `--network none`. This uses the existing synthetic fixtures
+and a locally built `FROM scratch` image, run by its immutable image ID. With
+Go 1.26.9, Docker and jq available, reproduce it from the repository root:
+
+```sh
+mkdir -p bin/offline
+CGO_ENABLED=0 GOOS=linux go build -o bin/offline/fleetdiff ./cmd/fleetdiff
+tar -czf bin/offline/fleetdiff.tar.gz -C bin/offline fleetdiff
+sh scripts/restricted-smoke.sh bin/offline/fleetdiff.tar.gz "linux/$(go env GOARCH)"
+```
+
 ## Signed and signed-off commits
 
 Every pull-request commit needs both:
