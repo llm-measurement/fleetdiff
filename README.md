@@ -2,10 +2,11 @@
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/llm-measurement/fleetdiff/badge)](https://scorecard.dev/viewer/?uri=github.com/llm-measurement/fleetdiff)
 
-**Why did LLM token usage spike, and which users or sessions drove the change?**
-
 fleetdiff is a local command-line tool that compares LLM usage summaries,
 flags unusual windows, and checks trace captures and collector configurations.
+
+Use it to answer **why LLM token usage spiked, and which users or sessions drove
+the change.**
 
 It reads summaries exported by the
 [otelcol-genai-sketches](https://github.com/llm-measurement/otelcol-genai-sketches)
