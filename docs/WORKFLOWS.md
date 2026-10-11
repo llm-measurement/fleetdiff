@@ -281,5 +281,3 @@ only authorized data.
   commands to reproduce them.
 
 Run the checks yourself with `go test -race ./...` and `go vet ./...`.
-
-
