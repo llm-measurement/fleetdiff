@@ -64,7 +64,8 @@ class DocumentationTests(unittest.TestCase):
     def test_document_links(self):
         paths = [ROOT / "README.md", ROOT / "docs/WORKFLOWS.md",
                  ROOT / "docs/OPERATIONS.md", ROOT / "docs/RELEASING.md",
-                 ROOT / "docs/releases/v0.6.0.md", Path(__file__).with_name("README.md")]
+                 ROOT / "docs/releases/v0.6.0.md", ROOT / "docs/releases/v0.7.0.md",
+                 ROOT / "docs/CACHE.md", Path(__file__).with_name("README.md")]
         for path in paths:
             for link in re.findall(r"\]\(([^)\s]+)\)", path.read_text()):
                 parsed = urlsplit(link)

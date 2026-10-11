@@ -4,6 +4,11 @@ Notable user-visible changes are recorded here, newest first.
 
 ## Unreleased
 
+### v0.7.0 Release Preparation
+
+See the [release notes](docs/releases/v0.7.0.md) for the SQL export default and
+report upgrade. Publication is pending maintainer approval.
+
 - Compare recorded cache-read and cache-write shares and uncached input on
   LiteLLM exports, with keyed uncached-growth rankings and separate coverage.
   Include version-pinned cache and reasoning columns in the SQL export by
@@ -12,6 +17,8 @@ Notable user-visible changes are recorded here, newest first.
   uncached totals; identify unavailable model and contributor breakdowns.
 - Ship a deterministic synthetic OTLP capture for binary-only inspection,
   checked byte for byte against its generator in CI.
+- Lead with significant recorded cache changes, show request coverage in words,
+  and direct cache-read-share drops to provider diagnostics and route checks.
 
 ## [0.6.1] - 2026-10-11
 

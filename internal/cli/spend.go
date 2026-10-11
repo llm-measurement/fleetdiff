@@ -59,6 +59,7 @@ func renderSpend(out io.Writer, r spend.Report) {
 		fmt.Fprintf(out, "Analyzed calls only: %s -> %s recorded tokens; %s -> %s logged model requests.\n", spendNumber(r.Before.Tokens), spendNumber(r.After.Tokens), spendNumber(r.Before.Requests), spendNumber(r.After.Requests))
 	} else {
 		fmt.Fprintln(out, spendHeadline(r))
+		renderCacheHeadline(out, r.Before.Cache, r.After.Cache)
 		renderSpendModelContribution(out, r)
 		fmt.Fprintf(out, "Logged model requests: %s -> %s.\n", spendNumber(r.Before.Requests), spendNumber(r.After.Requests))
 	}
@@ -221,7 +222,14 @@ func renderSpend(out io.Writer, r spend.Report) {
 	} else {
 		fmt.Fprintln(out, "  No usage problems found.")
 	}
-	fmt.Fprintf(out, "  Rows read: %s; unsupported rows: %s; outside periods: %s.\n", spendNumber(r.Rows), spendNumber(r.ExcludedRows), spendNumber(r.OutsidePeriods))
+	fmt.Fprintf(out, "  Rows read: %s", spendNumber(r.Rows))
+	if r.ExcludedRows != 0 {
+		fmt.Fprintf(out, "; unsupported rows: %s", spendNumber(r.ExcludedRows))
+	}
+	if r.OutsidePeriods != 0 {
+		fmt.Fprintf(out, "; outside periods: %s", spendNumber(r.OutsidePeriods))
+	}
+	fmt.Fprintln(out, ".")
 	if r.Incomplete {
 		fmt.Fprintln(out, "  Whole-period per-request split unavailable while selected call types remain unanalyzed.")
 	} else if r.Volume == nil {
@@ -239,6 +247,8 @@ func renderSpend(out io.Writer, r spend.Report) {
 	}
 	if r.Incomplete {
 		fmt.Fprintln(out, "\nNext: review unsupported call types in your local LiteLLM logs; analyze those rows before drawing a whole-export token-change conclusion.")
+	} else if change := cacheReadChange(r.Before.Cache, r.After.Cache); change != nil && change.Sign() < 0 {
+		fmt.Fprintln(out, "\n"+cacheDiagnosticsNext)
 	} else if a.Unclear != 0 || b.Unclear != 0 || a.MissingIdentity != 0 || b.MissingIdentity != 0 {
 		fmt.Fprintln(out, "\nNext: review the leading contributors and flagged records in your local LiteLLM logs.")
 	} else {

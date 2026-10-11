@@ -6,6 +6,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"slices"
 	"strings"
 
@@ -26,6 +27,68 @@ func cacheShare(v *float64) string {
 	return spendPercent(*v * 100)
 }
 
+func cacheReadChange(a, b compare.CacheWindow) *big.Rat {
+	if !a.CompleteRead() || !b.CompleteRead() || a.Read.Input == nil || b.Read.Input == nil || a.Read.Tokens == nil || b.Read.Tokens == nil || *a.Read.Input == 0 || *b.Read.Input == 0 {
+		return nil
+	}
+	share := func(d compare.CacheDetail) *big.Rat {
+		return new(big.Rat).SetFrac(new(big.Int).SetUint64(*d.Tokens), new(big.Int).SetUint64(*d.Input))
+	}
+	return new(big.Rat).Sub(share(b.Read), share(a.Read))
+}
+
+func renderCacheHeadline(out io.Writer, a, b compare.CacheWindow) {
+	change := cacheReadChange(a, b)
+	if change == nil {
+		return
+	}
+	delta, sign := *b.Uncached, "+"
+	if delta >= *a.Uncached {
+		delta -= *a.Uncached
+	} else {
+		delta, sign = *a.Uncached-delta, "-"
+	}
+	// A five-point share change or a 20% change of at least 100 tokens is material.
+	minimumChange := *a.Uncached / 5
+	if *a.Uncached%5 != 0 {
+		minimumChange++
+	}
+	material := delta >= 100 && delta >= minimumChange
+	if new(big.Rat).Abs(change).Cmp(big.NewRat(1, 20)) < 0 && !material {
+		return
+	}
+	lead := "Cache reuse held"
+	if change.Sign() < 0 {
+		lead = "But cache reuse fell"
+	} else if change.Sign() > 0 {
+		lead = "Cache reuse rose"
+	}
+	if delta == 0 {
+		sign = ""
+	}
+	fmt.Fprintf(out, "%s: cache-read share %s -> %s (uncached input %s%s).\n", lead, cacheShare(a.Read.Share), cacheShare(b.Read.Share), sign, spendNumber(delta))
+}
+
+func cacheCoverage(a, b compare.CacheWindow, ad, bd compare.CacheDetail) string {
+	if ad.Covered != nil && bd.Covered != nil && *ad.Covered == a.Requests && *bd.Covered == b.Requests {
+		return "all requests report cache detail"
+	}
+	return fmt.Sprintf("before: %s of %s requests report cache detail; after: %s of %s", cacheCount(ad.Covered), spendNumber(a.Requests), cacheCount(bd.Covered), spendNumber(b.Requests))
+}
+
+func renderCacheExclusions(out io.Writer, a, b compare.CacheDetail) {
+	for _, f := range []struct {
+		label string
+		a, b  *uint64
+	}{{"missing detail", a.Missing, b.Missing}, {"invalid detail or input", a.Invalid, b.Invalid}} {
+		if (f.a != nil && *f.a != 0) || (f.b != nil && *f.b != 0) {
+			fmt.Fprintf(out, "      Excluded: %s %s -> %s requests.\n", f.label, cacheCount(f.a), cacheCount(f.b))
+		}
+	}
+}
+
+const cacheDiagnosticsNext = "Next: Use your provider's cache diagnostics (Anthropic, OpenAI) to find why, and check that your gateway route preserves cache markers."
+
 func renderCachePair(out io.Writer, a, b compare.CacheWindow, beforeTokens, afterTokens uint64) {
 	for _, f := range []struct {
 		label string
@@ -36,10 +99,12 @@ func renderCachePair(out io.Writer, a, b compare.CacheWindow, beforeTokens, afte
 			continue
 		}
 		fmt.Fprintf(out, "    %s share of recorded input: %s -> %s.\n", f.label, cacheShare(f.a.Share), cacheShare(f.b.Share))
-		fmt.Fprintf(out, "      Covered input / %s tokens: %s / %s -> %s / %s; requests %s/%s -> %s/%s.\n", f.label, cacheCount(f.a.Input), cacheCount(f.a.Tokens), cacheCount(f.b.Input), cacheCount(f.b.Tokens), cacheCount(f.a.Covered), spendNumber(a.Requests), cacheCount(f.b.Covered), spendNumber(b.Requests))
-		if slices.ContainsFunc([]*uint64{f.a.Missing, f.b.Missing, f.a.Invalid, f.b.Invalid}, func(n *uint64) bool { return n == nil || *n != 0 }) {
-			fmt.Fprintf(out, "      Excluded: missing detail %s -> %s; invalid detail or input %s -> %s.\n", cacheCount(f.a.Missing), cacheCount(f.b.Missing), cacheCount(f.a.Invalid), cacheCount(f.b.Invalid))
+		verb := "reads"
+		if f.label == "Cache-write" {
+			verb = "writes"
 		}
+		fmt.Fprintf(out, "      Cache %s: %s of %s input tokens -> %s of %s (%s).\n", verb, cacheCount(f.a.Tokens), cacheCount(f.a.Input), cacheCount(f.b.Tokens), cacheCount(f.b.Input), cacheCoverage(a, b, f.a, f.b))
+		renderCacheExclusions(out, f.a, f.b)
 		if f.a.Issue != "" || f.b.Issue != "" {
 			fmt.Fprintln(out, "      Complete input and cache-detail observations are needed for this summary share.")
 			for _, side := range []struct {
@@ -62,7 +127,6 @@ func renderCachePair(out io.Writer, a, b compare.CacheWindow, beforeTokens, afte
 			fmt.Fprintf(out, "      Recorded zero detail, origin unknown: %s -> %s requests.\n", cacheCount(f.a.ZeroOriginUnknown), cacheCount(f.b.ZeroOriginUnknown))
 		}
 	}
-	fmt.Fprintf(out, "    Uncached input tokens (read-covered requests): %s -> %s.\n", cacheCount(a.Uncached), cacheCount(b.Uncached))
 	if a.CompleteRead() && b.CompleteRead() && *b.Uncached > *a.Uncached && *b.Read.Share < *a.Read.Share {
 		growth := *b.Uncached - *a.Uncached
 		if afterTokens <= beforeTokens || growth >= (afterTokens-beforeTokens)/2+(afterTokens-beforeTokens)%2 {
@@ -88,7 +152,8 @@ func renderCacheRankings(out io.Writer, v compare.CacheView) {
 	if len(v.Rankings.Movers) == 0 {
 		fmt.Fprintln(out, "  No tracked candidates with possible uncached-input growth.")
 	}
-	fmt.Fprintf(out, "  Read-covered requests: %s/%s -> %s/%s; missing detail excluded: %s -> %s; invalid detail or input excluded: %s -> %s.\n", cacheCount(v.Before.Read.Covered), spendNumber(v.Before.Requests), cacheCount(v.After.Read.Covered), spendNumber(v.After.Requests), cacheCount(v.Before.Read.Missing), cacheCount(v.After.Read.Missing), cacheCount(v.Before.Read.Invalid), cacheCount(v.After.Read.Invalid))
+	fmt.Fprintf(out, "  Cache-read coverage: %s.\n", cacheCoverage(v.Before, v.After, v.Before.Read, v.After.Read))
+	renderCacheExclusions(out, v.Before.Read, v.After.Read)
 	if v.Before.MissingIdentity+v.After.MissingIdentity != 0 {
 		fmt.Fprintf(out, "  Read-covered requests without group identity: %s -> %s.\n", spendNumber(v.Before.MissingIdentity), spendNumber(v.After.MissingIdentity))
 	}

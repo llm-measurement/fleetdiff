@@ -5,7 +5,7 @@
 
 Compare cache-read and cache-write shares before and after a change, then find
 the keys, teams or sessions whose recorded uncached input grew. The expanded
-view is a **source preview**. Published v0.5.0 through v0.6.1 already provide
+view is prepared for **v0.7.0**, pending publication. Published v0.5.0 through v0.6.1 already provide
 aggregate cache-read-share comparison for summary windows.
 
 ## Try The Cache Drop
@@ -21,9 +21,11 @@ go build -o ./fleetdiff-cache ./cmd/fleetdiff
 Selected output:
 
 ```text
+But cache reuse fell: cache-read share 92% -> 61% (uncached input +620).
     Cache-read share of recorded input: 92% -> 61%.
+      Cache reads: 1,840 of 2,000 input tokens -> 1,220 of 2,000 (all requests report cache detail).
     Cache-write share of recorded input: 5% -> 7.5%.
-    Uncached input tokens (read-covered requests): 160 -> 780.
+      Cache writes: 100 of 2,000 input tokens -> 150 of 2,000 (all requests report cache detail).
     Uncached input +620: cache-read share fell from 92% to 61%.
   key-1: 80 -> 700 uncached input tokens; change +620.
 ```
@@ -72,6 +74,13 @@ complete read coverage, read share fell, and uncached input grew by at least hal
 the net token increase (or total tokens stayed flat or fell). This is arithmetic
 visibility. Increasing input volume or a changed workload mix can also increase
 uncached tokens; the ranking alone does not establish a cache-share loss per key.
+
+With complete cache-read coverage, a second headline highlights a change of at
+least five percentage points, or an uncached-input change of at least 100 tokens
+and 20% relative to the before period. From zero uncached input, the 100-token
+minimum applies. The comparison uses exact token ratios before formatting.
+When cache-read share falls, the next step points to the provider's cache
+diagnostics and the gateway route's preservation of cache markers.
 
 ## Collector Summary Windows
 

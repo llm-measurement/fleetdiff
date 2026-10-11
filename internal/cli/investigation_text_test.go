@@ -88,8 +88,9 @@ func TestCacheInvestigationTextAndJSON(t *testing.T) {
 			}
 			for _, want := range []string{
 				"Cache-read share of recorded input: 60% -> 20%.",
-				"Covered input / Cache-read tokens: 1,000 / 600 -> 1,000 / 200; requests 10/10 -> 10/10.",
-				"Uncached input tokens (read-covered requests): 400 -> 800.",
+				"Cache reads: 600 of 1,000 input tokens -> 200 of 1,000 (all requests report cache detail).",
+				"But cache reuse fell: cache-read share 60% -> 20% (uncached input +400).",
+				cacheDiagnosticsNext,
 				"Cache-write detail not recorded.",
 				"not cache totals by model or key/session",
 				"Turn on user and session rankings (topk_keys) for more answers.",

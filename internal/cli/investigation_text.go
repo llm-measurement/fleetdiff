@@ -17,6 +17,15 @@ import (
 func renderInvestigation(out io.Writer, r compare.Investigation, threshold float64) {
 	headline := investigationHeadline(r)
 	fmt.Fprintln(out, headline)
+	cacheFell := false
+	for _, q := range r.Questions {
+		if q.ID == "cache" && q.CacheView != nil {
+			v := q.CacheView
+			renderCacheHeadline(out, v.Before, v.After)
+			change := cacheReadChange(v.Before, v.After)
+			cacheFell = change != nil && change.Sign() < 0
+		}
+	}
 	volumeShown, attributed, flagged := false, false, false
 	for _, q := range r.Questions {
 		if v := q.Volume; v != nil {
@@ -162,6 +171,9 @@ func renderInvestigation(out io.Writer, r compare.Investigation, threshold float
 	}
 	if len(missingRankings) > 0 {
 		fmt.Fprintf(out, "Turn on %s rankings (topk_keys) for more answers.\n", strings.Join(missingRankings, " and "))
+	}
+	if cacheFell {
+		fmt.Fprintln(out, "\n"+cacheDiagnosticsNext)
 	}
 }
 

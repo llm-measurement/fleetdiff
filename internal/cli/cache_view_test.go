@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/llm-measurement/fleetdiff/internal/compare"
+	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
 func TestCacheDropFixtureTextJSONAndPrivacy(t *testing.T) {
@@ -28,6 +29,13 @@ func TestCacheDropFixtureTextJSONAndPrivacy(t *testing.T) {
 					t.Fatal("cache fixture leaked")
 				}
 				if format == "text" {
+					lines := strings.Split(out.String(), "\n")
+					if lines[1] != "But cache reuse fell: cache-read share 92% -> 61% (uncached input +620)." {
+						t.Fatalf("cache change must be the second headline: %s", out.String())
+					}
+					if !strings.Contains(out.String(), cacheDiagnosticsNext) || strings.Contains(out.String(), "Excluded:") || strings.Contains(out.String(), "Uncached input tokens (read-covered requests)") || strings.Contains(out.String(), "unsupported rows: 0") || strings.Contains(out.String(), "outside periods: 0") {
+						t.Fatal(out.String())
+					}
 					guide, err := os.ReadFile("../../docs/CACHE.md")
 					if err != nil {
 						t.Fatal(err)
@@ -50,6 +58,79 @@ func TestCacheDropFixtureTextJSONAndPrivacy(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func testCacheWindow(input, read uint64) compare.CacheWindow {
+	zero, one, uncached := uint64(0), uint64(1), input-read
+	w := compare.CacheWindow{Requests: 1, Read: compare.CacheDetail{CoverageKnown: true, Reported: 1, Covered: &one, Missing: &zero, Invalid: &zero}, Uncached: &uncached}
+	w.Read.SetTotals(input, read)
+	return w
+}
+
+func TestCacheHeadlineThresholds(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		a, b compare.CacheWindow
+		want string
+	}{
+		{"five points down", testCacheWindow(100, 92), testCacheWindow(100, 87), "But cache reuse fell: cache-read share 92% -> 87% (uncached input +5).\n"},
+		{"five points up", testCacheWindow(100, 87), testCacheWindow(100, 92), "Cache reuse rose: cache-read share 87% -> 92% (uncached input -5).\n"},
+		{"below five points", testCacheWindow(100, 92), testCacheWindow(100, 88), ""},
+		{"material unchanged share", testCacheWindow(1000, 500), testCacheWindow(1200, 600), "Cache reuse held: cache-read share 50% -> 50% (uncached input +100).\n"},
+		{"material decrease", testCacheWindow(1000, 500), testCacheWindow(800, 400), "Cache reuse held: cache-read share 50% -> 50% (uncached input -100).\n"},
+		{"below absolute floor", testCacheWindow(100, 50), testCacheWindow(200, 100), ""},
+		{"below relative floor", testCacheWindow(2000, 1000), testCacheWindow(2200, 1100), ""},
+		{"from zero", testCacheWindow(10000, 10000), testCacheWindow(10000, 9900), "But cache reuse fell: cache-read share 100% -> 99% (uncached input +100).\n"},
+		{"small from zero", testCacheWindow(10000, 10000), testCacheWindow(10000, 9999), ""},
+		{"missing before", compare.CacheWindow{Requests: 1}, testCacheWindow(100, 50), ""},
+		{"missing after", testCacheWindow(100, 50), compare.CacheWindow{Requests: 1}, ""},
+		{"zero input", testCacheWindow(0, 0), testCacheWindow(100, 50), ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			renderCacheHeadline(&out, tt.a, tt.b)
+			if out.String() != tt.want {
+				t.Fatalf("got %q, want %q", out.String(), tt.want)
+			}
+		})
+	}
+}
+
+func TestCachePartialCoverageAndExclusions(t *testing.T) {
+	a, b := testCacheWindow(100, 92), testCacheWindow(100, 61)
+	a.Requests, b.Requests = 2, 3
+	missing := uint64(1)
+	a.Read.Missing = &missing
+	var out bytes.Buffer
+	renderCacheHeadline(&out, a, b)
+	if out.Len() != 0 {
+		t.Fatal("partial population must not imply a whole-period cache change")
+	}
+	renderCachePair(&out, a, b, 100, 100)
+	for _, want := range []string{"before: 1 of 2 requests report cache detail; after: 1 of 3", "Excluded: missing detail 1 -> 0 requests."} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatal(out.String())
+		}
+	}
+	if strings.Contains(out.String(), "Excluded: invalid") || strings.Contains(out.String(), "Uncached input +") {
+		t.Fatal(out.String())
+	}
+	// Unknown counts remain in JSON; text prints only known nonzero exclusions.
+	out.Reset()
+	renderCacheExclusions(&out, compare.CacheDetail{}, compare.CacheDetail{})
+	if out.Len() != 0 {
+		t.Fatal(out.String())
+	}
+}
+
+func TestIncompleteSpendKeepsCoverageFirst(t *testing.T) {
+	r := spend.Report{Incomplete: true}
+	r.Before.Cache, r.After.Cache = testCacheWindow(100, 92), testCacheWindow(100, 61)
+	var out bytes.Buffer
+	renderSpend(&out, r)
+	if !strings.HasPrefix(out.String(), "Comparison incomplete:") || strings.Contains(out.String(), "But cache reuse fell:") || strings.Contains(out.String(), cacheDiagnosticsNext) {
+		t.Fatal(out.String())
 	}
 }
 
