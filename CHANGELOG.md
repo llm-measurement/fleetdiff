@@ -2,10 +2,10 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## [0.6.0] - Unreleased
+## [0.6.0] - 2026-10-11
 
 See the [release notes](docs/releases/v0.6.0.md) for the LiteLLM workflow and
-upgrade details. This release is prepared; publication is pending approval.
+upgrade details.
 
 - Investigate LiteLLM request-level SQL exports in CSV, JSON or JSONL locally,
   without a collector. Compare complete UTC periods, recorded request count and
