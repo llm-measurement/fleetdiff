@@ -328,12 +328,12 @@ class ImporterTests(unittest.TestCase):
             require(report["outside_period_rows"] == 200, "partial edge days were included")
 
     def test_readme_selected_output_matches_run(self):
-        readme = (ROOT / "README.md").read_text()
-        block = readme.split("```text\n", 1)[1].split("```", 1)[0]
         result = investigate(ROOT / "synthetic.csv", encoding="text")
         actual = result.stdout.decode().splitlines()
-        require(all(line in actual for line in block.splitlines()),
-                "README output does not match the source-built report")
+        for path in (ROOT / "README.md", ROOT.parents[1] / "README.md"):
+            block = path.read_text().split("```text\n", 1)[1].split("```", 1)[0]
+            require(all(line in actual for line in block.splitlines()),
+                    "README output does not match the tested report")
 
     def test_agent_route_change_keeps_all_usage(self):
         with tempfile.TemporaryDirectory(dir="/tmp") as temp:

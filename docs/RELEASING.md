@@ -39,10 +39,22 @@ FLEETDIFF_RELEASE_BINARY=/path/to/fleetdiff go test ./internal/cli \
   -run '^TestReleaseBinary' -count=1 -v
 ```
 
+`TestReleaseBinarySpend` checks the LiteLLM synthetic example in CSV, JSON and
+JSONL on each platform, including raw-identity suppression and quality counts.
+The Linux AMD64 archive also runs the pinned LiteLLM writer -> PostgreSQL ->
+read-only SQL -> packaged importer checks. This path uses synthetic data, no
+provider keys and no paid calls.
+
 For a release, use a clean reviewed commit, update the changelog, and create a
 signed version tag. The build script verifies the requested tag points at the
 checked-out commit and rejects dirty release builds. Protect release tags and
 review changes to workflow files as code with release authority.
+
+Release preparation is separate from release authorization. Merge only after
+the maintainer approves the prepared changes; creating or pushing a tag and
+publishing require separate explicit approval. Use signed, signed-off preparation
+commits. Do not create a local release tag just to test packaging; use the
+development package path above.
 
 Only a tag push in a **public repository** can run the signing/publishing job.
 Private and pull-request builds do not contact public transparency services or
@@ -57,12 +69,34 @@ and tag, then creates a **draft** release. A maintainer must review its assets
 and independently follow the verification instructions in OPERATIONS before
 publishing. The workflow does not overwrite an existing release.
 
-Use the version's notes in `docs/releases/` as its release body. Prepare the
-installer default for that tag, keeping explicit download instructions on the
-working release until the new downloads verify. Then update README links and the
-supported-version policy. Do not replace immutable tags
+The workflow uses the version's notes in `docs/releases/` as its draft release
+body. Prepare the installer default and matching README instructions on the
+release PR, keeping them held for review until release approval. Before outreach,
+verify that every advertised version is downloadable. Do not replace immutable tags
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
+
+## After Publishing v0.6.0
+
+From an anonymous clone in a fresh directory outside any synced workspace:
+
+1. Download all four platform archives, checksums, SBOM and provenance. Verify
+   each archive and manifest with the workflow and tag identity constraints in
+   [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
+   recorded build revision match the approved commit.
+2. Run the README's verified installer into a new directory. Confirm the native
+   executable reports `v0.6.0`, then run the packaged-binary tests above.
+3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
+   [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
+   It exercises the real pinned writer, a SELECT-only SQL export and the released
+   importer. Check that its database tests ran rather than skipped.
+4. Run the README's synthetic example with that executable and compare its
+   selected output. Keep command logs, asset hashes, signature/attestation
+   results, platform/version and test output in private `docs/local/` evidence.
+
+The release workflow tests every native platform before publication. The local
+outsider run proves the post-publication download and database path on its own
+platform; record that scope separately.
 
 The workflow uses GitHub OIDC and a short-lived signing identity. Repository and
 workflow permissions control who can publish; review those alongside provenance.

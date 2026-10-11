@@ -2,7 +2,10 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## Unreleased
+## [0.6.0] - Unreleased
+
+See the [release notes](docs/releases/v0.6.0.md) for the LiteLLM workflow and
+upgrade details. This release is prepared; publication is pending approval.
 
 - Investigate LiteLLM request-level SQL exports in CSV, JSON or JSONL locally,
   without a collector. Compare complete UTC periods, recorded request count and
@@ -18,6 +21,13 @@ Notable user-visible changes are recorded here, newest first.
 - Accept up to 10 million rows with full-length keyed request digests in bounded
   blocks; export CSV in one database pass, with JSONL opt-in. Compute increase
   concentration before display truncation and keep tied aliases in file order.
+- Show offsetting contributor changes as token totals instead of percentages
+  above 100%, label the all-model decomposition, and distinguish clean usage
+  from reports with listed quality issues.
+- Lead the shorter README with export, verified installation and investigation;
+  retain summary, trace and configuration workflows in the documentation.
+- Build release artifacts with Go 1.26.9; source builds require Go 1.26 or later.
+  Add signed-commit and sign-off checks, CodeQL scanning and dependency reporting.
 
 ## [0.5.0] - 2026-10-04
 

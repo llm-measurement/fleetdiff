@@ -73,7 +73,8 @@ func renderSpend(out io.Writer, r spend.Report) {
 		fmt.Fprint(out, " (analyzed calls only)")
 	}
 	fmt.Fprintln(out)
-	if r.Volume != nil && !r.Incomplete {
+	if r.Volume != nil && !r.Incomplete && len(r.Models) > 1 {
+		fmt.Fprintln(out, "  All analyzed models:")
 		renderSpendVolume(out, r.Volume)
 	}
 	for _, m := range r.Models {
@@ -109,22 +110,34 @@ func renderSpend(out io.Writer, r spend.Report) {
 			kind += "s"
 			verb = "account"
 		}
-		share := spendPercent(100 * c.Share.Lower)
-		if c.Delta.Lower != c.Delta.Upper {
-			// Net-change shares can exceed 100%; shareText caps activity shares.
-			lower, upper := c.Share.Lower*10000, c.Share.Upper*10000
-			if c.Share.Lower == c.Share.Upper {
-				lower, upper = math.Nextafter(lower, math.Inf(-1)), math.Nextafter(upper, math.Inf(1))
+		net := int64(r.After.Tokens - r.Before.Tokens)
+		if c.Delta.Upper > net {
+			if c.Delta.Lower >= net {
+				fell := compare.Interval{Lower: c.Delta.Lower - net, Upper: c.Delta.Upper - net}
+				fmt.Fprintf(out, "  %s leading tracked %s added %s tokens while others fell by %s (net +%s).\n", spendNumber(c.Count), kind, spendInterval(c.Delta), spendInterval(fell), spendNumber(net))
+			} else {
+				changed := compare.Interval{Lower: net - c.Delta.Upper, Upper: net - c.Delta.Lower}
+				fmt.Fprintf(out, "  %s leading tracked %s added %s tokens while others changed by %s (net +%s).\n", spendNumber(c.Count), kind, spendInterval(c.Delta), signedInterval(changed), spendNumber(net))
 			}
-			share = fmt.Sprintf("[%s, %s]", spendPercent(math.Floor(lower)/100), spendPercent(math.Ceil(upper)/100))
+		} else {
+			share := spendPercent(100 * c.Share.Lower)
+			if c.Delta.Lower != c.Delta.Upper {
+				// Round outward without losing uncertainty at float precision limits.
+				lower, upper := c.Share.Lower*10000, c.Share.Upper*10000
+				if c.Share.Lower == c.Share.Upper {
+					lower, upper = math.Nextafter(lower, math.Inf(-1)), math.Nextafter(upper, math.Inf(1))
+				}
+				share = fmt.Sprintf("[%s, %s]", spendPercent(math.Floor(lower)/100), spendPercent(math.Ceil(upper)/100))
+			}
+			fmt.Fprintf(out, "  %s leading tracked %s %s for %s of the net recorded increase.\n", spendNumber(c.Count), kind, verb, share)
 		}
-		fmt.Fprintf(out, "  %s leading tracked %s %s for %s of the net recorded increase.\n", spendNumber(c.Count), kind, verb, share)
 	}
 	if len(r.Rankings.Movers) == 0 {
 		fmt.Fprintln(out, "  No tracked contributors with attributable recorded tokens.")
 	}
 	fmt.Fprintf(out, "  Attributed tokens: %s -> %s.\n", spendNumber(r.Before.AttributedTokens), spendNumber(r.After.AttributedTokens))
 	fmt.Fprintln(out, "\nHow complete is the export?")
+	problems := r.Incomplete
 	if r.Incomplete {
 		fmt.Fprintln(out, "  Usage checks below cover analyzed calls only; unsupported token fields above remain unanalyzed.")
 	}
@@ -142,6 +155,7 @@ func renderSpend(out io.Writer, r spend.Report) {
 			{"total_tokens", c.Before.TotalTokens, c.After.TotalTokens, c.Before.TotalTokensOverflow, c.After.TotalTokensOverflow},
 		} {
 			if v.beforeOverflow || v.afterOverflow {
+				problems = true
 				fmt.Fprintf(out, "  %s raw %s column sum: %s -> %s.\n", c.Name, v.name, spendCoverageNumber(v.before, v.beforeOverflow), spendCoverageNumber(v.after, v.afterOverflow))
 			}
 		}
@@ -162,19 +176,26 @@ func renderSpend(out io.Writer, r spend.Report) {
 		{"Group identities missing", a.MissingIdentity, b.MissingIdentity},
 	} {
 		if v.a != 0 || v.b != 0 {
+			problems = true
 			fmt.Fprintf(out, "  %s: %s -> %s.\n", v.label, spendNumber(v.a), spendNumber(v.b))
 		}
 	}
-	fmt.Fprintln(out, "  No other usage problems found.")
 	fmt.Fprintln(out, "  Zero-filled: "+r.ZeroFilled+". Provider origin: "+r.ProviderOrigin+".")
 	if r.Before.RecordedSpend != "" && r.Before.RecordedSpend != "0" || r.After.RecordedSpend != "" && r.After.RecordedSpend != "0" {
 		fmt.Fprintf(out, "  Recorded spend (USD, analyzed calls): %s -> %s.\n", spendNumber(r.Before.RecordedSpend), spendNumber(r.After.RecordedSpend))
 	}
 	if a.SpendZeroUnknown != 0 || b.SpendZeroUnknown != 0 {
+		problems = true
 		fmt.Fprintf(out, "  Zero-cost origin unknown: %s -> %s.\n", spendNumber(a.SpendZeroUnknown), spendNumber(b.SpendZeroUnknown))
 	}
 	if a.SpendMissing+a.SpendInvalid != 0 || b.SpendMissing+b.SpendInvalid != 0 {
+		problems = true
 		fmt.Fprintf(out, "  Missing/invalid cost: %s -> %s.\n", spendNumber(a.SpendMissing+a.SpendInvalid), spendNumber(b.SpendMissing+b.SpendInvalid))
+	}
+	if problems {
+		fmt.Fprintln(out, "  No other usage problems found.")
+	} else {
+		fmt.Fprintln(out, "  No usage problems found.")
 	}
 	fmt.Fprintf(out, "  Rows read: %s; unsupported rows: %s; outside periods: %s.\n", spendNumber(r.Rows), spendNumber(r.ExcludedRows), spendNumber(r.OutsidePeriods))
 	if r.Incomplete {

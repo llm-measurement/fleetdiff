@@ -15,7 +15,23 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.5.0"
+const installTestVersion = "v0.6.0"
+
+func TestInstallDefaultVersion(t *testing.T) {
+	root, env := installEnvironment(t, "Darwin", "arm64", "darwin_arm64", "")
+	script, err := filepath.Abs("install.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("sh", script)
+	cmd.Dir, cmd.Env = root, env
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("default installer: %v\n%s", err, output)
+	}
+	if _, err := os.Stat(filepath.Join(root, "fleetdiff-install", "fleetdiff")); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestInstall(t *testing.T) {
 	for _, tc := range []struct {

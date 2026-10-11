@@ -1,13 +1,14 @@
 # Operating fleetdiff
 
-fleetdiff is one local binary. It reads summary files (or OTLP captures with `inspect`) and prints a report,
-offline and unprivileged. All input and output stays on your machine.
+fleetdiff is one local binary. It reads LiteLLM spend exports, summary files,
+OTLP captures or collector configurations and prints a report, offline and
+unprivileged. All input and output stays on your machine.
 
 ## Install And Verify
 
 The initial supported targets are Linux and macOS on AMD64 and ARM64. Native
 Windows binaries are not provided. Download a binary from the
-[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.5.0).
+[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.6.0).
 Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
@@ -19,7 +20,7 @@ subshell stops on any download or verification failure:
 ```sh
 (
 set -eu
-version=v0.5.0
+version=v0.6.0
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
@@ -53,7 +54,7 @@ From a reviewed repository checkout, the same download and verification steps
 are available as a script (no Go compiler needed):
 
 ```sh
-sh scripts/install.sh v0.5.0 ./fleetdiff-install
+sh scripts/install.sh v0.6.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -64,12 +65,12 @@ curl --fail --location --proto '=https' --tlsv1.2 \
   https://raw.githubusercontent.com/llm-measurement/fleetdiff/e75518e1b62ead77a6870cfeabd3ddae944a1e0a/scripts/install.sh \
   --output fleetdiff-install.sh
 less fleetdiff-install.sh
-sh fleetdiff-install.sh v0.5.0 ./fleetdiff-install
+sh fleetdiff-install.sh v0.6.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
-The LiteLLM spend importer is a development-source feature pending release;
-the current v0.5.0 binary retains the released commands.
+The v0.6.0 binary includes the [LiteLLM spend importer](../examples/litellm-spend/README.md)
+alongside summary, trace and configuration commands.
 
 The script refuses an existing directory and extracts only after verification.
 A failed run leaves downloads in its new directory for inspection; do not use
@@ -108,13 +109,13 @@ disable system-wide protections as an installation step.
 
 ### Install With Go
 
-Install a published version with a currently patched Go 1.25 or 1.26 toolchain:
+Install a published version with a currently patched Go 1.26 or later toolchain:
 
 ```sh
 go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 ```
 
-Use `@v0.5.0` instead of `@latest` to pin that release. The binary is installed
+Use `@v0.6.0` instead of `@latest` to pin that release. The binary is installed
 under `GOBIN`, or `$(go env GOPATH)/bin` when unset; put that directory on `PATH`.
 This path uses Go module verification rather than the archive attestation above,
 and does not include unreleased checkout features.
@@ -122,7 +123,7 @@ and does not include unreleased checkout features.
 ### Build From Source
 
 Build the current source checkout with a currently patched Go 1.26 toolchain.
-The OTLP dependency requires Go 1.26; published v0.5.0 binaries are unchanged.
+The OTLP dependency requires Go 1.26; a verified binary needs no Go installation.
 
 ```sh
 go mod verify
@@ -135,7 +136,7 @@ Check `--version` on the binary you actually run:
 | Build | Version | Revision |
 |---|---|---|
 | Unstamped checkout build above | Go's embedded module/VCS version, or `dev` when unavailable | `unknown` |
-| Tagged `go install ...@v0.5.0` | `v0.5.0`, from Go's module metadata | `unknown` |
+| Tagged `go install ...@v0.6.0` | `v0.6.0`, from Go's module metadata | `unknown` |
 | Verified release archive | Stamped release version | Stamped source revision |
 
 A checkout may report a pseudo-version and `+dirty`, depending on the Go toolchain
@@ -183,9 +184,10 @@ explicit additional disclosure, not a harmless display preference.
 For `inspect`, use the [capture limits and privacy settings](INSPECT.md#limits).
 Raw trace captures are more sensitive than summaries. Protect them before running
 the command; use a fresh per-run key and default aliases for shared reports.
-The limits below apply to `compare` and `investigate`.
+For LiteLLM spend exports, use the [spend reader's limits](../examples/litellm-spend/README.md#data-and-limits).
+The limits below apply to `compare` and summary-file `investigate`.
 
-The v0.5.0 commands have separate guides: [diagnose](DIAGNOSE.md) bounds
+The other commands have separate guides: [diagnose](DIAGNOSE.md) bounds
 static YAML inspection; [scan](SCAN.md) applies the summary input budget to the
 whole history and also limits candidate comparisons. The optional [archive helper](SUMMARY_ARCHIVE.md)
 is a separate, explicitly writing process; fleetdiff itself stays read-only.

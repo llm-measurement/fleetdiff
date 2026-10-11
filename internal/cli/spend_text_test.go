@@ -217,14 +217,77 @@ func TestSpendTextNumbersAndBounds(t *testing.T) {
 	}
 	var out bytes.Buffer
 	renderSpend(&out, r)
-	if !strings.Contains(out.String(), "2 leading tracked keys account for [120%, 150%] of the net recorded increase.") {
-		t.Fatal("net-change shares clipped", out.String())
+	if !strings.Contains(out.String(), "2 leading tracked keys added [12,000, 15,000] tokens while others fell by [2,000, 5,000] (net +10,000).") {
+		t.Fatal("offsetting-change bounds lost", out.String())
 	}
+	r.Before.Tokens, r.After.Tokens = 0, math.MaxInt64
 	r.Increase = &spend.IncreaseShare{Count: 1, Delta: compare.Interval{Lower: math.MaxInt64 - 1, Upper: math.MaxInt64}, Share: compare.Share{Lower: 1, Upper: 1}}
 	out.Reset()
 	renderSpend(&out, r)
 	if !strings.Contains(out.String(), "[99.99%, 100.01%]") {
 		t.Fatal("integer uncertainty lost in percentage", out.String())
+	}
+}
+
+func TestSpendTextConcentrationOffsets(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		delta compare.Interval
+		want  string
+	}{
+		{"exact", compare.Interval{Lower: 250, Upper: 250}, "2 leading tracked keys added 250 tokens while others fell by 200 (net +50)."},
+		{"bounded", compare.Interval{Lower: 230, Upper: 250}, "2 leading tracked keys added [230, 250] tokens while others fell by [180, 200] (net +50)."},
+		{"crosses net", compare.Interval{Lower: 30, Upper: 60}, "2 leading tracked keys added [30, 60] tokens while others changed by [-10, +20] (net +50)."},
+		{"equals net", compare.Interval{Lower: 50, Upper: 50}, "2 leading tracked keys account for 100% of the net recorded increase."},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := spend.Report{Before: spend.Window{Tokens: 200}, After: spend.Window{Tokens: 250}, GroupBy: "key",
+				Increase: &spend.IncreaseShare{Count: 2, Delta: tc.delta, Share: compare.Share{Lower: float64(tc.delta.Lower) / 50, Upper: float64(tc.delta.Upper) / 50}}}
+			var out bytes.Buffer
+			renderSpend(&out, r)
+			if !strings.Contains(out.String(), tc.want) {
+				t.Fatal(out.String())
+			}
+		})
+	}
+}
+
+func TestSpendTextWholePeriodLabel(t *testing.T) {
+	for _, count := range []int{1, 2} {
+		r := spend.Report{Volume: &compare.VolumeChange{}, Models: make([]spend.Model, count)}
+		for i := range r.Models {
+			r.Models[i] = spend.Model{Item: "model", Volume: &compare.VolumeChange{}}
+		}
+		var out bytes.Buffer
+		renderSpend(&out, r)
+		if strings.Contains(out.String(), "All analyzed models:") != (count > 1) {
+			t.Fatal(out.String())
+		}
+		want := count
+		if count > 1 {
+			want++
+		}
+		if got := strings.Count(out.String(), "from request count"); got != want {
+			t.Fatalf("%d decompositions, want %d: %s", got, want, out.String())
+		}
+	}
+}
+
+func TestSpendTextCleanQualityConclusion(t *testing.T) {
+	for _, tc := range []struct {
+		quality spend.Quality
+		want    string
+	}{
+		{spend.Quality{}, "No usage problems found."},
+		{spend.Quality{Missing: 1}, "No other usage problems found."},
+		{spend.Quality{SpendMissing: 1}, "No other usage problems found."},
+		{spend.Quality{SpendZeroUnknown: 1}, "No other usage problems found."},
+	} {
+		var out bytes.Buffer
+		renderSpend(&out, spend.Report{After: spend.Window{Quality: tc.quality}})
+		if !strings.Contains(out.String(), tc.want) {
+			t.Fatal(out.String())
+		}
 	}
 }
 

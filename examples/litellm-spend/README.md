@@ -7,12 +7,11 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-This command requires a source build; it is not in a released binary. From the
-repository root, with Go 1.26 at a current security patch:
+Install [fleetdiff v0.6.0](../../README.md#2-install-v060), then run this fixture
+from the repository root with the verified binary:
 
 ```sh
-go build -o bin/fleetdiff ./cmd/fleetdiff
-bin/fleetdiff investigate --litellm-spend examples/litellm-spend/synthetic.csv \
+./fleetdiff-install/fleetdiff investigate --litellm-spend examples/litellm-spend/synthetic.csv \
   --before-period 2026-10-07 --after-period 2026-10-08 --group-by key
 ```
 
@@ -67,7 +66,7 @@ and [psql documentation](https://www.postgresql.org/docs/17/app-psql.html).
 ## Investigate Your Export
 
 ```sh
-bin/fleetdiff investigate --litellm-spend "$export_dir/spend.csv" \
+./fleetdiff-install/fleetdiff investigate --litellm-spend "$export_dir/spend.csv" \
   --group-by key --format json
 ```
 
@@ -157,7 +156,8 @@ the call types and asks for a supported request-level export.
 - Tied contributors and models follow their first appearance in the file.
   Concentration uses the full tracked candidate set before `--top` truncates
   display rows. Its denominator is the net recorded increase, so offsets from
-  declining contributors can produce shares above 100%.
+  declining contributors appear as added, offsetting and net token totals in
+  text; JSON retains the corresponding share and its bounds.
 - The SQL excludes prompts, responses, code, request bodies, IP addresses,
   API bases, and whole metadata objects. Exports and database diagnostics still
   contain sensitive information: keep them private. Use only successful exports;
