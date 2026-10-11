@@ -31,8 +31,9 @@ import (
 // examples. CI must run it for each supported build configuration; go test's
 // command-line-only tags are not inherited by go list. Standard-library code is
 // trusted: scanning net itself would reject the permitted SplitHostPort helper.
-// Arbitrary subprocesses, assembly, reflection and dynamic loading still require
-// review and the separate offline binary smoke test.
+// scripts/restricted-smoke.sh also compares built Linux CLI outputs with Docker
+// bridge networking versus --network none in CI. Assembly, reflection and
+// dynamic loading still require review; neither test proves absence of all I/O.
 func TestProductionHasNoNetwork(t *testing.T) {
 	packages := listNetworkPackages(t, "../..")
 	for _, finding := range networkFindings(t, packages) {
@@ -136,7 +137,7 @@ func networkFindings(t *testing.T, packages []networkPackage) []string {
 				continue
 			}
 			if networkFunction(obj.Pkg().Path(), obj.Name()) {
-				findings = append(findings, fmt.Sprintf("%s: %s: forbidden network API %s.%s", p.ImportPath, fset.Position(id.Pos()), obj.Pkg().Path(), obj.Name()))
+				findings = append(findings, fmt.Sprintf("%s: %s: forbidden network/process API %s.%s", p.ImportPath, fset.Position(id.Pos()), obj.Pkg().Path(), obj.Name()))
 			}
 		}
 	}
@@ -147,11 +148,13 @@ func networkFindings(t *testing.T, packages []networkPackage) []string {
 func networkImport(path string) bool {
 	// Keep parsing/value packages (net/url, net/netip, net/mail) available.
 	return path == "net/http" || strings.HasPrefix(path, "net/http/") ||
-		path == "net/rpc" || strings.HasPrefix(path, "net/rpc/") || path == "net/smtp" || path == "log/syslog"
+		path == "net/rpc" || strings.HasPrefix(path, "net/rpc/") || path == "net/smtp" || path == "log/syslog" || path == "os/exec"
 }
 
 func networkFunction(path, name string) bool {
 	switch path {
+	case "os":
+		return name == "StartProcess"
 	case "net", "crypto/tls", "net/textproto":
 		for _, prefix := range []string{"Dial", "Listen", "Accept", "Lookup", "Resolve"} {
 			if strings.HasPrefix(name, prefix) && name != "ResolveUnixAddr" {
@@ -160,6 +163,9 @@ func networkFunction(path, name string) bool {
 		}
 		return name == "FileConn" || name == "FileListener" || name == "FilePacketConn"
 	case "syscall", "golang.org/x/sys/unix", "golang.org/x/sys/windows":
+		if name == "Exec" || name == "ForkExec" || name == "StartProcess" || strings.HasPrefix(name, "CreateProcess") {
+			return true
+		}
 		// Raw syscalls can hide socket operations behind numeric constants.
 		for _, prefix := range []string{"Socket", "WSA", "Accept", "Bind", "Connect", "Listen", "Sendto", "Sendmsg", "Recvfrom", "Recvmsg", "Getsock", "Setsock", "Shutdown", "Syscall", "RawSyscall"} {
 			if strings.HasPrefix(name, prefix) {
@@ -184,6 +190,15 @@ func TestNetworkGuardFixtures(t *testing.T) {
 		{"syslog", `import "log/syslog"; var _ = syslog.New`, "forbidden import log/syslog"},
 		{"smtp", `import "net/smtp"; var _ = smtp.SendMail`, "forbidden import net/smtp"},
 		{"rpc", `import "net/rpc"; var _ = rpc.Dial`, "forbidden import net/rpc"},
+		{"exec", `import "os/exec"; var _ = exec.Command`, "forbidden import os/exec"},
+		{"exec_alias", `import process "os/exec"; var _ = process.CommandContext`, "forbidden import os/exec"},
+		{"exec_blank", `import _ "os/exec"`, "forbidden import os/exec"},
+		{"exec_dot", `import . "os/exec"; var _ = Command`, "forbidden import os/exec"},
+		{"start_process", `import "os"; var _ = os.StartProcess`, "os.StartProcess"},
+		{"start_process_alias", `import process "os"; var _ = process.StartProcess`, "os.StartProcess"},
+		{"start_process_dot", `import . "os"; var _ = StartProcess`, "os.StartProcess"},
+		{"syscall_exec", `import "syscall"; var _ = syscall.Exec`, "syscall.Exec"},
+		{"syscall_fork_exec", `import "syscall"; var _ = syscall.ForkExec`, "syscall.ForkExec"},
 		{"dial", `import "net"; func unused() { _, _ = net.Dial("tcp", "localhost:1") }`, "net.Dial"},
 		{"dial_alias", `import socket "net"; var saved = socket.DialTimeout`, "net.DialTimeout"},
 		{"dial_dot", `import . "net"; var saved = Dial`, "net.Dial"},
@@ -220,6 +235,8 @@ func TestNetworkGuardFixtures(t *testing.T) {
 		{"safe_mail", `import "net/mail"; var _ = mail.ParseAddress`, ""},
 		{"safe_textproto", `import "net/textproto"; var _ = textproto.CanonicalMIMEHeaderKey`, ""},
 		{"safe_syscall", `import "syscall"; var _ = syscall.O_NONBLOCK; var _ = syscall.Getpid`, ""},
+		{"safe_os", `import "os"; var _ = os.Open; var _ = os.Getpid`, ""},
+		{"safe_process_shadow", `import "os"; var _ = os.Open; func f() { os := struct { StartProcess func() }{}; os.StartProcess() }`, ""},
 		{"safe_pipe", `import "net"; var _ = net.Pipe`, ""},
 		{"safe_shadow", `import "net"; var _ = net.SplitHostPort; func f() { net := struct { Dial func() }{}; net.Dial() }`, ""},
 		{"safe_method", `type local struct{}; func (local) Dial() {}; var _ = local{}.Dial`, ""},
@@ -235,6 +252,7 @@ func TestNetworkGuardFixtures(t *testing.T) {
 	writeNetworkFixture(t, root, "dependency/client.go", "package client\nimport _ \"example.com/client/deeper\"\n")
 	writeNetworkFixture(t, root, "dependency/deeper/client.go", "package deeper\nimport \"net\"\nvar saved = net.Dial\n")
 	writeNetworkFixture(t, root, "dependency/deeper/http.go", "package deeper\nimport _ \"net/http\"\n")
+	writeNetworkFixture(t, root, "dependency/deeper/process.go", "package deeper\nimport \"os\"\nimport _ \"os/exec\"\nvar _ = os.StartProcess\n")
 	writeNetworkFixture(t, root, "examples/live/main.go", "package main\nimport _ \"net/http\"\nfunc main() {}\n")
 	writeNetworkFixture(t, root, "internal/safe_url/client_test.go", "package fixture\nimport _ \"net/http\"\n")
 	packages := listNetworkPackages(t, root)
@@ -252,7 +270,7 @@ func TestNetworkGuardFixtures(t *testing.T) {
 			}
 		})
 	}
-	for _, want := range []string{"net.Dial", "forbidden import net/http"} {
+	for _, want := range []string{"net.Dial", "forbidden import net/http", "forbidden import os/exec", "os.StartProcess"} {
 		found := false
 		for _, finding := range findings {
 			if strings.HasPrefix(finding, "example.com/client/deeper:") && strings.Contains(finding, want) {
@@ -280,7 +298,7 @@ func TestNetworkGuardProductionGraph(t *testing.T) {
 	writeNetworkFixture(t, root, "go.mod", "module guardfixture\n\ngo 1.26.0\n")
 	writeNetworkFixture(t, root, "cmd/tool/main.go", "package main\nfunc main() {}\n")
 	writeNetworkFixture(t, root, "internal/helper/helper.go", "package helper\nimport \"net\"\nvar _ = net.SplitHostPort\n")
-	writeNetworkFixture(t, root, "internal/helper/helper_test.go", "package helper\nimport _ \"net/http\"\n")
+	writeNetworkFixture(t, root, "internal/helper/helper_test.go", "package helper\nimport _ \"net/http\"\nimport _ \"os/exec\"\n")
 	writeNetworkFixture(t, root, "examples/live/main.go", "package main\nimport _ \"net/http\"\nfunc main() {}\n")
 	if got := networkFindings(t, listNetworkPackages(t, root)); len(got) != 0 {
 		t.Fatalf("test-only/example networking contaminated production graph: %v", got)
@@ -296,7 +314,7 @@ func TestNetworkGuardProductionGraph(t *testing.T) {
 
 func TestNetworkGuardLowLevelPolicy(t *testing.T) {
 	for _, path := range []string{"syscall", "golang.org/x/sys/unix", "golang.org/x/sys/windows"} {
-		for _, name := range []string{"Socket", "Socketpair", "Accept4", "Bind", "Connect", "ConnectEx", "Listen", "Sendto", "SendmsgN", "Recvfrom", "Recvmsg", "WSASocket", "Syscall6", "RawSyscall6"} {
+		for _, name := range []string{"Socket", "Socketpair", "Accept4", "Bind", "Connect", "ConnectEx", "Listen", "Sendto", "SendmsgN", "Recvfrom", "Recvmsg", "WSASocket", "Syscall6", "RawSyscall6", "Exec", "ForkExec", "StartProcess", "CreateProcessAsUser"} {
 			if !networkFunction(path, name) {
 				t.Errorf("missed %s.%s", path, name)
 			}
