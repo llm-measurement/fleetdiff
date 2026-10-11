@@ -47,12 +47,14 @@ Choose dates for your own data and continue only after the export succeeds.
 The SQL writes CSV in one pass and excludes prompts and responses. Keep the
 export directory private. Existing request-level JSON and JSONL work too.
 
-### 2. Install v0.6.0
+<a id="2-install-v060"></a>
+
+### 2. Install v0.6.1
 
 Run this in Bash with `curl`, `gh`, `shasum` and `tar` available:
 
 ```sh
-bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/e75518e1b62ead77a6870cfeabd3ddae944a1e0a/scripts/install.sh | sh -s -- v0.6.0 ./fleetdiff-install'
+bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/7773f212e4ae6e800f066b394e5507c0df8ada5f/scripts/install.sh | sh -s -- v0.6.1 ./fleetdiff-install'
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -117,14 +119,14 @@ The summary-file path also shows session concentration:
 ## Install
 
 The verified installer above selects the native binary for your machine.
-For manual downloads, use the [v0.6.0 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.6.0)
+For manual downloads, use the [v0.6.1 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.6.1)
 and [verification instructions](docs/OPERATIONS.md#install-and-verify).
 An administrator can verify and transfer artifacts through an approved internal mirror.
 
 With a security-patched Go 1.26 toolchain, install the same version from its module:
 
 ```sh
-go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.6.0
+go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.6.1
 ```
 
 The executable goes to `GOBIN`, or `$(go env GOPATH)/bin` when unset.
@@ -155,7 +157,7 @@ See [source builds and version reporting](docs/OPERATIONS.md#build-from-source).
 - <a id="questions-it-answers"></a><a id="user-and-session-contributors"></a> [Questions and contributor rankings](docs/WORKFLOWS.md#questions-it-answers).
 - <a id="how-it-works"></a><a id="use-your-own-data"></a><a id="reading-the-results"></a> [How summary comparison works](docs/WORKFLOWS.md#how-it-works), [comparison contract](docs/COMPARISON.md) and [investigation contract](docs/INVESTIGATION.md).
 - <a id="built-to-be-checked"></a> [Operations](docs/OPERATIONS.md), [resource measurements](docs/BENCHMARKS.md) and [checks](docs/WORKFLOWS.md#built-to-be-checked).
-- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.6.0.md) and [release procedure](docs/RELEASING.md).
+- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.6.1.md) and [release procedure](docs/RELEASING.md).
 
 Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
 See [Contributing](CONTRIBUTING.md) for checks and signed, signed-off commits.
