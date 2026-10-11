@@ -52,16 +52,33 @@ func TestSyntheticCapture(t *testing.T) {
 	}
 }
 
+func TestShippedCaptureMatchesGenerator(t *testing.T) {
+	want, err := capture("stock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile("synthetic-traces.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, append(want, '\n')) {
+		t.Fatal("synthetic-traces.json differs from generator output; run go run ./examples/inspect --variant stock > examples/inspect/synthetic-traces.json from the repository root")
+	}
+}
+
 func TestGeneratedCaptureThroughCLI(t *testing.T) {
-	for _, variant := range []string{"stock", "provenance"} {
+	for _, variant := range []string{"stock", "provenance", "shipped"} {
 		t.Run(variant, func(t *testing.T) {
-			data, err := capture(variant)
-			if err != nil {
-				t.Fatal(err)
-			}
-			path := filepath.Join(t.TempDir(), "private-capture.json")
-			if err := os.WriteFile(path, data, 0o600); err != nil {
-				t.Fatal(err)
+			path := "synthetic-traces.json"
+			if variant != "shipped" {
+				data, err := capture(variant)
+				if err != nil {
+					t.Fatal(err)
+				}
+				path = filepath.Join(t.TempDir(), "private-capture.json")
+				if err := os.WriteFile(path, data, 0o600); err != nil {
+					t.Fatal(err)
+				}
 			}
 			var out, errout bytes.Buffer
 			if code := cli.Run([]string{"inspect", "--format", "json", path}, &out, &errout); code != 0 {

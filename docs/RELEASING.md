@@ -76,7 +76,7 @@ verify that every advertised version is downloadable. Do not replace immutable t
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-## After Publishing v0.6.0
+## After Publishing v0.7.0
 
 From an anonymous clone in a fresh directory outside any synced workspace:
 
@@ -85,7 +85,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
    recorded build revision match the approved commit.
 2. Run the README's verified installer into a new directory. Confirm the native
-   executable reports `v0.6.0`, then run the packaged-binary tests above.
+   executable reports `v0.7.0`, then run the packaged-binary tests above.
 3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
    [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
    It exercises the real pinned writer, a SELECT-only SQL export and the released
@@ -93,6 +93,13 @@ From an anonymous clone in a fresh directory outside any synced workspace:
 4. Run the README's synthetic example with that executable and compare its
    selected output. Keep command logs, asset hashes, signature/attestation
    results, platform/version and test output in private `docs/local/` evidence.
+5. Run the cache-drop fixture and inspect the shipped synthetic capture with
+   Go absent from PATH. Check the cache headline, coverage, keyed rankings and
+   unchanged capture bytes. Update the site's LiteLLM and trace-check guides to
+   the verified v0.7.0 binary, with the trace guide consuming the shipped capture.
+6. Update collector recipes to the separately verified collector v0.3.2 images,
+   then publish the site's cache-check guide on fleetdiff v0.7.0. Keep those docs
+   held until their referenced artifacts are published and outsider-tested.
 
 The release workflow tests every native platform before publication. The local
 outsider run proves the post-publication download and database path on its own

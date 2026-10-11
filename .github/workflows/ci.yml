@@ -39,6 +39,8 @@ jobs:
           FLEETDIFF_BIN="$PWD/bin/fleetdiff" FLEETDIFF_SPEND_DOCKER=1 python3 -m unittest discover -s examples/litellm-spend -p 'test_*.py' -v
       - name: Offline capture accounting contract
         run: |
+          go run ./examples/inspect --variant stock > "$RUNNER_TEMP/inspect-synthetic-traces.json"
+          cmp examples/inspect/synthetic-traces.json "$RUNNER_TEMP/inspect-synthetic-traces.json"
           (cd testdata/inspect-contract/v1 && shasum -a 256 -c SHA256SUMS)
           go test ./internal/inspect -run '^TestInspectAccountingContract$' -count=1
           sh examples/inspect.sh
@@ -107,7 +109,7 @@ jobs:
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10s -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10s -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 10s -parallel 2
-          go test ./internal/diagnose -run '^$' -fuzz '^FuzzDiagnose$' -fuzztime 10s -parallel 2
+          go test ./internal/diagnose -run '^$' -fuzz '^FuzzDiagnose$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/inspect -run '^$' -fuzz '^FuzzTraceRecord$' -fuzztime 10s -parallel 2
       - name: Two operators through the released collector
         if: runner.os == 'Linux'

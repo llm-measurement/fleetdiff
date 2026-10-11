@@ -39,19 +39,27 @@ type aggregate struct {
 	window   Window
 	cost     big.Rat
 	top      *frequentitems.Sketch
+	cacheTop *frequentitems.Sketch
 	distinct *hllpp.Sketch
 }
 
 func newAggregate(p Period, rankings bool) *aggregate {
 	a := &aggregate{window: Window{Period: p, Counters: map[string]uint64{}, RecordedSpend: "0"}}
+	for _, d := range []*compare.CacheDetail{&a.window.Cache.Read, &a.window.Cache.Write} {
+		d.Covered, d.Missing, d.Invalid, d.ZeroOriginUnknown = new(uint64), new(uint64), new(uint64), new(uint64)
+	}
 	if rankings {
 		a.top, _ = frequentitems.New(frequentitems.ProfileSmall, sketchhash.UserV1, sketchhash.HMACSHA25664)
+		a.cacheTop, _ = frequentitems.New(frequentitems.ProfileSmall, sketchhash.UserV1, sketchhash.HMACSHA25664)
 		a.distinct, _ = hllpp.New(hllpp.ProfileSmall, sketchhash.UserV1, sketchhash.HMACSHA25664)
 	}
 	return a
 }
 
 func (a *aggregate) add(row Row, obs accounting.Observation, q Quality) error {
+	if err := addCache(&a.window.Cache, row, obs, q); err != nil {
+		return err
+	}
 	if err := accounting.MergeCounts(a.window.Counters, obs.Metrics); err != nil {
 		return err
 	}
@@ -275,6 +283,12 @@ func Investigate(path string, opts Options) (Report, error) {
 		if present {
 			h := binary.BigEndian.Uint64(group[:8])
 			w.distinct.AddHash(h)
+			if validCacheField(a, "input") && validCacheField(a, "cache_read_input") {
+				weight := a.Metrics[accounting.Prefix+"input_tokens_total"] - a.Metrics[accounting.Prefix+"cache_read_input_tokens_total"]
+				if e = w.cacheTop.AddHash(h, int64(weight)); e != nil {
+					return errors.New("cache ranking weight exceeds supported range")
+				}
+			}
 			// Match collector token-weight ranking: both primary fields must be present.
 			if a.Metrics[accounting.Prefix+"missing_token_usage_total"] == 0 {
 				weight := a.Metrics[accounting.Prefix+"total_tokens_total"]
@@ -354,6 +368,16 @@ func Investigate(path string, opts Options) (Report, error) {
 		return Report{}, err
 	}
 	r.Rankings.WeightUnit = "attributed-recorded-tokens"
+	r.Cache = compare.CacheView{Before: r.Before.Cache, After: r.After.Cache}
+	cacheRanks, err := compare.RankCandidates("uncached_"+opts.GroupBy, windows[0].cacheTop, windows[1].cacheTop)
+	if err != nil {
+		return Report{}, err
+	}
+	cacheRanks.WeightUnit = "attributed-recorded-uncached-input-tokens"
+	r.Cache.Rankings = &cacheRanks
+	if r.Before.Cache.Read.Covered == nil || r.After.Cache.Read.Covered == nil || *r.Before.Cache.Read.Covered == 0 || *r.After.Cache.Read.Covered == 0 {
+		r.Cache.Rankings = nil
+	}
 	if err := orderCandidates(path, &r, key, secondDigest.Sum(nil)); err != nil {
 		return Report{}, err
 	}
@@ -361,10 +385,22 @@ func Investigate(path string, opts Options) (Report, error) {
 		r.Increase = increase(r.Rankings, r.Before.Tokens, r.After.Tokens)
 	}
 	r.Rankings.Movers = r.Rankings.Movers[:min(opts.Top, len(r.Rankings.Movers))]
-	for i := range r.Rankings.Movers {
-		r.Rankings.Movers[i].Item = fmt.Sprintf("%s-%d", opts.GroupBy, i+1)
-		if !opts.ShowHashes {
-			r.Rankings.Movers[i].Hash = ""
+	groups := [][]compare.Mover{r.Rankings.Movers}
+	if r.Cache.Rankings != nil {
+		r.Cache.Rankings.Movers = r.Cache.Rankings.Movers[:min(opts.Top, len(r.Cache.Rankings.Movers))]
+		groups = append(groups, r.Cache.Rankings.Movers)
+	}
+	aliases := map[string]string{}
+	for _, movers := range groups {
+		for i := range movers {
+			m := &movers[i]
+			if aliases[m.Hash] == "" {
+				aliases[m.Hash] = fmt.Sprintf("%s-%d", opts.GroupBy, len(aliases)+1)
+			}
+			m.Item = aliases[m.Hash]
+			if !opts.ShowHashes {
+				m.Hash = ""
+			}
 		}
 	}
 	r.Notes = []string{

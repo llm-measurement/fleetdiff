@@ -7,6 +7,8 @@ import re
 import unittest
 from urllib.parse import unquote, urlsplit
 
+from test_spend import WRITER_OBSERVATIONS
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -18,6 +20,28 @@ def anchors(text):
 
 
 class DocumentationTests(unittest.TestCase):
+    def test_pinned_usage_table_matches_database_expectations(self):
+        readme = Path(__file__).with_name("README.md").read_text()
+        expected = []
+        for family, (_, modes) in WRITER_OBSERVATIONS.items():
+            for label, values in zip(("Positive", "Zero", "Absent"), modes.values()):
+                cells = [family, label, *("NULL" if value is None else str(value)
+                                         for value in values)]
+                expected.append("| " + " | ".join(cells) + " |")
+        actual = [line for line in readme.splitlines()
+                  if any(line.startswith("| " + family + " |")
+                         for family in WRITER_OBSERVATIONS)]
+        # The separate normalization table has a different column count.
+        actual = [line for line in actual if line.count("|") == 7]
+        self.assertEqual(actual, expected)
+        for name in ("README.md", "TESTING.md"):
+            content = Path(__file__).with_name(name).read_text()
+            self.assertIn("usage_details=false", content)
+            self.assertIn("usage_details=true", content)
+            self.assertIn("v1.104.0", content)
+        self.assertIn("\\set usage_details true",
+                      Path(__file__).with_name("export.sql").read_text())
+
     def test_readme_shape_and_previous_anchors(self):
         readme = (ROOT / "README.md").read_text()
         self.assertLessEqual(len(readme.splitlines()), 200)
@@ -40,7 +64,8 @@ class DocumentationTests(unittest.TestCase):
     def test_document_links(self):
         paths = [ROOT / "README.md", ROOT / "docs/WORKFLOWS.md",
                  ROOT / "docs/OPERATIONS.md", ROOT / "docs/RELEASING.md",
-                 ROOT / "docs/releases/v0.6.0.md", Path(__file__).with_name("README.md")]
+                 ROOT / "docs/releases/v0.6.0.md", ROOT / "docs/releases/v0.7.0.md",
+                 ROOT / "docs/CACHE.md", Path(__file__).with_name("README.md")]
         for path in paths:
             for link in re.findall(r"\]\(([^)\s]+)\)", path.read_text()):
                 parsed = urlsplit(link)

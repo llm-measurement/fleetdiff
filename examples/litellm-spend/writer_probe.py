@@ -18,11 +18,12 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
-def native_response(call_type, cached, trace_id):
+def native_response(call_type, mode, trace_id):
     """Exercise the pinned logging normalizers, then pass their output to DB writer."""
     from litellm.litellm_core_utils.litellm_logging import Logging
     from litellm.types.llms.openai import ResponsesAPIResponse
 
+    cached = mode == "native_cached"
     # The pinned Messages adapters set the logging operation to the canonical
     # name. Exercise both stored writer spellings with that normalized usage.
     context = Logging(model="claude-sonnet-4-5" if "anthropic" in call_type else "gpt-4.1",
@@ -39,14 +40,19 @@ def native_response(call_type, cached, trace_id):
                "usage": {"input_tokens": 100, "output_tokens": 10,
                          "cache_read_input_tokens": 80 if cached else 0,
                          "cache_creation_input_tokens": 20 if cached else 0}}
+        if mode == "native_absent_details":
+            del raw["usage"]["cache_read_input_tokens"]
+            del raw["usage"]["cache_creation_input_tokens"]
     else:
+        usage = {"input_tokens": 200 if cached else 100, "output_tokens": 10,
+                 "total_tokens": 210 if cached else 110}
+        if mode != "native_absent_details":
+            usage.update(input_tokens_details={"cached_tokens": 80 if cached else 0},
+                         output_tokens_details={"reasoning_tokens": 5 if cached else 0})
         raw = ResponsesAPIResponse(id="synthetic-native-response", object="response",
             created_at=0, status="completed", model="gpt-4.1", output=[],
             parallel_tool_calls=False, tool_choice="auto", tools=[],
-            usage={"input_tokens": 200 if cached else 100, "output_tokens": 10,
-                   "total_tokens": 210 if cached else 110,
-                   "input_tokens_details": {"cached_tokens": 80 if cached else 0},
-                   "output_tokens_details": {"reasoning_tokens": 5}})
+            usage=usage)
     _, _, result = context._success_handler_helper_fn(
         result=raw, end_time=datetime(2026, 10, 7, 0, 0, 1, tzinfo=timezone.utc))
     return result, context.model_call_details["standard_logging_object"]
@@ -80,10 +86,17 @@ def payloads():
                        endTime=f"2026-10-{day:02}T19:00:01Z")
             cases.append((row["request_id"], row, "complete"))
         for operation in ("anthropic_messages", "aanthropic_messages", "responses", "aresponses"):
-            for mode in ("native_cached", "native_uncached", "missing", "failure_partial"):
+            for mode in ("native_cached", "native_uncached", "native_absent_details",
+                         "missing", "failure_partial"):
                 row = dict(base[0], request_id=f"synthetic-{day}-{operation}-{mode}",
                            call_type=operation, startTime=f"2026-10-{day:02}T20:00:00Z",
                            endTime=f"2026-10-{day:02}T20:00:01Z")
+                cases.append((row["request_id"], row, mode))
+        for operation in ("completion", "acompletion", "text_completion", "atext_completion"):
+            for mode in ("details_cached", "details_zero", "details_absent", "missing"):
+                row = dict(base[0], request_id=f"synthetic-{day}-{operation}-{mode}",
+                           call_type=operation, startTime=f"2026-10-{day:02}T21:00:00Z",
+                           endTime=f"2026-10-{day:02}T21:00:01Z")
                 cases.append((row["request_id"], row, mode))
     for label, stamp in (
         ("outside_before", "2026-10-06T23:59:59.999Z"),
@@ -118,8 +131,17 @@ def payloads():
                  ("prompt_tokens", "completion_tokens", "total_tokens")}
         response = {"usage": usage}
         expected = tuple(usage.values())
-        if mode in ("native_cached", "native_uncached"):
-            response, standard = native_response(row["call_type"], mode == "native_cached", row["session_id"])
+        if mode.startswith("details_"):
+            usage.update(prompt_tokens=200, completion_tokens=10, total_tokens=210)
+            expected = (200, 10, 210)
+            if mode != "details_absent":
+                usage["prompt_tokens_details"] = {
+                    "cached_tokens": 80 if mode == "details_cached" else 0,
+                    "cache_write_tokens": 20 if mode == "details_cached" else 0}
+                usage["completion_tokens_details"] = {
+                    "reasoning_tokens": 5 if mode == "details_cached" else 0}
+        if mode.startswith("native_"):
+            response, standard = native_response(row["call_type"], mode, row["session_id"])
             kwargs["standard_logging_object"] = standard
             response.id = label
             expected = (200, 10, 210) if mode == "native_cached" else (100, 10, 110)
