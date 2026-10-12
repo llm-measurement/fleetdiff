@@ -31,6 +31,8 @@ const (
 // Row is a request-level SQL projection. Number is the one-based record number,
 // excluding CSV headers and blank lines. Values contains only nonempty, non-null
 // allowlisted fields; numeric JSON values retain their original spelling.
+// rejection_kind alone retains empty values to distinguish an exported null
+// classification from an older export without classification coverage.
 type Row struct {
 	Values map[string]string
 	Number int
@@ -64,7 +66,7 @@ func allowedColumn(name string) bool {
 	case "request_id", "call_type", "api_key", "user", "team_id", "organization_id", "end_user",
 		"model", "model_id", "model_group", "custom_llm_provider", "prompt_tokens", "completion_tokens",
 		"total_tokens", "spend", "status", "session_id", "startTime", "endTime", "cache_read_input_tokens",
-		"cache_write_input_tokens", "reasoning_output_tokens":
+		"cache_write_input_tokens", "reasoning_output_tokens", "agent_id", "rejection_kind":
 		return true
 	}
 	return false
@@ -232,7 +234,7 @@ func readSpendCSV(b *bufio.Reader, frame []byte, visit func(Row) error) error {
 		}
 		values := make(map[string]string)
 		for i, value := range record {
-			if value != "" && allowedColumn(header[i]) {
+			if (value != "" || header[i] == "rejection_kind") && allowedColumn(header[i]) {
 				// csv fields share a backing string; clone retained values so ignored
 				// content does not survive in rows held by the visitor.
 				values[header[i]] = strings.Clone(value)
@@ -548,6 +550,9 @@ func spendJSONObject(dec *json.Decoder, values map[string]string) error {
 		seen[key] = true
 		token, _ = dec.Token()
 		if values != nil && allowedColumn(key) {
+			if key == "rejection_kind" {
+				values[key] = ""
+			}
 			switch value := token.(type) {
 			case nil:
 			case string:

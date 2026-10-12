@@ -42,6 +42,7 @@ Usage:
   fleetdiff scan [options] PATH --expected PRODUCER[,PRODUCER]
   fleetdiff investigate --before PATH --after PATH --expected PRODUCER[,PRODUCER] [options]
   fleetdiff investigate --litellm-spend FILE [--before-period DATE --after-period DATE] [options]
+  fleetdiff investigate --litellm-spend FILE --group-by session --session-budget-usd USD [--period DATE]
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
 PATH is one canonical summary JSON file or a directory of summary JSON files.
@@ -61,6 +62,9 @@ Options:
   --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
   --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
   --group-by KIND            key (default), team, user, end-user or session
+  --period PERIOD            Single-period session review: UTC date or RFC3339 start/end
+  --session-budget-usd USD    Review observed session totals against a supplied cap
+  --session-counter-window DURATION  Compare positive-spend spans with this duration (default 1h)
   --hash-secret-env NAME     Use an existing secret for repeat spend comparisons
   --help                    Show this help
   --version                 Print version, revision, Go toolchain, and platform
@@ -124,6 +128,9 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	afterPeriod := flags.String("after-period", "", "")
 	group := flags.String("group-by", "key", "")
 	secret := flags.String("hash-secret-env", "", "")
+	period := flags.String("period", "", "")
+	budget := flags.String("session-budget-usd", "", "")
+	counterWindow := flags.Duration("session-counter-window", time.Hour, "")
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			if _, err := io.WriteString(out, help); err != nil {
@@ -139,18 +146,33 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 		return fail(2, "invalid compare options; run fleetdiff compare --help")
 	}
 	spendMode, incompatible := false, false
+	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
+		case "period", "session-budget-usd":
+			spendMode, sessionMode = true, true
+			emptySessionOption = emptySessionOption || f.Value.String() == ""
+		case "session-counter-window":
+			spendMode, windowSet = true, true
 		case "litellm-spend", "before-period", "after-period", "group-by", "hash-secret-env":
 			spendMode = true
 		case "format", "top", "show-hashes":
 		default:
 			incompatible = true
 		}
+		if f.Name == "before-period" || f.Name == "after-period" {
+			twoPeriods = true
+		}
 	})
 	if spendMode {
 		if args[0] != "investigate" || *spendPath == "" || incompatible || flags.NArg() != 0 {
 			return fail(2, "use investigate --litellm-spend FILE with period flags, not summary paths or expected producers")
+		}
+		if sessionMode || windowSet {
+			if !sessionMode || *group != "session" || twoPeriods || emptySessionOption || *counterWindow <= 0 {
+				return fail(2, "session review needs --group-by session and --period or --session-budget-usd; do not combine with two-period flags")
+			}
+			return runSessionBudget(*spendPath, *period, *budget, *secret, *format, *top, *hashes, *counterWindow, out, errout)
 		}
 		return runSpend(*spendPath, *beforePeriod, *afterPeriod, *group, *secret, *format, *top, *hashes, out, errout)
 	}

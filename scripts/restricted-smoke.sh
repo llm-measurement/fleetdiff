@@ -95,6 +95,12 @@ check_report investigate-spend '.before.recorded_tokens == 8000 and .after.recor
     .concentration_of_increase.tracked_contributors == 2 and
     .concentration_of_increase.share_of_net_recorded_increase.lower == 1'
 
+check_case session-budget 0 investigate --litellm-spend /examples/litellm-spend/session-budget.csv \
+  --period 2026-10-03 --group-by session --session-budget-usd 1.00 \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report session-budget '.grouping == "session_id_only" and .sessions_with_model_calls == 4 and
+    .complete_sessions_exceeding_cap == 3 and .sessions_under_multiple_identities == 1'
+
 check_case inspect 0 inspect --format json --secret-env FLEETDIFF_SMOKE_SECRET \
   /testdata/inspect-contract/v1/litellm-normal-no-usage-provenance.json
 check_report inspect '.schema == "fleetdiff-inspect/v1" and .metrics.gen_ai_sketch_requests_total == 1 and
@@ -105,4 +111,4 @@ check_report diagnose '.status == "supported_safe" and .configuration_parsed == 
 
 check_case scan 3 scan /windows --expected app --recent 2 --as-of 2026-10-04T00:30:00Z --format json
 check_report scan '.schema == "fleetdiff-scan/v1" and .unusual_windows == 2'
-printf 'PASS restricted offline binary smoke: 6 cases (%s)\n' "$platform"
+printf 'PASS restricted offline binary smoke: 7 cases (%s)\n' "$platform"

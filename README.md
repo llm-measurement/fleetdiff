@@ -150,6 +150,7 @@ See [source builds and version reporting](docs/OPERATIONS.md#build-from-source).
 ## Documentation
 
 - [LiteLLM spend exports](examples/litellm-spend/README.md): SQL, periods, groupings and source accounting.
+- [Session-budget review](docs/SESSION_BUDGET.md): single-period recorded totals and cap review (v0.8.0 development).
 - <a id="try-it-in-a-minute"></a><a id="did-one-session-account-for-most-of-the-increase"></a> [Single-application and session examples](docs/WORKFLOWS.md#try-it-in-a-minute).
 - <a id="will-it-work-with-my-traces"></a> [Inspect your traces](docs/INSPECT.md) and [capture recipes](examples/inspect/README.md).
 - <a id="set-up-and-keep-watching"></a> [Diagnose configurations](docs/DIAGNOSE.md), [scan history](docs/SCAN.md) and [compare cache use](docs/CACHE.md).

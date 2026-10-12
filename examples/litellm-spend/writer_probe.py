@@ -2,6 +2,7 @@
 # Code authors: Vijay and Codex
 """Run only inside the pinned image, offline. Emit synthetic writer payloads."""
 from contextlib import redirect_stderr, redirect_stdout
+import asyncio
 from datetime import datetime, timedelta, timezone
 import hashlib
 from importlib.metadata import version
@@ -9,6 +10,8 @@ import json
 import os
 from pathlib import Path
 import sys
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from generate import COLUMNS, ROOT
 
@@ -58,7 +61,57 @@ def native_response(call_type, mode, trace_id):
     return result, context.model_call_details["standard_logging_object"]
 
 
-def payloads():
+async def rejection_payloads(writer):
+    from litellm.exceptions import BudgetExceededError, RateLimitType
+    from litellm.proxy._types import UserAPIKeyAuth
+    from litellm.proxy.common_utils.proxy_rate_limit_error import ProxyRateLimitError
+    from litellm.proxy.hooks.proxy_track_cost_callback import _ProxyDBLogger
+
+    records = []
+
+    async def capture(**event):
+        payload = writer.get_logging_payload(
+            dict(event["kwargs"], response_cost=event["response_cost"]),
+            event["completion_response"], event["start_time"], event["end_time"])
+        records.append(project_payload(payload))
+
+    logger = _ProxyDBLogger()
+    auth = UserAPIKeyAuth(api_key="synthetic-key", agent_id="SENTINEL_AGENT_73b9")
+    failures = {
+        "session_budget": ProxyRateLimitError(
+            detail="Session budget exceeded for session SENTINEL_ERROR_73b9.",
+            rate_limit_type=RateLimitType.BUDGET),
+        "session_iterations": ProxyRateLimitError(
+            detail="Max iterations exceeded for session SENTINEL_ERROR_73b9.",
+            rate_limit_type=RateLimitType.MAX_ITERATIONS),
+        "other_budget": BudgetExceededError(current_cost=2, max_budget=1),
+    }
+    # Only replace persistence; the pinned failure hook and payload writer run.
+    with patch.object(logger, "_spend_writer", return_value=SimpleNamespace(update_database=capture)):
+        for kind, exception in failures.items():
+            await logger.async_post_call_failure_hook({
+                "model": "synthetic-model", "call_type": "acompletion",
+                "litellm_call_id": "synthetic-rejection-" + kind,
+                "litellm_trace_id": "synthetic-session",
+                "start_time": datetime(2026, 10, 7, 12, tzinfo=timezone.utc),
+                "metadata": {"agent_id": "SENTINEL_AGENT_73b9"},
+            }, exception, auth)
+    require(len(records) == 3, "failure writer omitted a payload")
+    require(all(row["agent_id"] == "SENTINEL_AGENT_73b9" for row in records),
+            "failure writer agent identity changed")
+    return records
+
+
+def project_payload(payload):
+    projected = {k: payload.get(k) for k in (*COLUMNS, "agent_id")}
+    for name in ("startTime", "endTime"):
+        projected[name] = payload[name].astimezone(timezone.utc).isoformat()
+    for name in ("metadata", "messages", "response", "proxy_server_request"):
+        projected[name] = payload.get(name)
+    return projected
+
+
+def payloads(rejections=False):
     import litellm
     from litellm.proxy.spend_tracking import spend_tracking_utils as writer
 
@@ -68,6 +121,8 @@ def payloads():
             pins["writer_sha256"], "writer source mismatch")
     require(hashlib.sha256(Path("/app/schema.prisma").read_bytes()).hexdigest() ==
             pins["schema_sha256"], "writer schema mismatch")
+    if rejections:
+        return asyncio.run(rejection_payloads(writer))
     base = json.loads((ROOT / "synthetic.json").read_text())
     # Preserve the original inputs. Missing/explicit-zero usage collapse to the
     # same stock writer output; select one of each among the zero-only rows.
@@ -194,13 +249,8 @@ def payloads():
             if "anthropic" in row["call_type"]:
                 require(details.get("cache_creation_input_tokens") == 20,
                         "native cache-write field changed")
-        projected = {k: payload.get(k) for k in COLUMNS}
-        for name in ("startTime", "endTime"):
-            projected[name] = payload[name].astimezone(timezone.utc).isoformat()
         # Retain actual writer metadata/content in the test DB. SQL must omit it.
-        for name in ("metadata", "messages", "response", "proxy_server_request"):
-            projected[name] = payload.get(name)
-        result.append(projected)
+        result.append(project_payload(payload))
     return result
 
 
@@ -208,7 +258,7 @@ def main():
     # Library import/log failures can contain source values. Never replay them.
     with open(os.devnull, "w") as sink, redirect_stdout(sink), redirect_stderr(sink):
         try:
-            result = payloads()
+            result = payloads(rejections="--rejections" in sys.argv[1:])
         except Exception:
             result = None
     if result is None:

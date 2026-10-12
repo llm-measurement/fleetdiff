@@ -65,3 +65,30 @@ func TestReleaseBinarySpend(t *testing.T) {
 		}
 	}
 }
+
+func TestV070TwoPeriodOutputUnchanged(t *testing.T) {
+	binary := os.Getenv("FLEETDIFF_V070_BINARY")
+	if binary == "" {
+		t.Skip("set FLEETDIFF_V070_BINARY to compare released two-period output")
+	}
+	t.Setenv("CLI_RELEASE_PARITY_KEY", "synthetic-release-parity-secret-32-bytes")
+	for _, encoding := range []string{"csv", "json", "jsonl"} {
+		for _, format := range []string{"text", "json"} {
+			for _, group := range []string{"key", "team", "user", "end-user", "session"} {
+				t.Run(encoding+"/"+format+"/"+group, func(t *testing.T) {
+					args := []string{"investigate", "--litellm-spend", "../../examples/litellm-spend/synthetic." + encoding, "--before-period", "2026-10-07", "--after-period", "2026-10-08", "--group-by", group, "--format", format, "--hash-secret-env", "CLI_RELEASE_PARITY_KEY", "--show-hashes"}
+					ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+					defer cancel()
+					old, err := exec.CommandContext(ctx, binary, args...).Output()
+					if err != nil {
+						t.Fatal(err)
+					}
+					var out, errout bytes.Buffer
+					if code := Run(args, &out, &errout); code != 0 || !bytes.Equal(old, out.Bytes()) || errout.Len() != 0 {
+						t.Fatalf("two-period output changed: code=%d %s", code, errout.String())
+					}
+				})
+			}
+		}
+	}
+}

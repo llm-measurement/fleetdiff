@@ -2,6 +2,16 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## Unreleased
+
+- Add single-period LiteLLM session-budget review: exact recorded-spend and call
+  distributions, supplied-cap review, shared session counters, positive-spend
+  durations, identity coverage and possibly clipped boundary sessions. Keep
+  two-period comparisons unchanged.
+- Add content-free `rejection_kind` and `agent_id` columns to the pinned
+  LiteLLM export. Existing exports remain readable with unknown rejection
+  coverage; fleetdiff v0.7.0 safely ignores the additional columns.
+
 ## [0.7.0] - 2026-10-11
 
 See the [release notes](docs/releases/v0.7.0.md) for the SQL export default and

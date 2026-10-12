@@ -111,6 +111,122 @@ manually; do not prune unrelated Docker resources.
 Missing `FLEETDIFF_BIN` skips CLI checks; missing `FLEETDIFF_SPEND_DOCKER=1`
 skips database checks. A skipped suite is not end-to-end evidence.
 
+## Rejection Projection
+
+The pinned failure hook and spend payload writer generate the three positive
+`rejection_kind` shapes and retain the `agent_id` sentinel from request metadata.
+Supplying an auth-object agent alone did not populate the writer column in this
+probe; the export does not recover absent identities. Only database persistence
+is replaced with an in-process capture; no provider or HTTP route is called.
+The same read-only SQL runs over those payloads in PostgreSQL and 46 negative
+mutations: wrong code/class/category/type, conflicting type, custom or wrapped
+prefix, missing message/status, success status, absent/empty/nonobject metadata,
+missing error information and normalized-label-only evidence. The non-session
+budget case also rejects a substituted 429 code.
+
+CSV, JSONL and locally assembled JSON must agree. Unknown classifications stay
+literal JSONL null; cache opt-out preserves the classifier, agent and every base
+column. Error-message/content sentinels must not reach exports; the raw agent
+sentinel belongs in the private export but must not reach CLI output. These
+checks establish a pinned projection, not complete deployed failure logging,
+limiter enforcement, or a live gateway's persistence behavior.
+
+## Released-Reader Compatibility
+
+Point `FLEETDIFF_V070_BIN` at an independently installed released v0.7.0 binary
+(the test verifies its reported version). Run from the repository root:
+
+```sh
+go build -o bin/fleetdiff ./cmd/fleetdiff
+FLEETDIFF_SPEND_DOCKER=1 \
+FLEETDIFF_BIN="$PWD/bin/fleetdiff" \
+FLEETDIFF_V070_BIN="$PWD/fleetdiff-install/fleetdiff" \
+  python3 -B -m unittest discover -s examples/litellm-spend -p 'test_*.py' -v
+```
+
+The compatibility tests compare synthetic exports and actual DB exports with
+and without `agent_id`/`rejection_kind`. They cover CSV/JSON/JSONL, all five
+existing groups, hashes on/off, text/JSON output and DB cache-details opt-out.
+The baseline removes only the two additive columns. Existing fixture files
+remain unchanged and continue testing old-export column absence. No new CLI
+feature is implied by released-reader compatibility. Without
+`FLEETDIFF_V070_BIN`, these compatibility tests are explicitly skipped.
+
+### Export-Only Verification, October 11, 2026
+
+Before the session-budget fixture tests were added, the export-only suite
+passed **23 tests, no skips**, using both immutable
+images in `images.json` and an independently installed released binary for both
+CLI variables. The binary identified itself as
+`fleetdiff v0.7.0 (25694f060c01af075a612b2ec1c67482a9c6c695) go1.26.9 darwin/arm64`;
+its SHA-256 was
+`bce06af5b2011feaa7fcacfc65e867adc8a1d56bdb6436bc4dce0ee14c01e541`.
+
+The 20-row synthetic compatibility export and the 69-row database export
+(three positive shapes, 46 negative mutations, 20 ordinary model rows) passed
+every released-reader comparison above. The separate existing writer/usage
+database matrix also passed. No raw error/content sentinel escaped the SQL
+projection, and no raw agent sentinel escaped the CLI. Containers and named
+volumes were removed by the harness; no paid calls or network access were used
+by either test container. This does not verify a new session-budget CLI build,
+live proxy persistence, logging completeness, or enforcement effectiveness.
+
+**Judgment: positive for the additive export and v0.7.0 compatibility.** The
+integrated session-budget checks below extend this earlier export-only run.
+
+## Synthetic Session-Budget Fixture
+
+The newly authored Apache-2.0 [session-budget.csv](session-budget.csv) keeps
+four complete sessions separate from missing-spend and old-column test
+variants. Its 13 records include 12 model calls and one session-budget
+rejection. The independent fixture arithmetic checks totals of USD
+0.20/1.10/1.20/1.60 and call counts 1/6/2/3. Its companion
+[license notice](session-budget.csv.license) avoids comment rows in the CSV.
+
+`test_session_budget.py` invokes the real CLI with `--group-by session`, an
+explicit half-open UTC `--period`, and `--session-budget-usd 1.00`. It checks:
+
+- Three of four complete sessions exceed the cap; two have no recorded
+  session-budget rejection. The classified rejection is not a model call.
+- One session spans 4,000 seconds and two keys, two teams and two agents,
+  without splitting that session into separate identity groups.
+- Exact spend/call distributions with independent counts, CSV/JSON/JSONL
+  report parity, source preservation and `--top` invariance.
+- A missing-spend variant keeps three complete totals and a separate USD 1.20
+  partial subtotal above cap; all four sessions remain in call distributions.
+- Old-column variants preserve totals, make rejection coverage unknown, and
+  do not invent agent identities when `agent_id` is absent.
+- Agent sentinels remain absent from text, JSON and errors, with hashes on/off.
+  Unknown rejection values, conflicting status, malformed timestamps and
+  duplicate request IDs fail without partial report output or raw diagnostics.
+
+Build the current source and run the **same full pinned DB suite** with
+`FLEETDIFF_BIN` pointing to that build and `FLEETDIFF_V070_BIN` pointing only to
+the independent released compatibility binary:
+
+```sh
+go build -o bin/fleetdiff ./cmd/fleetdiff
+FLEETDIFF_SPEND_DOCKER=1 FLEETDIFF_BIN="$PWD/bin/fleetdiff" \
+FLEETDIFF_V070_BIN="$PWD/fleetdiff-install/fleetdiff" \
+  python3 -B -m unittest discover -s examples/litellm-spend -p 'test_*.py' -v
+```
+
+### Integrated Verification, October 11, 2026
+
+The full suite passed **29 tests, no skips** in 20.967 seconds with the source
+binary built using Go 1.26.9 and `GOTOOLCHAIN=local`. `FLEETDIFF_BIN` selected
+that build; only `FLEETDIFF_V070_BIN` selected the independently installed
+v0.7.0 binary identified above. Both pinned images were already present, and
+both test containers ran with networking disabled. The six new fixture/CLI
+tests passed alongside all existing writer/DB, privacy and compatibility
+checks. No paid calls were made.
+
+**Judgment: positive for the integrated synthetic session-budget example and
+the pinned export/reader checks.** This is not evidence of live enforcement or
+complete deployed failure logging. Next, retain these fixtures as regression
+checks and rerun the suite after subsequent CLI/report changes; no broader
+provider test is needed for this example.
+
 ## Scale Measurement
 
 [generate.py](generate.py) streams the reviewed synthetic pattern, preserving

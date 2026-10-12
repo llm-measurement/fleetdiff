@@ -137,6 +137,42 @@ not reach the pinned reasoning export path. Entirely missing usage leaves all
 three export details `NULL` for every spelling, even though base token columns
 default to zero. No missing-path `NULL` should be interpreted as zero cache use.
 
+### Agent Identity And Rejection Evidence
+
+The projection also includes the pinned schema's `agent_id` and a SQL-derived
+`rejection_kind`. Both remain present with `usage_details=false`. Agent identity,
+like key/team/session identity, is sensitive: keep the export private. No raw
+error messages or error metadata are exported.
+
+The classifier recognizes only these LiteLLM v1.104.0 failure-writer shapes.
+Every match requires `status=failure` and the `litellm_rate_limit` category,
+plus the exact code, class, type and anchored message prefix in
+[export.sql](export.sql):
+
+| `rejection_kind` | Pinned failure shape |
+| --- | --- |
+| `session_budget` | 429, `ProxyRateLimitError`, budget type, session-budget prefix |
+| `session_iterations` | 429, `ProxyRateLimitError`, max-iterations type, session-iterations prefix |
+| `other_budget` | 422, `BudgetExceededError`, budget type, default budget prefix |
+| SQL `NULL` | No recognized evidence; empty CSV field or JSONL `null` |
+
+The default non-session budget error uses **422** in this pin even though its
+normalized label mentions 429. The normalized label alone never classifies a
+row. Provider rate limits, custom messages/status codes, conflicting types,
+wrapped prefixes, absent metadata and successful rows remain unclassified.
+The `other_budget` class is not evidence of a session-budget rejection.
+
+Column presence establishes classification availability, not complete failure
+logging. `NULL` does not prove that no rejection occurred. A recognized pre-call
+rejection's zero usage does not establish a free successful model call. Export
+one application's desired keys, teams and agents from one known proxy/counter
+namespace for session-budget review; this file cannot authenticate that scope.
+
+Legacy exports without these columns remain usable for existing comparisons.
+Released v0.7.0 ignores both added columns; it does not interpret rejection
+evidence or provide the new session-budget review. See the reproducible
+[compatibility checks](TESTING.md#released-reader-compatibility).
+
 ### Claude Code And Codex Requests
 
 The importer reads `anthropic_messages` / `aanthropic_messages` and `responses` /
@@ -178,11 +214,13 @@ the call types and asks for a supported request-level export.
   Do not apply that interpretation to local-wall-time data. Requests belong to
   the half-open interval containing `startTime`. Retain `endTime`; absent end
   times withhold the per-request split.
-- A date selects a UTC day. Explicit RFC3339 `start/end` intervals must be
-  equal-duration, ordered, disjoint, and completed before now. Without period
-  flags, the command chooses two trailing seven-day UTC windows inside the
-  file's interior days: ceiling of the earliest `startTime` through floor of
-  the latest, capped at today. This heuristic does not certify coverage.
+- A date selects a UTC day. For two-period comparisons, explicit before/after
+  RFC3339 `start/end` intervals must be equal-duration, ordered, disjoint, and
+  completed before now. Without period flags, that comparison chooses two
+  trailing seven-day UTC windows inside the file's interior days: ceiling of
+  the earliest `startTime` through floor of the latest, capped at today. This
+  heuristic does not certify coverage. The [single-period session-budget
+  review](../../docs/SESSION_BUDGET.md) has separate period-selection semantics.
 - Zero-only usage has unknown origin. Failures overlap usage categories and
   retain valid partial tokens. Unclear usage withholds the whole-period split;
   unchanged recorded totals do not prove unchanged real usage.
@@ -194,22 +232,59 @@ the call types and asks for a supported request-level export.
   ambiguous. No provider pricing, run rate, or forecast is added.
 - Output aliases hide raw identities, including models; displayed hashes are
   linkable. Use a private secret for real exports, never the fixed test secret.
-  Sessions are scoped to keys but may be generated trace IDs, not conversations.
+  Sessions are scoped to keys in two-period comparisons. The
+  [single-period session-budget review](../../docs/SESSION_BUDGET.md) groups by
+  session ID alone within the supplied application/cache namespace. In either
+  mode, session IDs may be generated trace IDs, not conversations.
 - Tied contributors and models follow their first appearance in the file.
   Concentration uses the full tracked candidate set before `--top` truncates
   display rows. Its denominator is the net recorded increase, so offsets from
   declining contributors appear as added, offsetting and net token totals in
   text; JSON retains the corresponding share and its bounds.
-- The SQL excludes prompts, responses, code, request bodies, IP addresses,
+- The SQL excludes raw error messages, prompts, responses, code, request bodies, IP addresses,
   API bases, and whole metadata objects. Exports and database diagnostics still
   contain sensitive information: keep them private. Use only successful exports;
   failed SQL can leave partial files. Retry into a new directory because `psql`
   can overwrite files. A consistent snapshot does not establish complete logging.
-- Limits: **10,000,000 rows; 16 GiB/file; 64 KiB/row; 8 KiB/field; 64 fields/row;
-  JSON depth 8; 128 models; 64 call types.** Limits also apply to ignored content. Select a
-  narrower SQL interval when necessary. The recipe writes one selected format
+- Shared input limits: **10,000,000 rows; 16 GiB/file; 64 KiB/row; 8 KiB/field;
+  64 fields/row; JSON depth 8.** Input limits also apply to ignored content.
+  Two-period comparisons additionally limit context to **128 models and
+  64 call types**. The single-period session-budget review instead has the
+  [session and identity-membership limits](../../docs/SESSION_BUDGET.md)
+  described in its guide. Select a narrower SQL interval when necessary.
+  The recipe writes one selected format
   without sorting or aggregating rows and has a two-minute per-statement
   timeout; review large exports with your database operator.
+
+## Synthetic Session-Budget Review
+
+[session-budget.csv](session-budget.csv) is a newly authored, deterministic
+Apache-2.0 fixture with four sessions and no production data. The companion
+[license notice](session-budget.csv.license) keeps the CSV directly importable.
+Use an integrated development build for the session-budget command; v0.7.0
+does not implement this view:
+
+```sh
+bin/fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \
+  --group-by session --period 2026-10-01T00:00:00Z/2026-10-08T00:00:00Z \
+  --session-budget-usd 1.00
+```
+
+The fixture contains 12 model-call rows and one classified rejection. Complete
+recorded session totals are USD 0.20, 1.10, 1.20 and 1.60, with 1, 6, 2 and 3
+model calls respectively. The USD 1.10 session has a subsequent budget
+rejection; the USD 1.20 and 1.60 sessions have none recorded. The USD 1.60
+session includes two keys, two teams and two agents over 4,000 seconds.
+
+The first result is **3 of 4 sessions with complete recorded spend exceed the
+supplied USD 1.00 cap.** Two above-cap sessions have no recorded session-budget
+rejection. These are synthetic observation facts, not evidence of enforcement
+effectiveness or complete failure logging.
+
+[test_session_budget.py](test_session_budget.py) checks the fixture, exact
+distributions, shared identities and privacy in text/JSON/errors, including
+`--show-hashes`. Separate temporary variants exercise missing spend and old
+exports without classification or agent columns; the base CSV stays unchanged.
 
 ## Checks And Scale Inputs
 
