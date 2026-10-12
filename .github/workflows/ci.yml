@@ -112,14 +112,15 @@ jobs:
           diff -r examples/two-systems/data "$RUNNER_TEMP/fleetdiff-fixtures"
           diff -r examples/two-operators/fixtures "$RUNNER_TEMP/research-otlp"
       - name: Bounded fuzz smoke
+        # Fixed counts avoid timed-fuzz cancellation failures on the release toolchain.
         run: |
           go test ./internal/spend -run '^$' -fuzz '^FuzzReaderBoundedFormats$' -fuzztime 1000x -parallel 2 -timeout 2m
           go test ./internal/spend -run '^$' -fuzz '^FuzzSessionBudget$' -fuzztime 1000x -parallel 2 -timeout 2m
-          go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10s -parallel 2
-          go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10s -parallel 2
+          go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10000x -parallel 2 -timeout 2m
+          go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/diagnose -run '^$' -fuzz '^FuzzDiagnose$' -fuzztime 10000x -parallel 2 -timeout 2m
-          go test ./internal/inspect -run '^$' -fuzz '^FuzzTraceRecord$' -fuzztime 10s -parallel 2
+          go test ./internal/inspect -run '^$' -fuzz '^FuzzTraceRecord$' -fuzztime 10000x -parallel 2 -timeout 2m
       - name: Two operators through the released collector
         if: runner.os == 'Linux'
         timeout-minutes: 10
