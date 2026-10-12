@@ -2,7 +2,10 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## Unreleased
+## [0.8.0] - Unreleased
+
+See the [release notes](docs/releases/v0.8.0.md) for session-budget review and
+the additive SQL export columns. Publication is pending maintainer approval.
 
 - Add single-period LiteLLM session-budget review: exact recorded-spend and call
   distributions, supplied-cap review, shared session counters, positive-spend

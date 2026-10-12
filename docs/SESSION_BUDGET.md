@@ -2,7 +2,7 @@
 
 See which observed sessions exceed a supplied cap, address the same counter key,
 or span longer than the configured counter window. This single-period review is
-being prepared for fleetdiff v0.8.0; use a development build for this guide.
+available in fleetdiff v0.8.0.
 
 Export request-level rows with the matching
 [LiteLLM SQL recipe](../examples/litellm-spend/README.md), then run:
