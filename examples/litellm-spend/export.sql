@@ -42,6 +42,34 @@ SELECT format($projection$
   SELECT request_id, call_type, api_key, "user", team_id, organization_id,
          end_user, model, model_id, model_group, custom_llm_provider,
          prompt_tokens, completion_tokens, total_tokens, spend, status, session_id,
+         agent_id,
+         -- Pinned LiteLLM v1.104.0 failure-writer shapes only. Messages stay in DB.
+         -- NULL means unrecognized evidence, not proof that no rejection occurred.
+         CASE WHEN status = 'failure'
+           AND metadata #>> '{error_information,error_rate_limit_category}' = 'litellm_rate_limit'
+         THEN CASE
+           WHEN metadata #>> '{error_information,error_code}' = '429'
+             AND metadata #>> '{error_information,error_class}' = 'ProxyRateLimitError'
+             AND metadata #>> '{error_information,error_rate_limit_type}' = 'budget'
+             AND starts_with(metadata #>> '{error_information,error_message}',
+               'litellm.RateLimitError: Session budget exceeded for session ')
+             THEN 'session_budget'
+           WHEN metadata #>> '{error_information,error_code}' = '429'
+             AND metadata #>> '{error_information,error_class}' = 'ProxyRateLimitError'
+             AND metadata #>> '{error_information,error_rate_limit_type}' = 'max_iterations'
+             AND starts_with(metadata #>> '{error_information,error_message}',
+               'litellm.RateLimitError: Max iterations exceeded for session ')
+             THEN 'session_iterations'
+           -- This pin's default BudgetExceededError uses 422, irrespective of
+           -- its normalized_error label. Customized errors remain unrecognized.
+           WHEN metadata #>> '{error_information,error_code}' = '422'
+             AND metadata #>> '{error_information,error_class}' = 'BudgetExceededError'
+             AND metadata #>> '{error_information,error_rate_limit_type}' = 'budget'
+             AND starts_with(metadata #>> '{error_information,error_message}',
+               'Budget has been exceeded! Current cost: ')
+             THEN 'other_budget'
+           ELSE NULL
+         END ELSE NULL END AS rejection_kind,
          to_char("startTime", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "startTime",
          to_char("endTime", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "endTime"
          %s

@@ -27,6 +27,7 @@ DOCKER = os.environ.get("FLEETDIFF_SPEND_DOCKER") == "1"
 SECRET = "fleetdiff-synthetic-only-fixed-secret-20261010"
 FORMATS = ("csv", "json", "jsonl")
 GROUPS = ("key", "team", "user", "end-user", "session")
+EXPORT_COLUMNS = (*COLUMNS, "agent_id", "rejection_kind")
 OPERATIONS = {"completion", "acompletion", "text_completion", "atext_completion",
               "anthropic_messages", "aanthropic_messages", "responses", "aresponses"}
 DETAIL_PATHS = {"cache_read_input_tokens": ("cache_read_input_tokens",),
@@ -91,6 +92,9 @@ def decode(data, encoding):
         for key in COLUMNS:
             if row.get(key) is None:
                 row[key] = ""
+        for key in ("agent_id", "rejection_kind"):
+            if key in row and row[key] is None:
+                row[key] = ""
         for key in DETAIL_PATHS:
             if key in row:
                 row[key] = None if row[key] in (None, "") else int(row[key])
@@ -103,7 +107,7 @@ def assert_private(result, paths=(), records=()):
     sentinels.extend(str(path) for path in paths)
     for row in records:
         for key in ("request_id", "api_key", "user", "team_id", "organization_id",
-                    "end_user", "model", "model_id", "model_group", "session_id"):
+                    "end_user", "model", "model_id", "model_group", "session_id", "agent_id"):
             if isinstance(row.get(key), str) and row[key]:
                 sentinels.append(row[key])
     for value in sentinels:
@@ -276,7 +280,7 @@ def psql(container, *args, data=None, reader=False):
                   *args, data=data)
 
 
-def writer_payloads():
+def writer_payloads(*args):
     encoded = docker(
         "run", "--rm", "--pull=never", "--network=none", "--read-only",
         "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65532:65532",
@@ -284,21 +288,21 @@ def writer_payloads():
         "--log-driver=none", "--mount", f"type=bind,src={ROOT},dst=/example,readonly",
         "-e", "HOME=/tmp", "-e", "PYTHONDONTWRITEBYTECODE=1",
         "-e", "LITELLM_LOCAL_MODEL_COST_MAP=True", "-e", "LITELLM_TELEMETRY=False",
-        "--entrypoint", "python", PINS["litellm"], "/example/writer_probe.py")
+        "--entrypoint", "python", PINS["litellm"], "/example/writer_probe.py", *args)
     return json.loads(encoded)
 
 
 def seed_database(container, records):
     psql(container, "-f", "/example/test-schema.sql")
-    fields = (*COLUMNS, "metadata", "messages", "response", "proxy_server_request")
+    fields = (*COLUMNS, "agent_id", "metadata", "messages", "response", "proxy_server_request")
     buffer = io.StringIO()
     buffer.write('COPY public."LiteLLM_SpendLogs" (' +
                  ",".join('"' + key + '"' for key in fields) +
                  ") FROM STDIN WITH (FORMAT CSV);\n")
     writer = csv.DictWriter(buffer, fieldnames=fields, lineterminator="\n")
     for record in records:
-        row = dict(record)
-        for key in fields[len(COLUMNS):]:
+        row = {key: record.get(key) for key in fields}
+        for key in ("metadata", "messages", "response", "proxy_server_request"):
             if row[key] is not None and not isinstance(row[key], str):
                 row[key] = json.dumps(row[key])
         writer.writerow(row)
@@ -397,6 +401,10 @@ class FixtureTests(unittest.TestCase):
         with mock.patch("subprocess.run", side_effect=OSError("SENTINEL_PATH_73b9")):
             with self.assertRaisesRegex(AssertionError, "details suppressed"):
                 run(["synthetic-command"])
+        agent = "private-agent-without-sentinel-prefix"
+        result = subprocess.CompletedProcess([], 0, agent.encode(), b"")
+        with self.assertRaisesRegex(AssertionError, "output privacy sentinel detected"):
+            assert_private(result, records=({"agent_id": agent},))
 
 
 @unittest.skipUnless(CLI, "set FLEETDIFF_BIN to the source-built CLI")
@@ -545,12 +553,14 @@ class DatabaseTests(unittest.TestCase):
                 "writer probe omits supported operation coverage")
         require(len(parsed[0]) == len(expected), "database export row count differs")
         for actual, original in zip(parsed[0], expected):
-            require(set(actual) == set(COLUMNS) | set(DETAIL_PATHS),
+            require(set(actual) == set(EXPORT_COLUMNS) | set(DETAIL_PATHS),
                     "SQL selected an unexpected column")
             for field in COLUMNS:
                 if field not in ("startTime", "endTime", "spend"):
                     require(actual[field] == (original[field] if original[field] is not None else ""),
                             "database projection differs from writer payload")
+            require(actual["agent_id"] == (original.get("agent_id") or "") and
+                    actual["rejection_kind"] == "", "unexpected session projection")
             require(Decimal(actual["spend"]) == Decimal(str(original["spend"])),
                     "SQL changed recorded spend")
             for field in ("startTime", "endTime"):
@@ -576,11 +586,11 @@ class DatabaseTests(unittest.TestCase):
             require(records == default, "default export differs from explicit usage_details=true")
             plain_records = sorted(decode(self.plain_exports[fmt], fmt),
                                    key=lambda r: r["request_id"])
-            require(all(set(row) == set(COLUMNS) for row in plain_records),
+            require(all(set(row) == set(EXPORT_COLUMNS) for row in plain_records),
                     "usage_details=false did not omit detail columns")
             plain_parsed.append(plain_records)
             for row in records:
-                require(set(row) == set(COLUMNS) | set(DETAIL_PATHS),
+                require(set(row) == set(EXPORT_COLUMNS) | set(DETAIL_PATHS),
                         "SQL selected an unexpected detail column")
             parsed.append(records)
         require(parsed[0] == parsed[1] == parsed[2], "optional detail formats differ")
@@ -592,7 +602,7 @@ class DatabaseTests(unittest.TestCase):
         require({r["request_id"] for r in parsed[0]} == set(plain) <= set(originals),
                 "optional export membership differs from writer records")
         for row in parsed[0]:
-            require({field: row[field] for field in COLUMNS} == plain[row["request_id"]],
+            require({field: row[field] for field in EXPORT_COLUMNS} == plain[row["request_id"]],
                     "optional projection changed base fields")
             metadata = originals[row["request_id"]]["metadata"]
             if isinstance(metadata, str):

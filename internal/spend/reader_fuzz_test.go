@@ -18,6 +18,8 @@ func FuzzReaderBoundedFormats(f *testing.F) {
 	f.Add(uint8(2), readerExtra(`"metadata":{"x":1,"\u0078":2}`))
 	f.Add(uint8(2), readerExtra(`"model":"\ud83d\ude00"`))
 	f.Add(uint8(2), readerExtra("\"model\":\"\xff\""))
+	f.Add(uint8(2), readerExtra(`"agent_id":"sentinel-agent","rejection_kind":null`))
+	f.Add(uint8(0), readerHeader+",rejection_kind,agent_id\nreq,completion,now,1,2,3,,sentinel-agent\n")
 	f.Fuzz(func(t *testing.T, format uint8, input string) {
 		if len(input) > 2*MaxRowBytes {
 			t.Skip()
@@ -30,7 +32,7 @@ func FuzzReaderBoundedFormats(f *testing.F) {
 				t.Fatal("unbounded or misnumbered row")
 			}
 			for key, value := range row.Values {
-				if !allowedColumn(key) || value == "" || len(value) > MaxFieldBytes || !utf8.ValidString(value) {
+				if !allowedColumn(key) || value == "" && key != "rejection_kind" || len(value) > MaxFieldBytes || !utf8.ValidString(value) {
 					t.Fatal("invalid retained field")
 				}
 			}
