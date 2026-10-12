@@ -8,21 +8,25 @@ Export request-level rows with the matching
 [LiteLLM SQL recipe](../examples/litellm-spend/README.md), then run:
 
 ```sh
-fleetdiff investigate --litellm-spend spend.csv --group-by session \
+fleetdiff investigate --litellm-spend spend.csv \
   --session-budget-usd 1.00
 ```
 
 The default selects complete UTC days inside the file's observed time span,
-excluding partial boundary days and today. It prints exact UTC boundaries and
-weekdays. Supply `--period 2026-09-02` for one day, or an RFC3339 interval:
+excluding partial boundary days and today. When none exists, it uses the file's
+observed span of request start times and labels that choice. The exclusive end
+is one nanosecond after the last observed start, so every row is included.
+Both choices print exact UTC boundaries and weekdays. Supply
+`--period 2026-09-02` for one day, or an RFC3339 interval:
 
 ```sh
-fleetdiff investigate --litellm-spend spend.csv --group-by session \
+fleetdiff investigate --litellm-spend spend.csv \
   --period 2026-09-01T00:00:00Z/2026-09-04T00:00:00Z \
   --session-budget-usd 1.00 --session-counter-window 1h
 ```
 
-`--period` also works without a cap to show observed distributions. `--top`
+`--period` also works without a cap to show observed distributions. Either flag
+implies session grouping; an explicit different `--group-by` is rejected. `--top`
 limits displayed lists, not counts or percentiles. `--format json` includes
 explicit coverage and nulls for unknown rejection coverage. The existing
 two-period `--before-period` / `--after-period --group-by session` comparison
@@ -39,7 +43,7 @@ Grouped by session ID alone (LiteLLM v1.104.0 counter unit).
 
 The report groups literal session IDs across keys, teams and agents in **one
 application with one LiteLLM cache namespace**. This matches the pinned
-[`max_budget_per_session_limiter.py`](https://github.com/BerriAI/litellm/blob/v1.104.0/litellm/proxy/hooks/max_budget_per_session_limiter.py)
+[`max_budget_per_session_limiter.py`](https://github.com/BerriAI/litellm/blob/79645770fedc7ec2627e6468d31062f20f82aecc/litellm/proxy/hooks/max_budget_per_session_limiter.py)
 counter, rather than assuming a session is a completed task run. Session IDs are
 keyed locally before aggregation; only aliases (or opt-in keyed hashes) appear.
 
@@ -64,8 +68,12 @@ keyed locally before aggregation; only aliases (or opt-in keyed hashes) appear.
   tracking. Missing identity fields cannot establish separate ownership.
 - Rows without a session ID keep their known spend subtotal and missing/invalid
   spend counts separately, outside session distributions and cap review.
-- Sessions with recorded spend on the first or last included day are marked
-  possibly clipped. If most sessions have one call, check propagation: a
+- A session is **clipped** when its ID also occurs outside the selected period
+  in the file. Otherwise it is **possibly clipped** only when activity is within
+  one counter window of an edge with no file rows beyond that edge. These are
+  separate `clipped` and `possibly_clipped` fields in JSON, with report counts.
+  A short observed-span capture can still leave several sessions possibly clipped.
+  If most sessions have one call, check propagation: a
   generated request-level ID can make every request look like a session.
 
 ## Context
@@ -81,3 +89,6 @@ The parser retains the [spend reader limits](../examples/litellm-spend/README.md
 limits a selected period to 250,000 session IDs and 1,000,000 distinct
 session/key, session/team and session/agent memberships. Select a shorter period
 when a limit is reached; there is no silent sampling or identity eviction.
+Outside-period clipping checks reuse the selected-session digest map in a
+streaming pass, keeping those same caps. The input is checked for changes
+between passes.

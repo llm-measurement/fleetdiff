@@ -48,6 +48,7 @@ type Session struct {
 	Rejections        map[string]uint64 `json:"recorded_rejections"`
 	RejectionCoverage bool              `json:"rejection_classification_complete"`
 	Censored          bool              `json:"recorded_budget_or_iteration_rejection"`
+	Clipped           bool              `json:"clipped"`
 	PossiblyClipped   bool              `json:"possibly_clipped"`
 	SpendSpanSeconds  *float64          `json:"positive_spend_span_seconds"`
 	Keys              uint64            `json:"keys"`
@@ -60,6 +61,7 @@ type SessionReport struct {
 	Grouping                   string            `json:"grouping"`
 	Period                     Period            `json:"period"`
 	AutomaticPeriod            bool              `json:"automatic_period"`
+	ObservedSpan               bool              `json:"observed_span"`
 	Hashing                    string            `json:"hashing"`
 	BudgetUSD                  *string           `json:"supplied_budget_usd"`
 	CounterWindowSeconds       float64           `json:"counter_window_seconds"`
@@ -79,6 +81,7 @@ type SessionReport struct {
 	RejectionOnlySessions      uint64            `json:"rejection_only_sessions"`
 	UnanalyzedOnlySessions     uint64            `json:"sessions_without_analyzed_calls"`
 	Singletons                 uint64            `json:"singleton_sessions"`
+	Clipped                    uint64            `json:"clipped_sessions"`
 	PossiblyClipped            uint64            `json:"possibly_clipped_sessions"`
 	Censored                   uint64            `json:"sessions_with_recorded_budget_or_iteration_rejection"`
 	CensoredSpendN             uint64            `json:"rejection_affected_spend_distribution_n"`
@@ -101,10 +104,11 @@ type SessionReport struct {
 
 type sessionState struct {
 	Session
-	id          [32]byte
-	order       int
-	cost        big.Rat
-	first, last time.Time
+	id                          [32]byte
+	order                       int
+	cost                        big.Rat
+	first, last                 time.Time
+	firstActivity, lastActivity time.Time
 }
 
 type sessionMember struct {
@@ -132,8 +136,15 @@ func sessionPeriod(opts SessionOptions, first, last time.Time) (Period, error) {
 	if today := opts.Now.UTC().Truncate(24 * time.Hour); end.After(today) {
 		end = today
 	}
-	if first.IsZero() || !start.Before(end) {
-		return Period{}, errors.New("no complete UTC days in the file; supply --period (a date or RFC3339 start/end interval)")
+	if first.IsZero() {
+		return Period{}, errors.New("no request records in the file")
+	}
+	if !start.Before(end) {
+		if last.After(opts.Now) {
+			return Period{}, errors.New("file's observed span includes future request starts; export completed requests")
+		}
+		// The interval is half-open, including the final observed start time.
+		return Period{first, last.Add(time.Nanosecond)}, nil
 	}
 	return Period{start, end}, nil
 }
@@ -190,6 +201,7 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 	}
 	r := SessionReport{Schema: "fleetdiff-litellm-session-budget/v1", Grouping: "session_id_only", Period: p, AutomaticPeriod: opts.Period == "", Hashing: mode, CounterWindowSeconds: opts.CounterWindow.Seconds(), Rejections: map[string]uint64{}, Largest: []Session{}, CapReview: []Session{}, LongSpanReview: []Session{}, SharedCounterReview: []Session{}}
 	r.FailureLoggingCompleteness = "unknown"
+	r.ObservedSpan = r.AutomaticPeriod && p.End.Equal(last.Add(time.Nanosecond))
 	if cap != nil {
 		value := costText(cap)
 		r.BudgetUSD = &value
@@ -299,10 +311,16 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 		s := states[id]
 		if s == nil {
 			if len(states) == MaxSessions {
-				return errors.New("session review exceeds 250,000 sessions; select a shorter period")
+				return sessionLimitError(states)
 			}
 			s = &sessionState{Session: Session{SpendComplete: true, RejectionCoverage: true, Rejections: map[string]uint64{}}, id: id, order: row.Number}
 			states[id] = s
+		}
+		if s.firstActivity.IsZero() || t.Before(s.firstActivity) {
+			s.firstActivity = t
+		}
+		if s.lastActivity.IsZero() || t.After(s.lastActivity) {
+			s.lastActivity = t
 		}
 		s.RejectionCoverage = s.RejectionCoverage && classified
 		for i, field := range []string{"api_key", "team_id", "agent_id"} {
@@ -354,9 +372,6 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 					s.last = t
 				}
 			}
-			if t.Truncate(24*time.Hour).Equal(p.Start.Truncate(24*time.Hour)) || t.Truncate(24*time.Hour).Equal(p.End.Add(-time.Nanosecond).Truncate(24*time.Hour)) {
-				s.PossiblyClipped = true
-			}
 		}
 		s.SpendComplete = s.MissingSpend+s.InvalidSpend+s.UnanalyzedRows == 0
 		return nil
@@ -373,8 +388,53 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 	if r.SelectedRows == 0 {
 		return SessionReport{}, errors.New("no records in the selected period")
 	}
+	// Probe only already-retained session digests: outside-period identities do
+	// not consume another map or exhaust the selected-period session limit.
+	if first.Before(p.Start) || !last.Before(p.End) {
+		third := sha256.New()
+		encoder = json.NewEncoder(third)
+		if err := Read(path, func(row Row) error {
+			if err := encoder.Encode(row.Values); err != nil {
+				return err
+			}
+			t, err := timestamp(row.Values["startTime"])
+			if err != nil {
+				return err
+			}
+			if !p.contains(t) && row.Values["session_id"] != "" {
+				id := requestDigest(key, "session-budget/session\x00"+row.Values["session_id"])
+				if s := states[id]; s != nil {
+					s.Clipped = true
+				}
+			}
+			return nil
+		}); err != nil {
+			return SessionReport{}, err
+		}
+		if !bytes.Equal(digest.Sum(nil), third.Sum(nil)) {
+			return SessionReport{}, errors.New("spend file changed while reading; retry with a stable export")
+		}
+	}
+	for _, s := range states {
+		s.PossiblyClipped = !s.Clipped &&
+			(!first.Before(p.Start) && s.firstActivity.Sub(p.Start) <= opts.CounterWindow ||
+				last.Before(p.End) && p.End.Sub(s.lastActivity) <= opts.CounterWindow)
+	}
 	r.UnattributedSpend = costText(&unattributedSpend)
 	return finishSessions(r, states, opts, cap), nil
+}
+
+func sessionLimitError(states map[[32]byte]*sessionState) error {
+	singletons := 0
+	for _, s := range states {
+		if s.Calls == 1 {
+			singletons++
+		}
+	}
+	if singletons*2 > len(states) {
+		return errors.New("session review exceeds 250,000 sessions; most sessions so far have one call; session IDs may be generated per request; check propagation or select a shorter period")
+	}
+	return errors.New("session review exceeds 250,000 sessions; select a shorter period")
 }
 
 func finishSessions(r SessionReport, states map[[32]byte]*sessionState, opts SessionOptions, cap *big.Rat) SessionReport {
@@ -421,7 +481,9 @@ func finishSessions(r SessionReport, states map[[32]byte]*sessionState, opts Ses
 				r.Largest = append(r.Largest, s.Session)
 			}
 		}
-		if s.PossiblyClipped {
+		if s.Clipped {
+			r.Clipped++
+		} else if s.PossiblyClipped {
 			r.PossiblyClipped++
 		}
 		if s.Censored {

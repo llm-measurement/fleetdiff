@@ -45,7 +45,7 @@ func TestSessionBudgetExactScopeAndDistributions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Sessions != 4 || r.ModelCalls != 5 || r.Exceeding != 3 || *r.NoRecordedRejection != 2 || r.SharedCounters != 1 || r.LongSpans != 1 || r.PossiblyClipped != 2 || r.Censored != 1 {
+	if r.Sessions != 4 || r.ModelCalls != 5 || r.Exceeding != 3 || *r.NoRecordedRejection != 2 || r.SharedCounters != 1 || r.LongSpans != 1 || r.PossiblyClipped != 0 || r.Clipped != 0 || r.Censored != 1 {
 		t.Fatalf("counts: %+v", r)
 	}
 	if r.Spend.N != 4 || *r.Spend.P50 != "1.2" || *r.Spend.P95 != "3" || *r.Spend.Max != "3" || r.Calls.N != 4 || *r.Calls.P50 != "1" || *r.Calls.Max != "2" {
@@ -106,11 +106,112 @@ func TestSessionAutomaticPeriodAndClipping(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Period.Start.Format(time.DateOnly) != "2026-09-02" || r.Period.End.Format(time.DateOnly) != "2026-09-05" || r.Sessions != 3 || r.PossiblyClipped != 2 || !r.AutomaticPeriod {
+	if r.Period.Start.Format(time.DateOnly) != "2026-09-02" || r.Period.End.Format(time.DateOnly) != "2026-09-05" || r.Sessions != 3 || r.PossiblyClipped != 0 || r.Clipped != 0 || !r.AutomaticPeriod || r.ObservedSpan {
 		t.Fatal(r)
 	}
-	if _, err := ReviewSessions(writeRows(t, rows[:1]), opts); err == nil || !strings.Contains(err.Error(), "--period") {
-		t.Fatal(err)
+	r, err = ReviewSessions(writeRows(t, rows[:1]), opts)
+	if err != nil || !r.ObservedSpan || r.Sessions != 1 || r.PossiblyClipped != 1 || r.Period.End.Sub(r.Period.Start) != time.Nanosecond {
+		t.Fatal(r, err)
+	}
+}
+
+func TestSessionClippingEvidence(t *testing.T) {
+	rowAt := func(id, session, at string) map[string]string {
+		row := sessionRow(id, session, "2026-09-02", "1")
+		row["startTime"], row["endTime"] = at, at
+		return row
+	}
+	for _, tc := range []struct {
+		name, activity, outside, outsideID string
+		clipped, possible                  bool
+	}{
+		{"interior", "12:00:00", "", "", false, false},
+		{"left-edge", "00:00:00", "", "", false, true},
+		{"left-window-inclusive", "01:00:00", "", "", false, true},
+		{"left-window-outside", "01:00:00.000000001", "", "", false, false},
+		{"right-window-inclusive", "23:00:00", "", "", false, true},
+		{"right-window-outside", "22:59:59.999999999", "", "", false, false},
+		{"same-before", "12:00:00", "2026-09-01T23:59:59Z", "s", true, false},
+		{"same-at-end", "12:00:00", "2026-09-03T00:00:00Z", "s", true, false},
+		{"covered-left", "00:30:00", "2026-09-01T23:59:59Z", "other", false, false},
+		{"covered-right", "23:30:00", "2026-09-03T00:00:00Z", "other", false, false},
+		{"uncovered-opposite-edge", "23:30:00", "2026-09-01T23:59:59Z", "other", false, true},
+		{"literal-not-normalized", "12:00:00", "2026-09-01T23:59:59Z", "S", false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rows := []map[string]string{rowAt("selected", "s", "2026-09-02T"+tc.activity+"Z")}
+			if tc.outside != "" {
+				rows = append(rows, rowAt("outside", tc.outsideID, tc.outside))
+			}
+			// File order must not change the evidence, including an outside row
+			// appearing before a session is admitted to the selected-period map.
+			for range 2 {
+				opts := sessionOptions()
+				opts.Period = "2026-09-02"
+				r, err := ReviewSessions(writeRows(t, rows), opts)
+				if err != nil || len(r.Largest) != 1 {
+					t.Fatal(r, err)
+				}
+				s := r.Largest[0]
+				if s.Clipped != tc.clipped || s.PossiblyClipped != tc.possible || (r.Clipped == 1) != tc.clipped || (r.PossiblyClipped == 1) != tc.possible {
+					t.Fatalf("clipping: %+v", r)
+				}
+				if len(rows) == 2 {
+					rows[0], rows[1] = rows[1], rows[0]
+				}
+			}
+		})
+	}
+}
+
+func TestSessionClippingUsesActivityWithoutSpend(t *testing.T) {
+	rows := []map[string]string{sessionRow("a", "s", "2026-09-02", ""), sessionRow("b", "s", "2026-09-02", "1")}
+	rows[0]["startTime"], rows[0]["endTime"] = "2026-09-02T00:30:00Z", "2026-09-02T00:30:01Z"
+	opts := sessionOptions()
+	opts.Period = "2026-09-02"
+	r, err := ReviewSessions(writeRows(t, rows), opts)
+	if err != nil || r.PossiblyClipped != 1 {
+		t.Fatal(r, err)
+	}
+	opts.CounterWindow = 10 * time.Minute
+	r, err = ReviewSessions(writeRows(t, rows), opts)
+	if err != nil || r.PossiblyClipped != 0 {
+		t.Fatal(r, err)
+	}
+}
+
+func TestSessionObservedSpan(t *testing.T) {
+	rows := []map[string]string{sessionRow("a", "s", "2026-09-02", "1"), sessionRow("b", "s", "2026-09-02", "1")}
+	rows[0]["startTime"], rows[0]["endTime"] = "2026-09-02T13:00:00Z", "2026-09-02T13:00:01Z"
+	opts := sessionOptions()
+	opts.Period = ""
+	r, err := ReviewSessions(writeRows(t, rows), opts)
+	if err != nil || !r.ObservedSpan || !r.AutomaticPeriod || r.ModelCalls != 2 || r.Period.Start.Format(time.RFC3339Nano) != "2026-09-02T12:00:00Z" || r.Period.End.Format(time.RFC3339Nano) != "2026-09-02T13:00:00.000000001Z" {
+		t.Fatal(r, err)
+	}
+	opts.Now = time.Date(2026, 9, 2, 12, 30, 0, 0, time.UTC)
+	if _, err := ReviewSessions(writeRows(t, rows), opts); err == nil {
+		t.Fatal("future observed span accepted")
+	}
+	if _, err := ReviewSessions(writeRows(t, nil), opts); err == nil {
+		t.Fatal("empty export accepted")
+	}
+}
+
+func TestSessionLimitAdvice(t *testing.T) {
+	for _, calls := range [][]uint64{{1, 1, 2}, {1, 2}, {2, 2, 2}, {0, 0, 1}} {
+		states := map[[32]byte]*sessionState{}
+		singletons := 0
+		for i, n := range calls {
+			states[[32]byte{byte(i)}] = &sessionState{Session: Session{Calls: n}}
+			if n == 1 {
+				singletons++
+			}
+		}
+		message := sessionLimitError(states).Error()
+		if strings.Contains(message, "session IDs may be generated per request") != (singletons*2 > len(calls)) {
+			t.Fatal(message)
+		}
 	}
 }
 

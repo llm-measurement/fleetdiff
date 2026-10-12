@@ -57,7 +57,9 @@ func renderSessionBudget(out io.Writer, r spend.SessionReport) {
 		fmt.Fprintf(out, "%s sessions with model calls; %s have complete recorded spend.\n", spendNumber(r.Sessions), spendNumber(r.Spend.N))
 	}
 	fmt.Fprintf(out, "Grouped by session ID alone (LiteLLM v1.104.0 counter unit). %s to %s (end exclusive).\n", r.Period.Start.Format("Mon 2006-01-02 15:04:05.999999999 UTC"), r.Period.End.Format("Mon 2006-01-02 15:04:05.999999999 UTC"))
-	if r.AutomaticPeriod {
+	if r.ObservedSpan {
+		fmt.Fprintln(out, "Period: the file's observed span of request starts; no complete UTC day is present. The end is one nanosecond after the last start.")
+	} else if r.AutomaticPeriod {
 		fmt.Fprintln(out, "Period: complete UTC days inside the file's observed time span.")
 	}
 	fmt.Fprintln(out, "\nObserved session totals")
@@ -72,8 +74,11 @@ func renderSessionBudget(out io.Writer, r spend.SessionReport) {
 	if r.UnanalyzedOnlySessions != 0 {
 		fmt.Fprintf(out, "Sessions with unsupported records and no analyzed model calls: %s.\n", spendNumber(r.UnanalyzedOnlySessions))
 	}
+	if r.Clipped != 0 {
+		fmt.Fprintf(out, "Sessions clipped: %s, with the same session ID recorded outside the selected period.\n", spendNumber(r.Clipped))
+	}
 	if r.PossiblyClipped != 0 {
-		fmt.Fprintf(out, "Sessions possibly clipped: %s, with recorded spend on the first or last included day.\n", spendNumber(r.PossiblyClipped))
+		fmt.Fprintf(out, "Sessions possibly clipped: %s, active within %g seconds of a period edge with no file rows beyond it.\n", spendNumber(r.PossiblyClipped), r.CounterWindowSeconds)
 	}
 	fmt.Fprintln(out, "\nLargest sessions by recorded spend")
 	for _, s := range r.Largest {
@@ -168,7 +173,9 @@ func renderSessionRow(out io.Writer, s spend.Session) {
 	if s.Censored {
 		fmt.Fprint(out, "; recorded budget/iteration rejection")
 	}
-	if s.PossiblyClipped {
+	if s.Clipped {
+		fmt.Fprint(out, "; clipped")
+	} else if s.PossiblyClipped {
 		fmt.Fprint(out, "; possibly clipped")
 	}
 	if s.Hash != "" {

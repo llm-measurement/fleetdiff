@@ -37,7 +37,10 @@ func TestSessionCLIResultFirstAndPrivacy(t *testing.T) {
 				if !strings.HasPrefix(out.String(), "3 of 4 sessions with complete recorded spend exceed the supplied USD 1.00 cap.\nGrouped by session ID alone") {
 					t.Fatal(out.String())
 				}
-				for _, s := range []string{"Wed 2026-09-02", "Thu 2026-09-03", "p50 1.20; p95 3.00; max 3.00 (n=4", "possibly clipped", "Above-cap sessions with no recorded session-budget rejection: 3", "failure logging completeness is unknown"} {
+				if strings.Contains(out.String(), "clipped") {
+					t.Fatal(out.String())
+				}
+				for _, s := range []string{"Wed 2026-09-02", "Thu 2026-09-03", "p50 1.20; p95 3.00; max 3.00 (n=4", "Above-cap sessions with no recorded session-budget rejection: 3", "failure logging completeness is unknown"} {
 					if !strings.Contains(out.String(), s) {
 						t.Fatal(s, out.String())
 					}
@@ -63,7 +66,8 @@ func TestSessionCLIResultFirstAndPrivacy(t *testing.T) {
 
 func TestSessionFlagIsolation(t *testing.T) {
 	for _, extra := range [][]string{
-		{"--period", "2026-09-02"},
+		{"--group-by", "key", "--period", "2026-09-02"},
+		{"--group-by", "user", "--session-budget-usd", "1"},
 		{"--group-by", "session", "--session-counter-window", "5s"},
 		{"--group-by", "session", "--period", ""},
 		{"--group-by", "session", "--session-budget-usd", ""},
@@ -75,6 +79,26 @@ func TestSessionFlagIsolation(t *testing.T) {
 		var out, errout bytes.Buffer
 		if code := Run(args, &out, &errout); code != 2 || out.Len() != 0 || strings.Contains(errout.String(), "sentinel") {
 			t.Fatal(args, code, errout.String())
+		}
+	}
+}
+
+func TestSessionImplicitGroupingAndDefaultSpan(t *testing.T) {
+	path := "../../examples/litellm-spend/session-budget.csv"
+	for _, options := range [][]string{{"--session-budget-usd", "1"}, {"--period", "2026-10-03"}} {
+		base := append([]string{"investigate", "--litellm-spend", path}, options...)
+		var implicit, explicit, errout bytes.Buffer
+		if code := Run(base, &implicit, &errout); code != 0 {
+			t.Fatal(code, errout.String())
+		}
+		if code := Run(append(base, "--group-by", "session"), &explicit, &errout); code != 0 {
+			t.Fatal(code, errout.String())
+		}
+		if implicit.String() != explicit.String() {
+			t.Fatal("explicit grouping changed output")
+		}
+		if options[0] == "--session-budget-usd" && (!strings.Contains(implicit.String(), "file's observed span") || !strings.Contains(implicit.String(), "Sat 2026-10-03 13:06:40.000000001 UTC")) {
+			t.Fatal(implicit.String())
 		}
 	}
 }

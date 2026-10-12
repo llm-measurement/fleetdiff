@@ -6,7 +6,9 @@ Notable user-visible changes are recorded here, newest first.
 
 - Add single-period LiteLLM session-budget review: exact recorded-spend and call
   distributions, supplied-cap review, shared session counters, positive-spend
-  durations, identity coverage and possibly clipped boundary sessions. Keep
+  durations, identity coverage and evidence-based clipped or possibly clipped
+  sessions. Cap or single-period flags imply session grouping; files without a
+  complete UTC day use their labeled observed span. Keep
   two-period comparisons unchanged.
 - Add content-free `rejection_kind` and `agent_id` columns to the pinned
   LiteLLM export. Existing exports remain readable with unknown rejection

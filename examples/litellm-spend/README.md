@@ -266,7 +266,6 @@ does not implement this view:
 
 ```sh
 bin/fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \
-  --group-by session --period 2026-10-01T00:00:00Z/2026-10-08T00:00:00Z \
   --session-budget-usd 1.00
 ```
 

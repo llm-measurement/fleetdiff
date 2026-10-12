@@ -62,6 +62,36 @@ class SessionFixtureTests(unittest.TestCase):
 
 @unittest.skipUnless(spend.CLI, "set FLEETDIFF_BIN to the integrated session-budget CLI")
 class SessionBudgetTests(unittest.TestCase):
+    def test_example_without_period_or_group_and_one_day_without_clipping(self):
+        for extra in ([], ["--period", "2026-10-03"]):
+            result = spend.run([spend.CLI, "investigate", "--litellm-spend", str(FIXTURE),
+                                "--session-budget-usd", "1", "--format", "json", *extra])
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertEqual(report["sessions_with_model_calls"], 4)
+            self.assertEqual(report["complete_sessions_exceeding_cap"], 3)
+            self.assertEqual(report["observed_span"], not bool(extra))
+            self.assertEqual(report["clipped_sessions"], 0)
+            if extra:
+                self.assertEqual(report["possibly_clipped_sessions"], 0)
+
+    def test_clipped_session_requires_same_identity_outside_period(self):
+        records = fixture_rows()
+        outside = dict(records[-1], request_id="outside-period-sentinel",
+                       startTime="2026-10-09T12:00:00Z", endTime="2026-10-09T12:00:01Z")
+        records.insert(0, outside)
+        with tempfile.TemporaryDirectory(dir="/tmp") as temp:
+            path = Path(temp) / "clipping.csv"
+            path.write_bytes(encoded(records, "csv"))
+            report = review(path, records)
+            self.assertEqual(report["clipped_sessions"], 1)
+            self.assertEqual(report["possibly_clipped_sessions"], 0)
+            self.assertTrue(report["largest_sessions"][0]["clipped"])
+            self.assertFalse(report["largest_sessions"][0]["possibly_clipped"])
+            text = review(path, records, output="text").stdout.decode()
+            self.assertIn("Sessions clipped: 1, with the same session ID recorded outside", text)
+            self.assertIn("; clipped.", text)
+
     def test_complete_sessions_cap_shared_identities_and_rejection(self):
         records = fixture_rows()
         original = FIXTURE.read_bytes()

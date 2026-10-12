@@ -42,7 +42,7 @@ Usage:
   fleetdiff scan [options] PATH --expected PRODUCER[,PRODUCER]
   fleetdiff investigate --before PATH --after PATH --expected PRODUCER[,PRODUCER] [options]
   fleetdiff investigate --litellm-spend FILE [--before-period DATE --after-period DATE] [options]
-  fleetdiff investigate --litellm-spend FILE --group-by session --session-budget-usd USD [--period DATE]
+  fleetdiff investigate --litellm-spend FILE --session-budget-usd USD [--period DATE]
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
 PATH is one canonical summary JSON file or a directory of summary JSON files.
@@ -147,6 +147,7 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	}
 	spendMode, incompatible := false, false
 	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
+	groupExplicit := false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
 		case "period", "session-budget-usd":
@@ -154,7 +155,9 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			emptySessionOption = emptySessionOption || f.Value.String() == ""
 		case "session-counter-window":
 			spendMode, windowSet = true, true
-		case "litellm-spend", "before-period", "after-period", "group-by", "hash-secret-env":
+		case "group-by":
+			spendMode, groupExplicit = true, true
+		case "litellm-spend", "before-period", "after-period", "hash-secret-env":
 			spendMode = true
 		case "format", "top", "show-hashes":
 		default:
@@ -169,8 +172,8 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			return fail(2, "use investigate --litellm-spend FILE with period flags, not summary paths or expected producers")
 		}
 		if sessionMode || windowSet {
-			if !sessionMode || *group != "session" || twoPeriods || emptySessionOption || *counterWindow <= 0 {
-				return fail(2, "session review needs --group-by session and --period or --session-budget-usd; do not combine with two-period flags")
+			if !sessionMode || groupExplicit && *group != "session" || twoPeriods || emptySessionOption || *counterWindow <= 0 {
+				return fail(2, "session review needs --period or --session-budget-usd; grouping is session; do not combine with other groups or two-period flags")
 			}
 			return runSessionBudget(*spendPath, *period, *budget, *secret, *format, *top, *hashes, *counterWindow, out, errout)
 		}
