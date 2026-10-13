@@ -1,0 +1,42 @@
+Recorded tokens doubled (8,000 -> 16,000).
+model-1 accounts for 100% of the net recorded increase (+8,000 tokens).
+Logged model requests: 8 -> 12.
+Before: Wed 2026-10-07 00:00:00 UTC to Thu 2026-10-08 00:00:00 UTC (end exclusive).
+After: Thu 2026-10-08 00:00:00 UTC to Fri 2026-10-09 00:00:00 UTC (end exclusive).
+
+What changed?
+  model-1 (9e3b6340339f1799b4f8dde02b1230e56410938df6e7f91e1d4fc1b5ae0e7576): 4,000 -> 12,000 recorded tokens; 4 -> 6 requests.
+    1,000.00 -> 2,000.00 recorded tokens per request; +3,000 from request count, +5,000 from request size.
+  model-2 (ee429eeac30892aebe572bbc91ea3d7eadfac7f7f3aa191152438d7f457f0cbb): 4,000 -> 4,000 recorded tokens; 4 -> 6 requests.
+  Cache detail not recorded in this export.
+
+Who drove the increase?
+  session-1 (816cb9397ca2361a): 2,000 -> 0 tokens; change -2,000.
+  session-2 (55e2e9a9d1a469b5): 2,000 -> 0 tokens; change -2,000.
+  session-3 (9436e6085b7809ac): 0 -> 2,000 tokens; change +2,000.
+  session-4 (92e20bf5a5587368): 0 -> 2,000 tokens; change +2,000.
+  session-5 (e8027ee8563364cf): 0 -> 2,000 tokens; change +2,000.
+  session-6 (270866b65e7c413f): 0 -> 2,000 tokens; change +2,000.
+  session-7 (8465fbb30bb71164): 0 -> 2,000 tokens; change +2,000.
+  session-8 (5d0c2121fb19a72c): 0 -> 2,000 tokens; change +2,000.
+  session-9 (6ea296250f8f9c1a): 0 -> 2,000 tokens; change +2,000.
+  session-10 (777f19a7137988bb): 0 -> 2,000 tokens; change +2,000.
+  session-11 (ad7f92e2521cb986): 1,000 -> 0 tokens; change -1,000.
+  session-12 (9267800bdfe9cad8): 1,000 -> 0 tokens; change -1,000.
+  session-13 (21df4eafedbd907b): 1,000 -> 0 tokens; change -1,000.
+  session-14 (1efeb420e08f0d0f): 1,000 -> 0 tokens; change -1,000.
+  2 leading tracked sessions account for 50% of the net recorded increase.
+  Attributed tokens: 8,000 -> 16,000.
+
+How complete is the export?
+  Records needing usage review (categories may overlap): 2 -> 4.
+  Zero-only records, origin unknown: 2 -> 4.
+  Failed records (overlap usage categories): 1 -> 2.
+  Zero-filled: cannot determine from this export. Provider origin: not declared by the supported SQL projection.
+  Zero-cost origin unknown: 8 -> 12.
+  No other usage problems found.
+  Rows read: 20.
+  Whole-period per-request split needs clearer usage; recorded totals remain shown.
+  model-2 per-request split needs clearer usage on 2 before / 4 after records.
+
+Next: review the leading contributors and flagged records in your local LiteLLM logs.

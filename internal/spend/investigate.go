@@ -6,21 +6,19 @@ package spend
 import (
 	"bytes"
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/accounting"
+	"github.com/llm-measurement/fleetdiff/internal/attribution"
 	"github.com/llm-measurement/fleetdiff/internal/compare"
-	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/canon"
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/frequentitems"
 	sketchhash "github.com/llm-measurement/llm-sketchkit/go/sketchkit/hash"
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/hllpp"
@@ -101,40 +99,13 @@ func volume(a, b Window) *compare.VolumeChange {
 }
 
 func secret(env string) ([]byte, string, error) {
-	if env == "" {
-		b := make([]byte, 32)
-		if _, err := rand.Read(b); err != nil {
-			return nil, "", errors.New("cannot generate a local hashing secret")
-		}
-		return b, "ephemeral", nil
-	}
-	if len(env) > 128 || len(os.Getenv(env)) > 4096 {
-		return nil, "", errors.New("invalid hash secret environment setting")
-	}
-	if _, err := sketchhash.SecretFromEnv(env); err != nil {
-		return nil, "", errors.New("hash secret missing or weak; use a random secret of at least 16 bytes")
-	}
-	return []byte(os.Getenv(env)), "environment", nil
+	return attribution.Secret(env)
 }
 
 // This is the same registered-domain HMAC construction as sketchkit/inspect.
 // Length-framed components separate source and identity kinds inside that domain.
 func identity(key []byte, kind string, parts ...string) ([32]byte, error) {
-	canonical := make([]string, 0, len(parts)+2)
-	canonical = append(canonical, "litellm-spend/v1", kind)
-	for _, part := range parts {
-		b, err := canon.CanonicalizeString(canon.TextV1, part)
-		if err != nil {
-			return [32]byte{}, errors.New("identity is not valid UTF-8")
-		}
-		canonical = append(canonical, string(b))
-	}
-	b, _ := json.Marshal(canonical)
-	mac := hmac.New(sha256.New, key)
-	mac.Write([]byte(sketchhash.UserV1))
-	mac.Write([]byte{0})
-	mac.Write(b)
-	return [32]byte(mac.Sum(nil)), nil
+	return attribution.Identity(key, "litellm-spend/v1", kind, parts...)
 }
 
 func requestDigest(key []byte, id string) [32]byte {
