@@ -83,6 +83,7 @@ class RotationTests(unittest.TestCase):
     def validate(self, overlay):
         return subprocess.run([
             "docker", "run", "--rm", "--pull", "never", "--network", "none",
+            "--user", f"{os.getuid()}:{os.getgid()}",
             "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
             "--env", "CLAUDE_CAPTURE_DIR=/capture",
             "--mount", f"type=bind,src={ROOT / 'collector.yaml'},dst=/etc/base.yaml,readonly",
