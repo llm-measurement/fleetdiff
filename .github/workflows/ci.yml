@@ -38,6 +38,18 @@ jobs:
         run: |
           go build -o bin/fleetdiff ./cmd/fleetdiff
           FLEETDIFF_BIN="$PWD/bin/fleetdiff" python3 -m unittest discover -s examples/litellm-spend -p 'test_*.py' -v
+      - name: Claude log import and capture fixtures
+        run: |
+          FLEETDIFF_CLAUDE_CAPTURE_CLI=1 FLEETDIFF_BIN="$PWD/bin/fleetdiff" \
+            python3 -m unittest discover -s examples/claude-code-logs -p 'test_*.py' -v
+      - name: Pinned Claude log capture privacy
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        run: |
+          docker pull otel/opentelemetry-collector-contrib@sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6
+          docker pull python@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c
+          FLEETDIFF_CLAUDE_CAPTURE_DOCKER=1 FLEETDIFF_CLAUDE_CAPTURE_CLI=1 FLEETDIFF_BIN="$PWD/bin/fleetdiff" \
+            python3 -m unittest discover -s examples/claude-code-logs -p 'test_*.py' -v
       - name: Pinned LiteLLM writer to read-only SQL export
         if: runner.os == 'Linux'
         timeout-minutes: 10
@@ -116,6 +128,7 @@ jobs:
         run: |
           go test ./internal/spend -run '^$' -fuzz '^FuzzReaderBoundedFormats$' -fuzztime 1000x -parallel 2 -timeout 2m
           go test ./internal/spend -run '^$' -fuzz '^FuzzSessionBudget$' -fuzztime 1000x -parallel 2 -timeout 2m
+          go test ./internal/clauderecords -run '^$' -fuzz '^FuzzClaudeEnvelope$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 10000x -parallel 2 -timeout 2m

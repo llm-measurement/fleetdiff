@@ -43,6 +43,7 @@ Usage:
   fleetdiff investigate --before PATH --after PATH --expected PRODUCER[,PRODUCER] [options]
   fleetdiff investigate --litellm-spend FILE [--before-period DATE --after-period DATE] [options]
   fleetdiff investigate --litellm-spend FILE --session-budget-usd USD [--period DATE]
+  fleetdiff investigate --claude-code-logs FILE [--claude-code-logs FILE ...] [options]
   fleetdiff compare --before PATH --after PATH --expected PRODUCER,PRODUCER [options]
 
 PATH is one canonical summary JSON file or a directory of summary JSON files.
@@ -59,13 +60,16 @@ Options:
   --allow-partial            Permit missing producers or incomplete observation intervals
   --show-hashes              Include pseudonymous, linkable hashes in output
   --litellm-spend FILE        Read a request-level SQL export: CSV, JSON array or JSONL
+  --claude-code-logs FILE     Read collector OTLP JSONL; repeat for rotated files
+  --source-scope NAME         One application namespace (required with a persistent Claude hashing key)
+  --deduplicate-exact         Remove exact exported copies only (Claude logs; default retains copies)
   --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
   --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
   --group-by KIND            key (default), team, user, end-user or session
   --period PERIOD            Single-period session review: UTC date or RFC3339 start/end
   --session-budget-usd USD    Review observed session totals against a supplied cap
   --session-counter-window DURATION  Compare positive-spend spans with this duration (default 1h)
-  --hash-secret-env NAME     Use an existing secret for repeat spend comparisons
+  --hash-secret-env NAME     Use an existing secret for repeat file comparisons
   --help                    Show this help
   --version                 Print version, revision, Go toolchain, and platform
 
@@ -75,6 +79,9 @@ Runs offline using local files. Default output uses aliases for identities.
 Spend periods default to the latest two complete 7-day UTC intervals in the file.
 With fewer than 14 complete days, supply both period flags. Daily UI aggregates
 need a request-level SQL export; see examples/litellm-spend/README.md.
+Claude logs default to complete UTC weeks, or two labeled observed-span halves
+for shorter histories. Period flags override this; grouping defaults to user (or session).
+They count observed api_request records, with finality unknown; see examples/claude-code-logs/README.md.
 Exit status: 0 report/help, 1 input/comparison/output error, 2 invalid command/options.
 diagnose and scan additionally use 3 for findings and 4 for unavailable evidence.
 `
@@ -124,6 +131,16 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	partial := flags.Bool("allow-partial", false, "")
 	hashes := flags.Bool("show-hashes", false, "")
 	spendPath := flags.String("litellm-spend", "", "")
+	var claudePaths []string
+	flags.Func("claude-code-logs", "", func(path string) error {
+		if path == "" || len(claudePaths) >= 256 {
+			return errors.New("select 1-256 collector JSONL files")
+		}
+		claudePaths = append(claudePaths, path)
+		return nil
+	})
+	sourceScope := flags.String("source-scope", "", "")
+	deduplicate := flags.Bool("deduplicate-exact", false, "")
 	beforePeriod := flags.String("before-period", "", "")
 	afterPeriod := flags.String("after-period", "", "")
 	group := flags.String("group-by", "key", "")
@@ -144,6 +161,27 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			}
 		}
 		return fail(2, "invalid compare options; run fleetdiff compare --help")
+	}
+	claudeMode, claudeIncompatible, claudeGroup := false, false, false
+	flags.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "claude-code-logs", "source-scope", "deduplicate-exact":
+			claudeMode = true
+		case "group-by":
+			claudeGroup = true
+		case "before-period", "after-period", "hash-secret-env", "format", "top", "show-hashes":
+		default:
+			claudeIncompatible = true
+		}
+	})
+	if claudeMode {
+		if args[0] != "investigate" || len(claudePaths) == 0 || claudeIncompatible || flags.NArg() != 0 {
+			return fail(2, "use investigate --claude-code-logs FILE; do not mix with spend, session-budget or summary options")
+		}
+		if !claudeGroup {
+			*group = "user"
+		}
+		return runClaudeRecords(claudePaths, *beforePeriod, *afterPeriod, *group, *secret, *sourceScope, *format, *top, *hashes, *deduplicate, out, errout)
 	}
 	spendMode, incompatible := false, false
 	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
