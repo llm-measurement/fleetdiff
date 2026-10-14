@@ -1,0 +1,107 @@
+# SPDX-License-Identifier: Apache-2.0
+# Code authors: Vijay and Codex
+# Run with capture.py: it supplies isolation, file permissions and a hard size cap.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        max_request_body_size: 1048576
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 128
+    spike_limit_mib: 32
+  filter/events:
+    error_mode: propagate
+    logs:
+      log_record:
+        - 'not IsString(body)'
+        - 'body != "claude_code.api_request" and body != "claude_code.api_error" and body != "claude_code.api_retries_exhausted"'
+        - 'attributes["event.name"] != nil and body == "claude_code.api_request" and attributes["event.name"] != "api_request"'
+        - 'attributes["event.name"] != nil and body == "claude_code.api_error" and attributes["event.name"] != "api_error"'
+        - 'attributes["event.name"] != nil and body == "claude_code.api_retries_exhausted" and attributes["event.name"] != "api_retries_exhausted"'
+  transform/privacy:
+    error_mode: propagate
+    log_statements:
+      - context: resource
+        statements:
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "identity.source")'
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "user.account_uuid") and not IsString(attributes["user.account_uuid"])'
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "user.email") and not IsString(attributes["user.email"])'
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "user.id") and not IsString(attributes["user.id"])'
+          - 'set(attributes["identity.source"], "unverified") where IsString(attributes["user.account_uuid"]) and IsMatch(attributes["user.account_uuid"], "^[[:space:]]*$")'
+          - 'set(attributes["identity.source"], "unverified") where IsString(attributes["user.email"]) and IsMatch(attributes["user.email"], "^[[:space:]]*$")'
+          - 'set(attributes["identity.source"], "unverified") where IsString(attributes["user.id"]) and IsMatch(attributes["user.id"], "^[[:space:]]*$")'
+          - 'keep_keys(attributes, ["service.version", "identity.source", "user.account_uuid", "user.email", "user.id", "session.id"])'
+          - 'delete_key(attributes, "service.version") where not IsString(attributes["service.version"])'
+          - 'delete_key(attributes, "service.version") where IsString(attributes["service.version"]) and not IsMatch(attributes["service.version"], "^[0-9]{1,5}[.][0-9]{1,5}[.][0-9]{1,5}$")'
+          - 'delete_key(attributes, "user.account_uuid") where not IsString(attributes["user.account_uuid"])'
+          - 'delete_key(attributes, "user.email") where not IsString(attributes["user.email"])'
+          - 'delete_key(attributes, "user.id") where not IsString(attributes["user.id"])'
+          - 'delete_key(attributes, "user.account_uuid") where IsString(attributes["user.account_uuid"]) and IsMatch(attributes["user.account_uuid"], "^[[:space:]]*$")'
+          - 'delete_key(attributes, "user.email") where IsString(attributes["user.email"]) and IsMatch(attributes["user.email"], "^[[:space:]]*$")'
+          - 'delete_key(attributes, "user.id") where IsString(attributes["user.id"]) and IsMatch(attributes["user.id"], "^[[:space:]]*$")'
+          - 'delete_key(attributes, "session.id") where not IsString(attributes["session.id"])'
+          - 'set(attributes["service.name"], "claude-code")'
+          - 'set(attributes["fleetdiff.capture.profile"], "claude-code-logs/v1")'
+      - context: scope
+        statements:
+          - 'keep_keys(attributes, [])'
+          - 'set(name, "fleetdiff.claude-code-capture")'
+          - 'set(version, "1")'
+      - context: log
+        statements:
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "identity.source")'
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "user.account_uuid") and not IsString(attributes["user.account_uuid"])'
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "user.email") and not IsString(attributes["user.email"])'
+          - 'set(attributes["identity.source"], "unverified") where ContainsValue(Keys(attributes), "user.id") and not IsString(attributes["user.id"])'
+          - 'set(attributes["identity.source"], "unverified") where IsString(attributes["user.account_uuid"]) and IsMatch(attributes["user.account_uuid"], "^[[:space:]]*$")'
+          - 'set(attributes["identity.source"], "unverified") where IsString(attributes["user.email"]) and IsMatch(attributes["user.email"], "^[[:space:]]*$")'
+          - 'set(attributes["identity.source"], "unverified") where IsString(attributes["user.id"]) and IsMatch(attributes["user.id"], "^[[:space:]]*$")'
+          - 'keep_keys(attributes, ["event.name", "event.sequence", "input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens", "cost_usd", "cost_usd_micros", "identity.source", "user.account_uuid", "user.email", "user.id", "session.id", "prompt.id", "status_code", "attempt", "total_attempts"])'
+          - 'delete_key(attributes, "event.sequence") where not IsInt(attributes["event.sequence"])'
+          - 'delete_key(attributes, "input_tokens") where not IsInt(attributes["input_tokens"])'
+          - 'delete_key(attributes, "output_tokens") where not IsInt(attributes["output_tokens"])'
+          - 'delete_key(attributes, "cache_read_tokens") where not IsInt(attributes["cache_read_tokens"])'
+          - 'delete_key(attributes, "cache_creation_tokens") where not IsInt(attributes["cache_creation_tokens"])'
+          - 'delete_key(attributes, "cost_usd") where not IsDouble(attributes["cost_usd"]) and not IsInt(attributes["cost_usd"])'
+          - 'delete_key(attributes, "cost_usd_micros") where not IsInt(attributes["cost_usd_micros"])'
+          - 'delete_key(attributes, "status_code") where not IsInt(attributes["status_code"])'
+          - 'delete_key(attributes, "attempt") where not IsInt(attributes["attempt"])'
+          - 'delete_key(attributes, "total_attempts") where not IsInt(attributes["total_attempts"])'
+          - 'delete_key(attributes, "user.account_uuid") where not IsString(attributes["user.account_uuid"])'
+          - 'delete_key(attributes, "user.email") where not IsString(attributes["user.email"])'
+          - 'delete_key(attributes, "user.id") where not IsString(attributes["user.id"])'
+          - 'delete_key(attributes, "user.account_uuid") where IsString(attributes["user.account_uuid"]) and IsMatch(attributes["user.account_uuid"], "^[[:space:]]*$")'
+          - 'delete_key(attributes, "user.email") where IsString(attributes["user.email"]) and IsMatch(attributes["user.email"], "^[[:space:]]*$")'
+          - 'delete_key(attributes, "user.id") where IsString(attributes["user.id"]) and IsMatch(attributes["user.id"], "^[[:space:]]*$")'
+          - 'delete_key(attributes, "session.id") where not IsString(attributes["session.id"])'
+          - 'delete_key(attributes, "prompt.id") where not IsString(attributes["prompt.id"])'
+          - 'set(attributes["event.name"], "api_request") where body == "claude_code.api_request"'
+          - 'set(attributes["event.name"], "api_error") where body == "claude_code.api_error"'
+          - 'set(attributes["event.name"], "api_retries_exhausted") where body == "claude_code.api_retries_exhausted"'
+          - 'set(event_name, body)'
+          - 'set(severity_text, "")'
+          - 'set(trace_id, TraceID(0x00000000000000000000000000000000))'
+          - 'set(span_id, SpanID(0x0000000000000000))'
+  # At this pin compaction rebuilds envelopes without their untrusted schema URLs.
+  # The integration test poisons both URLs; rerun before changing the image.
+  groupbyattrs/safe_envelope:
+    keys: []
+exporters:
+  file/capture:
+    path: /capture/logs.jsonl
+    format: json
+    flush_interval: 100ms
+service:
+  telemetry:
+    logs:
+      level: error
+    metrics:
+      level: none
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/events, transform/privacy, groupbyattrs/safe_envelope]
+      exporters: [file/capture]

@@ -20,9 +20,11 @@ tar -xzf "$archive" -C "$work" fleetdiff
 chmod 755 "$work/fleetdiff"
 CGO_ENABLED=0 GOOS=linux GOARCH=${platform#linux/} go build -o "$work/network-probe" ./scripts/testdata/network-probe
 go run ./examples/scan --out "$work/windows"
+python3 examples/claude-code-logs/fixtures.py > "$work/claude-records.jsonl"
 # Only synthetic fixtures and a test-only executable are exposed to the container.
 chmod 755 "$work/network-probe" "$work/windows"
 chmod 644 "$work/windows/"*.json
+chmod 644 "$work/claude-records.jsonl"
 cp scripts/restricted.Dockerfile "$work/Dockerfile"
 # FROM scratch has no external base to download or mutable tag to resolve.
 # Pin both runtime modes to exactly the same locally built image ID.
@@ -40,6 +42,7 @@ run_container() {
     --mount "type=bind,src=$(pwd)/examples,dst=/examples,readonly" \
     --mount "type=bind,src=$(pwd)/testdata,dst=/testdata,readonly" \
     --mount "type=bind,src=$work/windows,dst=/windows,readonly" \
+    --mount "type=bind,src=$work/claude-records.jsonl,dst=/claude-records.jsonl,readonly" \
     --mount "type=bind,src=$work/network-probe,dst=/network-probe,readonly" \
     --entrypoint "$entrypoint" "$image" "$@"
 }
@@ -95,6 +98,20 @@ check_report investigate-spend '.before.recorded_tokens == 8000 and .after.recor
     .concentration_of_increase.tracked_contributors == 2 and
     .concentration_of_increase.share_of_net_recorded_increase.lower == 1'
 
+check_case investigate-claude 0 investigate --claude-code-logs /claude-records.jsonl \
+  --before-period 2026-10-11 --after-period 2026-10-12 --source-scope offline-test \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report investigate-claude '.unit == "observed api_request records" and .finality == "unknown" and
+    .before.complete_total.tokens == 27 and .after.complete_total.tokens == 27 and
+    .after.api_error_events == 1 and .after.api_retries_exhausted_events == 1'
+
+check_case investigate-claude-rotated 0 investigate --claude-code-logs /claude-records.jsonl \
+  --claude-code-logs /claude-records.jsonl --deduplicate-exact --source-scope offline-test \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report investigate-claude-rotated '.input_files == 2 and .period_selection == "observed_span_halves" and
+    .before.observed_api_request_records == 1 and .after.observed_api_request_records == 1 and
+    .before.complete_total.tokens == 27 and .after.complete_total.tokens == 27'
+
 check_case session-budget 0 investigate --litellm-spend /examples/litellm-spend/session-budget.csv \
   --period 2026-10-03 --group-by session --session-budget-usd 1.00 \
   --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
@@ -111,4 +128,4 @@ check_report diagnose '.status == "supported_safe" and .configuration_parsed == 
 
 check_case scan 3 scan /windows --expected app --recent 2 --as-of 2026-10-04T00:30:00Z --format json
 check_report scan '.schema == "fleetdiff-scan/v1" and .unusual_windows == 2'
-printf 'PASS restricted offline binary smoke: 7 cases (%s)\n' "$platform"
+printf 'PASS restricted offline binary smoke: 9 cases (%s)\n' "$platform"
