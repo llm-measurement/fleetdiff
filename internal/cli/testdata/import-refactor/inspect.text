@@ -1,0 +1,54 @@
+Your traces can fully answer 2 of 7 questions.
+Next: Record both input and output usage; resolve invalid, conflicting, or subset-violating values. Declare unavailable usage instead of filling in zeros.
+
+4 model attempts across 6 captured spans; 170 reported tokens.
+Usage: 3 complete, 1 missing either field.
+Origin unknown: input 4, output 4 attempts.
+
+Questions
+  Model activity: ready (4/4 attempts)
+  Token usage: partial (3/4 attempts)
+    Record both input and output usage; resolve invalid, conflicting, or subset-violating values. Declare unavailable usage instead of filling in zeros.
+  Usage origin: cannot determine (0/4 attempts)
+    Add usage provenance at the provider/estimator hook. With no declaration, a real zero and a filled-in zero cannot be distinguished.
+  Distinct users: ready (4/4 attempts)
+  Top users by tokens: partial (3/4 attempts)
+    Include a user key and complete, consistent token usage on the same model attempts.
+  Session rankings: partial (2/4 attempts)
+    Add gen_ai.conversation.id or session.id to model spans to unlock session rankings by attempts.
+  Prompt rankings: cannot determine (0/4 attempts)
+    Prompt rankings use gen_ai.request.prompt when present; retain your existing prompt collection policy.
+
+Label review: estimated distinct values in this capture
+  "enduser.id": ~4; 4 observations; sensitive identifier
+  "attribute-1": ~2; 2 observations; review
+  "gen_ai.conversation.id": ~2; 2 observations; sensitive identifier
+  "gen_ai.operation.name": ~1; 4 observations; review
+  "gen_ai.request.model": ~1; 4 observations; review
+  "service.name": ~1; 4 observations; review
+  Showing 6/6 fields; nominal HLL RSE 0.81%. Values are not total series.
+
+user: ~4 distinct; identity present on 4/4 attempts
+  By attempts: 4 attributed; 4/4 candidates shown
+    user-3 (0f27320e0fd4a6c5): 1 (25.00%)
+    user-4 (30bb17f1df47a172): 1 (25.00%)
+    user-1 (b246afce563a3917): 1 (25.00%)
+    user-2 (dd1826ab378d7ea8): 1 (25.00%)
+  By tokens: 170 attributed; 2/2 candidates shown
+    user-1 (b246afce563a3917): 120 (70.59%)
+    user-2 (dd1826ab378d7ea8): 50 (29.41%)
+
+session: ~2 distinct; identity present on 2/4 attempts
+  By attempts: 2 attributed; 2/2 candidates shown
+    session-1 (4b4a9e332b761cf0): 1 (50.00%)
+    session-2 (a9a1ff091bd5497b): 1 (50.00%)
+  By tokens: 170 attributed; 2/2 candidates shown
+    session-1 (4b4a9e332b761cf0): 120 (70.59%)
+    session-2 (a9a1ff091bd5497b): 50 (29.41%)
+
+Capture notes
+  Readiness describes fields in this capture, not completeness of traffic. Counts are model attempts; deduplication is off.
+  Distinct estimates describe this capture. A label's value count is not the total number of Prometheus series; other labels multiply combinations.
+  Ranking shares use attributed weight. Token rankings require both usage fields; attempt rankings also include missing-usage attempts.
+  Usage provenance is a declaration, not authenticated provider evidence. Token subsets are not added again.
+  Hashes are pseudonymous. Default aliases and ephemeral keys do not support identity matching between runs.

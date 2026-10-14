@@ -5,7 +5,6 @@ package spend
 
 import (
 	"math/big"
-	"regexp"
 	"strings"
 
 	"github.com/llm-measurement/fleetdiff/internal/accounting"
@@ -117,26 +116,12 @@ func (q *Quality) add(v Quality) {
 	q.SpendZeroUnknown += v.SpendZeroUnknown
 }
 
-var decimalPattern = regexp.MustCompile(`^[0-9]{1,19}(\.[0-9]{1,20})?([eE][+-]?[0-9]{1,3})?$`)
-var maxCost = new(big.Rat).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
-
 // SQL float values arrive as decimal text. Preserve that text's exact value,
 // including subnormal doubles, with bounded precision and no binary rounding.
 func costValue(s string) (*big.Rat, bool) {
-	if len(s) > 48 || !decimalPattern.MatchString(s) {
-		return nil, false
-	}
-	r, ok := new(big.Rat).SetString(s)
-	if !ok || r.Sign() < 0 || r.Cmp(maxCost) > 0 {
-		return nil, false
-	}
-	if digits, exact := r.FloatPrec(); !exact || digits > 344 {
-		return nil, false
-	}
-	return r, true
+	return accounting.Cost(s)
 }
 
 func costText(n *big.Rat) string {
-	digits, _ := n.FloatPrec() // Every accepted input has a terminating decimal.
-	return n.FloatString(digits)
+	return accounting.CostText(n)
 }

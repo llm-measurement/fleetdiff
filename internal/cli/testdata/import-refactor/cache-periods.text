@@ -1,0 +1,32 @@
+Recorded tokens were unchanged (2,200 -> 2,200).
+But cache reuse fell: cache-read share 92% -> 61% (uncached input +620).
+Logged model requests: 2 -> 2.
+Before: Wed 2026-10-07 00:00:00 UTC to Thu 2026-10-08 00:00:00 UTC (end exclusive).
+After: Thu 2026-10-08 00:00:00 UTC to Fri 2026-10-09 00:00:00 UTC (end exclusive).
+
+What changed?
+  model-1 (5b9c6b9597d1dd78b90e3932e3aaa05d0f4b9f533159ab69292d40fb82be57d8): 2,200 -> 2,200 recorded tokens; 2 -> 2 requests.
+    1,100.00 -> 1,100.00 recorded tokens per request; +0 from request count, +0 from request size.
+    Cache-read share of recorded input: 92% -> 61%.
+      Cache reads: 1,840 of 2,000 input tokens -> 1,220 of 2,000 (all requests report cache detail).
+    Cache-write share of recorded input: 5% -> 7.5%.
+      Cache writes: 100 of 2,000 input tokens -> 150 of 2,000 (all requests report cache detail).
+    Uncached input +620: cache-read share fell from 92% to 61%.
+
+Who drove the change?
+  key-1 (977a7cf5669d8e11): 1,100 -> 1,100 tokens; change +0.
+  key-2 (1dfcbfe4d3e713b9): 1,100 -> 1,100 tokens; change +0.
+  Attributed tokens: 2,200 -> 2,200.
+
+Whose uncached input grew?
+  Ranked by recorded uncached-input growth on read-covered requests; volume and workload mix can also change it.
+  key-1 (977a7cf5669d8e11): 80 -> 700 uncached input tokens; change +620.
+  Cache-read coverage: all requests report cache detail.
+
+How complete is the export?
+  Zero-filled: cannot determine from this export. Provider origin: not declared by the supported SQL projection.
+  Recorded spend (USD, analyzed calls): 0.002 -> 0.002.
+  No usage problems found.
+  Rows read: 4.
+
+Next: Use your provider's cache diagnostics (Anthropic, OpenAI) to find why, and check that your gateway route preserves cache markers.

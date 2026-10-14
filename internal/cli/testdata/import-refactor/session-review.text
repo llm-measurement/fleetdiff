@@ -1,0 +1,36 @@
+3 of 4 sessions with complete recorded spend exceed the supplied USD 1.00 cap.
+Grouped by session ID alone (LiteLLM v1.104.0 counter unit). Sat 2026-10-03 00:00:00 UTC to Sun 2026-10-04 00:00:00 UTC (end exclusive).
+
+Observed session totals
+Recorded USD: p50 1.10; p95 1.60; max 1.60 (n=4, exact nearest-rank).
+Logged model calls: p50 2; p95 6; max 6 (n=4, exact nearest-rank).
+Sessions with recorded budget or iteration rejections: 1. Included in observed distributions: spend n=1, calls n=1.
+
+Largest sessions by recorded spend
+  session-1: USD 1.60; calls=3; hash e44580be67556952c0a683f049d51594860b552101c3fbdf62c976883a2449dd.
+  session-2: USD 1.20; calls=2; hash cd6748b7e221e4fd9972a26c25a984c32e905762be496682c29da776ec064af6.
+  session-3: USD 1.10; calls=6; recorded budget/iteration rejection; hash c8026a54424cf2c6895ca2d5938365106b70e36c9e59d527c0af544ac3b500ab.
+  session-4: USD 0.20; calls=1; hash 99c75c498a76fbd74314425afc5af5389479fb28e8c3758c3d0726bbf56f8717.
+
+Cap review
+Above-cap sessions with no recorded session-budget rejection: 2.
+  session-1: USD 1.60; calls=3; hash e44580be67556952c0a683f049d51594860b552101c3fbdf62c976883a2449dd.
+    Recorded session-budget rejections: 0.
+  session-2: USD 1.20; calls=2; hash cd6748b7e221e4fd9972a26c25a984c32e905762be496682c29da776ec064af6.
+    Recorded session-budget rejections: 0.
+  session-3: USD 1.10; calls=6; recorded budget/iteration rejection; hash c8026a54424cf2c6895ca2d5938365106b70e36c9e59d527c0af544ac3b500ab.
+    Recorded session-budget rejections: 1.
+Review last-call or parallel-call overshoot, the counter window, agent budget configuration and failure logging. Recorded totals alone do not establish enforcement behavior.
+
+Sessions spanning more than 3600 seconds between first and last positive-spend request starts: 1.
+  session-1: 4000 seconds.
+This is a recorded duration, not evidence that a counter reset.
+
+Session IDs observed under multiple keys, teams or agents: 1. Each addresses the same counter key; shared storage and agent budget configuration determine actual tracking.
+  session-1: keys=2, teams=2, agents=2.
+
+Identity and usage coverage
+12 logged model calls in the selected period.
+1 of 4 identified sessions contain one model call.
+Rejection classification: 13 of 13 selected rows include the derived column; failure logging completeness is unknown.
+  session_budget recorded rejections: 1.

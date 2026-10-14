@@ -1,0 +1,39 @@
+[
+  {
+    "kind": "session",
+    "parts": [
+      " Key A ",
+      "S\r\nession"
+    ],
+    "hash": "0d01e6940379fe22153a72b76eff6594ef9e6d2101643e49eddfae120b93ddea"
+  },
+  {
+    "kind": "user",
+    "parts": [
+      "café"
+    ],
+    "hash": "6dd1f42a6bbade55c5e3eb01f84be297bca0a418ea8eb84609bbb9b4c58f37bb"
+  },
+  {
+    "kind": "key",
+    "parts": [
+      "\u001c\u001d\u001e\u001f"
+    ],
+    "hash": "b9d473b1960fd8d3e20b3ec2ee955172593efb969f01df8079eaea498d52ae88"
+  },
+  {
+    "kind": "team",
+    "parts": [
+      ""
+    ],
+    "hash": "047e68ccd2fea75e3d1a40d2c5548ac8d10dc26d82e59bc9dc1a2c0b7483ec24"
+  },
+  {
+    "kind": "session",
+    "parts": [
+      "á́́́́́́́́́́́́́́́́́́́́́́́́́́́́́́",
+      "𑽁𑼾"
+    ],
+    "hash": "6432fb8e698142abecaccd8e196568ba5a99e3913f73474aabffd48aa85305d3"
+  }
+]

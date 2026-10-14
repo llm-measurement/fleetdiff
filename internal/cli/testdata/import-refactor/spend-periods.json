@@ -1,0 +1,748 @@
+{
+  "cache": {
+    "before": {
+      "requests": 8,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 8,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 8,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "uncached_input_tokens": null,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "after": {
+      "requests": 12,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 12,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 12,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "uncached_input_tokens": null,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "uncached_growth_rankings": null
+  },
+  "comparison_incomplete": false,
+  "call_types": [
+    {
+      "call_type": "acompletion",
+      "analyzed": true,
+      "before": {
+        "cache_read_detail_recorded_requests": 0,
+        "cache_write_detail_recorded_requests": 0,
+        "requests": 8,
+        "invalid_usage": 0,
+        "missing_usage": 0,
+        "prompt_tokens": 6400,
+        "completion_tokens": 1600,
+        "total_tokens": 8000
+      },
+      "after": {
+        "cache_read_detail_recorded_requests": 0,
+        "cache_write_detail_recorded_requests": 0,
+        "requests": 12,
+        "invalid_usage": 0,
+        "missing_usage": 0,
+        "prompt_tokens": 12800,
+        "completion_tokens": 3200,
+        "total_tokens": 16000
+      }
+    }
+  ],
+  "schema": "fleetdiff-litellm-spend/v1",
+  "token_accounting": "genai-default-accounting/v1+usage-provenance/v1",
+  "source_contract": "litellm-spend-rows/v1",
+  "group_by": "session",
+  "hashing": "environment",
+  "input_rows": 20,
+  "out_of_scope_rows": 0,
+  "outside_period_rows": 0,
+  "before": {
+    "cache": {
+      "requests": 8,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 8,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 8,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "uncached_input_tokens": null,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "period": {
+      "start": "2026-10-07T00:00:00Z",
+      "end_exclusive": "2026-10-08T00:00:00Z"
+    },
+    "logged_model_requests": 8,
+    "recorded_tokens": 8000,
+    "counters": {
+      "gen_ai_sketch_cache_read_input_tokens_total": 0,
+      "gen_ai_sketch_cache_write_input_tokens_total": 0,
+      "gen_ai_sketch_input_tokens_total": 6400,
+      "gen_ai_sketch_output_tokens_total": 1600,
+      "gen_ai_sketch_reasoning_output_tokens_total": 0,
+      "gen_ai_sketch_requests_total": 8,
+      "gen_ai_sketch_total_tokens_total": 8000
+    },
+    "quality": {
+      "missing_token_fields": 0,
+      "invalid_usage": 0,
+      "component_total_mismatch": 0,
+      "missing_total_field": 0,
+      "zero_only_origin_unknown": 2,
+      "failed_records": 1,
+      "unknown_status": 0,
+      "unclear_usage_records": 2,
+      "missing_group_identity": 0,
+      "missing_recorded_spend": 0,
+      "invalid_recorded_spend": 0,
+      "zero_spend_origin_unknown": 8
+    },
+    "recorded_spend_usd": "0",
+    "attributed_tokens": 8000,
+    "distinct_groups_estimate": 8.000122072795856,
+    "distinct_nominal_rse": 0.008125
+  },
+  "after": {
+    "cache": {
+      "requests": 12,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 12,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 0,
+        "covered_requests": 0,
+        "missing_detail_requests": 12,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": null,
+        "tokens": null,
+        "share_of_recorded_input": null
+      },
+      "uncached_input_tokens": null,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "period": {
+      "start": "2026-10-08T00:00:00Z",
+      "end_exclusive": "2026-10-09T00:00:00Z"
+    },
+    "logged_model_requests": 12,
+    "recorded_tokens": 16000,
+    "counters": {
+      "gen_ai_sketch_cache_read_input_tokens_total": 0,
+      "gen_ai_sketch_cache_write_input_tokens_total": 0,
+      "gen_ai_sketch_input_tokens_total": 12800,
+      "gen_ai_sketch_output_tokens_total": 3200,
+      "gen_ai_sketch_reasoning_output_tokens_total": 0,
+      "gen_ai_sketch_requests_total": 12,
+      "gen_ai_sketch_total_tokens_total": 16000
+    },
+    "quality": {
+      "missing_token_fields": 0,
+      "invalid_usage": 0,
+      "component_total_mismatch": 0,
+      "missing_total_field": 0,
+      "zero_only_origin_unknown": 4,
+      "failed_records": 2,
+      "unknown_status": 0,
+      "unclear_usage_records": 4,
+      "missing_group_identity": 0,
+      "missing_recorded_spend": 0,
+      "invalid_recorded_spend": 0,
+      "zero_spend_origin_unknown": 12
+    },
+    "recorded_spend_usd": "0",
+    "attributed_tokens": 16000,
+    "distinct_groups_estimate": 12.000274666584165,
+    "distinct_nominal_rse": 0.008125
+  },
+  "models": [
+    {
+      "item": "model-1",
+      "hash": "9e3b6340339f1799b4f8dde02b1230e56410938df6e7f91e1d4fc1b5ae0e7576",
+      "before": {
+        "cache": {
+          "requests": 4,
+          "read": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 4,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "write": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 4,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "uncached_input_tokens": null,
+          "read_covered_requests_without_group_identity": 0
+        },
+        "period": {
+          "start": "2026-10-07T00:00:00Z",
+          "end_exclusive": "2026-10-08T00:00:00Z"
+        },
+        "logged_model_requests": 4,
+        "recorded_tokens": 4000,
+        "counters": {
+          "gen_ai_sketch_cache_read_input_tokens_total": 0,
+          "gen_ai_sketch_cache_write_input_tokens_total": 0,
+          "gen_ai_sketch_input_tokens_total": 3200,
+          "gen_ai_sketch_output_tokens_total": 800,
+          "gen_ai_sketch_reasoning_output_tokens_total": 0,
+          "gen_ai_sketch_requests_total": 4,
+          "gen_ai_sketch_total_tokens_total": 4000
+        },
+        "quality": {
+          "missing_token_fields": 0,
+          "invalid_usage": 0,
+          "component_total_mismatch": 0,
+          "missing_total_field": 0,
+          "zero_only_origin_unknown": 0,
+          "failed_records": 0,
+          "unknown_status": 0,
+          "unclear_usage_records": 0,
+          "missing_group_identity": 0,
+          "missing_recorded_spend": 0,
+          "invalid_recorded_spend": 0,
+          "zero_spend_origin_unknown": 4
+        },
+        "recorded_spend_usd": "0"
+      },
+      "after": {
+        "cache": {
+          "requests": 6,
+          "read": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 6,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "write": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 6,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "uncached_input_tokens": null,
+          "read_covered_requests_without_group_identity": 0
+        },
+        "period": {
+          "start": "2026-10-08T00:00:00Z",
+          "end_exclusive": "2026-10-09T00:00:00Z"
+        },
+        "logged_model_requests": 6,
+        "recorded_tokens": 12000,
+        "counters": {
+          "gen_ai_sketch_cache_read_input_tokens_total": 0,
+          "gen_ai_sketch_cache_write_input_tokens_total": 0,
+          "gen_ai_sketch_input_tokens_total": 9600,
+          "gen_ai_sketch_output_tokens_total": 2400,
+          "gen_ai_sketch_reasoning_output_tokens_total": 0,
+          "gen_ai_sketch_requests_total": 6,
+          "gen_ai_sketch_total_tokens_total": 12000
+        },
+        "quality": {
+          "missing_token_fields": 0,
+          "invalid_usage": 0,
+          "component_total_mismatch": 0,
+          "missing_total_field": 0,
+          "zero_only_origin_unknown": 0,
+          "failed_records": 0,
+          "unknown_status": 0,
+          "unclear_usage_records": 0,
+          "missing_group_identity": 0,
+          "missing_recorded_spend": 0,
+          "invalid_recorded_spend": 0,
+          "zero_spend_origin_unknown": 6
+        },
+        "recorded_spend_usd": "0"
+      },
+      "recorded_volume_split": {
+        "before_reported_tokens": 4000,
+        "after_reported_tokens": 12000,
+        "before_requests": 4,
+        "after_requests": 6,
+        "before_tokens_per_request": 1000,
+        "after_tokens_per_request": 2000,
+        "request_count_contribution_tokens": 3000,
+        "tokens_per_request_contribution_tokens": 5000
+      }
+    },
+    {
+      "item": "model-2",
+      "hash": "ee429eeac30892aebe572bbc91ea3d7eadfac7f7f3aa191152438d7f457f0cbb",
+      "before": {
+        "cache": {
+          "requests": 4,
+          "read": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 4,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "write": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 4,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "uncached_input_tokens": null,
+          "read_covered_requests_without_group_identity": 0
+        },
+        "period": {
+          "start": "2026-10-07T00:00:00Z",
+          "end_exclusive": "2026-10-08T00:00:00Z"
+        },
+        "logged_model_requests": 4,
+        "recorded_tokens": 4000,
+        "counters": {
+          "gen_ai_sketch_cache_read_input_tokens_total": 0,
+          "gen_ai_sketch_cache_write_input_tokens_total": 0,
+          "gen_ai_sketch_input_tokens_total": 3200,
+          "gen_ai_sketch_output_tokens_total": 800,
+          "gen_ai_sketch_reasoning_output_tokens_total": 0,
+          "gen_ai_sketch_requests_total": 4,
+          "gen_ai_sketch_total_tokens_total": 4000
+        },
+        "quality": {
+          "missing_token_fields": 0,
+          "invalid_usage": 0,
+          "component_total_mismatch": 0,
+          "missing_total_field": 0,
+          "zero_only_origin_unknown": 2,
+          "failed_records": 1,
+          "unknown_status": 0,
+          "unclear_usage_records": 2,
+          "missing_group_identity": 0,
+          "missing_recorded_spend": 0,
+          "invalid_recorded_spend": 0,
+          "zero_spend_origin_unknown": 4
+        },
+        "recorded_spend_usd": "0"
+      },
+      "after": {
+        "cache": {
+          "requests": 6,
+          "read": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 6,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "write": {
+            "coverage_known": true,
+            "reported_requests": 0,
+            "covered_requests": 0,
+            "missing_detail_requests": 6,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": null,
+            "tokens": null,
+            "share_of_recorded_input": null
+          },
+          "uncached_input_tokens": null,
+          "read_covered_requests_without_group_identity": 0
+        },
+        "period": {
+          "start": "2026-10-08T00:00:00Z",
+          "end_exclusive": "2026-10-09T00:00:00Z"
+        },
+        "logged_model_requests": 6,
+        "recorded_tokens": 4000,
+        "counters": {
+          "gen_ai_sketch_cache_read_input_tokens_total": 0,
+          "gen_ai_sketch_cache_write_input_tokens_total": 0,
+          "gen_ai_sketch_input_tokens_total": 3200,
+          "gen_ai_sketch_output_tokens_total": 800,
+          "gen_ai_sketch_reasoning_output_tokens_total": 0,
+          "gen_ai_sketch_requests_total": 6,
+          "gen_ai_sketch_total_tokens_total": 4000
+        },
+        "quality": {
+          "missing_token_fields": 0,
+          "invalid_usage": 0,
+          "component_total_mismatch": 0,
+          "missing_total_field": 0,
+          "zero_only_origin_unknown": 4,
+          "failed_records": 2,
+          "unknown_status": 0,
+          "unclear_usage_records": 4,
+          "missing_group_identity": 0,
+          "missing_recorded_spend": 0,
+          "invalid_recorded_spend": 0,
+          "zero_spend_origin_unknown": 6
+        },
+        "recorded_spend_usd": "0"
+      }
+    }
+  ],
+  "rankings": {
+    "name": "top_session",
+    "weight_unit": "attributed-recorded-tokens",
+    "before_weight": 8000,
+    "after_weight": 16000,
+    "before_max_error": 0,
+    "after_max_error": 0,
+    "candidate_count": 14,
+    "untracked_delta_bound": {
+      "lower": 0,
+      "upper": 0
+    },
+    "tracked_movers": [
+      {
+        "item": "session-1",
+        "hash": "816cb9397ca2361a",
+        "before": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "after": {
+          "lower": 0,
+          "upper": 0
+        },
+        "delta": {
+          "lower": -2000,
+          "upper": -2000
+        },
+        "direction": "decreased"
+      },
+      {
+        "item": "session-2",
+        "hash": "55e2e9a9d1a469b5",
+        "before": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "after": {
+          "lower": 0,
+          "upper": 0
+        },
+        "delta": {
+          "lower": -2000,
+          "upper": -2000
+        },
+        "direction": "decreased"
+      },
+      {
+        "item": "session-3",
+        "hash": "9436e6085b7809ac",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-4",
+        "hash": "92e20bf5a5587368",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-5",
+        "hash": "e8027ee8563364cf",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-6",
+        "hash": "270866b65e7c413f",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-7",
+        "hash": "8465fbb30bb71164",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-8",
+        "hash": "5d0c2121fb19a72c",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-9",
+        "hash": "6ea296250f8f9c1a",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-10",
+        "hash": "777f19a7137988bb",
+        "before": {
+          "lower": 0,
+          "upper": 0
+        },
+        "after": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "delta": {
+          "lower": 2000,
+          "upper": 2000
+        },
+        "direction": "increased"
+      },
+      {
+        "item": "session-11",
+        "hash": "ad7f92e2521cb986",
+        "before": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "after": {
+          "lower": 0,
+          "upper": 0
+        },
+        "delta": {
+          "lower": -1000,
+          "upper": -1000
+        },
+        "direction": "decreased"
+      },
+      {
+        "item": "session-12",
+        "hash": "9267800bdfe9cad8",
+        "before": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "after": {
+          "lower": 0,
+          "upper": 0
+        },
+        "delta": {
+          "lower": -1000,
+          "upper": -1000
+        },
+        "direction": "decreased"
+      },
+      {
+        "item": "session-13",
+        "hash": "21df4eafedbd907b",
+        "before": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "after": {
+          "lower": 0,
+          "upper": 0
+        },
+        "delta": {
+          "lower": -1000,
+          "upper": -1000
+        },
+        "direction": "decreased"
+      },
+      {
+        "item": "session-14",
+        "hash": "1efeb420e08f0d0f",
+        "before": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "after": {
+          "lower": 0,
+          "upper": 0
+        },
+        "delta": {
+          "lower": -1000,
+          "upper": -1000
+        },
+        "direction": "decreased"
+      }
+    ]
+  },
+  "concentration_of_increase": {
+    "tracked_contributors": 2,
+    "recorded_token_delta": {
+      "lower": 4000,
+      "upper": 4000
+    },
+    "share_of_net_recorded_increase": {
+      "lower": 0.5,
+      "upper": 0.5
+    }
+  },
+  "zero_filled": "cannot determine from this export",
+  "provider_origin": "not declared by the supported SQL projection",
+  "notes": [
+    "Periods are half-open UTC intervals selected by request startTime; rows crossing a boundary remain in their start period.",
+    "Counts describe supplied logged model requests. Export completeness and hidden provider retries are not established by spend rows.",
+    "Zero-only rows have unknown origin. Failures overlap usage categories; valid counts on failures remain recorded.",
+    "Aliases use local keyed hashes; session identities are scoped to their API key. A recorded session need not be an agent conversation.",
+    "Recorded spend is the exact decimal sum of usable source values in USD, not an invoice. Default-zero costs have unknown origin.",
+    "Rankings describe tracked candidates; concentration uses the net recorded increase and can exceed 100% when other contributors decreased."
+  ]
+}
