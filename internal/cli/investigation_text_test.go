@@ -87,10 +87,12 @@ func TestCacheInvestigationTextAndJSON(t *testing.T) {
 				t.Fatal("cache replaced the existing headline", out.String())
 			}
 			for _, want := range []string{
-				"Cached-token share: 60.00% -> 20.00% (-40.00 percentage points; decreased).",
-				"Recorded cache-read/input tokens: 600/1000 -> 200/1000.",
-				"Before: 2026-10-04T00:00:00Z for 1m0s.", "After: 2026-10-04T00:01:00Z for 1m0s.",
-				"Share of recorded input tokens served from cache.",
+				"Cache-read share of recorded input: 60% -> 20%.",
+				"Cache reads: 600 of 1,000 input tokens -> 200 of 1,000 (all requests report cache detail).",
+				"But cache reuse fell: cache-read share 60% -> 20% (uncached input +400).",
+				cacheDiagnosticsNext,
+				"Cache-write detail not recorded.",
+				"not cache totals by model or key/session",
 				"Turn on user and session rankings (topk_keys) for more answers.",
 			} {
 				if !strings.Contains(out.String(), want) {

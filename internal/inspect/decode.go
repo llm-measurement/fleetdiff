@@ -14,6 +14,8 @@ import (
 	"io"
 	"unicode/utf8"
 
+	"github.com/llm-measurement/fleetdiff/internal/boundedjson"
+
 	tracepb "go.opentelemetry.io/proto/slim/otlp/collector/trace/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -101,14 +103,8 @@ func decodeJSON(data []byte) (*traceRequest, error) {
 	if !utf8.Valid(data) {
 		return nil, errEncoding
 	}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.UseNumber()
-	left := maxJSONNodes
-	value, err := readJSONValue(dec, 0, &left)
+	value, err := boundedjson.Decode(data, maxJSONDepth, maxJSONNodes)
 	if err != nil {
-		return nil, errEncoding
-	}
-	if _, err = dec.Token(); !errors.Is(err, io.EOF) {
 		return nil, errEncoding
 	}
 	root, ok := value.(map[string]any)
@@ -203,59 +199,4 @@ func fixIDs(v any, parent bool) error {
 		m[f.name] = base64.StdEncoding.EncodeToString(b)
 	}
 	return nil
-}
-
-func readJSONValue(d *json.Decoder, depth int, left *int) (any, error) {
-	*left--
-	if depth > maxJSONDepth || *left < 0 {
-		return nil, errEncoding
-	}
-	t, err := d.Token()
-	if err != nil {
-		return nil, err
-	}
-	switch t {
-	case json.Delim('{'):
-		m := map[string]any{}
-		for d.More() {
-			t, err := d.Token()
-			if err != nil {
-				return nil, err
-			}
-			key, ok := t.(string)
-			if !ok {
-				return nil, errEncoding
-			}
-			if _, duplicate := m[key]; duplicate {
-				return nil, errEncoding
-			}
-			v, err := readJSONValue(d, depth+1, left)
-			if err != nil {
-				return nil, err
-			}
-			m[key] = v
-		}
-		if t, err := d.Token(); err != nil || t != json.Delim('}') {
-			return nil, errEncoding
-		}
-		return m, nil
-	case json.Delim('['):
-		a := []any{}
-		for d.More() {
-			v, err := readJSONValue(d, depth+1, left)
-			if err != nil {
-				return nil, err
-			}
-			a = append(a, v)
-		}
-		if t, err := d.Token(); err != nil || t != json.Delim(']') {
-			return nil, errEncoding
-		}
-		return a, nil
-	default:
-		if _, bad := t.(json.Delim); bad {
-			return nil, errEncoding
-		}
-		return t, nil
-	}
 }

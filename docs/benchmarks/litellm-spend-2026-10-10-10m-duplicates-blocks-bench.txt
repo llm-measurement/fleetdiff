@@ -1,0 +1,6 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/llm-measurement/fleetdiff/internal/spend
+cpu: Apple M4 Max
+BenchmarkSpendDuplicateState10M/RequestDigests32-16         	       1	1865758625 ns/op	 320864256 capacity-B	 320000000 payload-B	 320872560 retained-B	320880112 B/op	     317 allocs/op
+PASS

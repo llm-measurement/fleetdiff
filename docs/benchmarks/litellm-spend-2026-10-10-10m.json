@@ -1,0 +1,149 @@
+{
+  "source_commit": "06f2a52fe87ae669f169f16814ef2cf17510e67f",
+  "binary_sha256": "418a11668a0949e7993bb4f7c35c5c7f04fa12d7791ce5e9db297cc10f8bbd9d",
+  "build": "go build -trimpath -o bin/fleetdiff ./cmd/fleetdiff",
+  "machine": {
+    "cpu": "Apple M4 Max",
+    "cores": 16,
+    "ram_bytes": 68719476736,
+    "os": "macOS 27.0.1 (26A434)",
+    "arch": "arm64",
+    "go": "1.26.9"
+  },
+  "test_secret": "llm-measurement-p1-public-benchmark-key",
+  "results": [
+    {
+      "case": "csv",
+      "rows": 10000000,
+      "wall_seconds": 114.55,
+      "peak_rss_bytes": 662323200,
+      "generator_arguments": [
+        "--rows",
+        "10000000",
+        "--format",
+        "csv",
+        "--unique-keys"
+      ],
+      "periods": {
+        "before": {
+          "start": "2026-10-07T00:00:00Z",
+          "end_exclusive": "2026-10-08T00:00:00Z"
+        },
+        "after": {
+          "start": "2026-10-08T00:00:00Z",
+          "end_exclusive": "2026-10-09T00:00:00Z"
+        }
+      },
+      "tokens": {
+        "before": 4000000000,
+        "after": 8000000000
+      },
+      "requests": {
+        "before": 4000000,
+        "after": 6000000
+      },
+      "outside_period_rows": 0,
+      "os_record": "litellm-spend-2026-10-10-10m-csv.txt"
+    },
+    {
+      "case": "jsonl",
+      "rows": 10000000,
+      "wall_seconds": 300.68,
+      "peak_rss_bytes": 664993792,
+      "generator_arguments": [
+        "--rows",
+        "10000000",
+        "--format",
+        "jsonl"
+      ],
+      "periods": {
+        "before": {
+          "start": "2026-10-07T00:00:00Z",
+          "end_exclusive": "2026-10-08T00:00:00Z"
+        },
+        "after": {
+          "start": "2026-10-08T00:00:00Z",
+          "end_exclusive": "2026-10-09T00:00:00Z"
+        }
+      },
+      "tokens": {
+        "before": 4000000000,
+        "after": 8000000000
+      },
+      "requests": {
+        "before": 4000000,
+        "after": 6000000
+      },
+      "outside_period_rows": 0,
+      "os_record": "litellm-spend-2026-10-10-10m-jsonl.txt"
+    },
+    {
+      "case": "json",
+      "rows": 10000000,
+      "wall_seconds": 331.77,
+      "peak_rss_bytes": 664567808,
+      "generator_arguments": [
+        "--rows",
+        "10000000",
+        "--format",
+        "json",
+        "--key-cardinality",
+        "100000"
+      ],
+      "periods": {
+        "before": {
+          "start": "2026-10-07T00:00:00Z",
+          "end_exclusive": "2026-10-08T00:00:00Z"
+        },
+        "after": {
+          "start": "2026-10-08T00:00:00Z",
+          "end_exclusive": "2026-10-09T00:00:00Z"
+        }
+      },
+      "tokens": {
+        "before": 4000000000,
+        "after": 8000000000
+      },
+      "requests": {
+        "before": 4000000,
+        "after": 6000000
+      },
+      "outside_period_rows": 0,
+      "os_record": "litellm-spend-2026-10-10-10m-json.txt"
+    },
+    {
+      "case": "auto",
+      "rows": 10000000,
+      "wall_seconds": 140.9,
+      "peak_rss_bytes": 661438464,
+      "generator_arguments": [
+        "--rows",
+        "10000000",
+        "--format",
+        "csv",
+        "--days",
+        "16"
+      ],
+      "periods": {
+        "before": {
+          "start": "2026-09-24T00:00:00Z",
+          "end_exclusive": "2026-10-01T00:00:00Z"
+        },
+        "after": {
+          "start": "2026-10-01T00:00:00Z",
+          "end_exclusive": "2026-10-08T00:00:00Z"
+        }
+      },
+      "tokens": {
+        "before": 5250000000,
+        "after": 5250000000
+      },
+      "requests": {
+        "before": 4375000,
+        "after": 4375000
+      },
+      "outside_period_rows": 1250000,
+      "os_record": "litellm-spend-2026-10-10-10m-auto.txt"
+    }
+  ]
+}

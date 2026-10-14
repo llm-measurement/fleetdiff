@@ -17,6 +17,15 @@ import (
 func renderInvestigation(out io.Writer, r compare.Investigation, threshold float64) {
 	headline := investigationHeadline(r)
 	fmt.Fprintln(out, headline)
+	cacheFell := false
+	for _, q := range r.Questions {
+		if q.ID == "cache" && q.CacheView != nil {
+			v := q.CacheView
+			renderCacheHeadline(out, v.Before, v.After)
+			change := cacheReadChange(v.Before, v.After)
+			cacheFell = change != nil && change.Sign() < 0
+		}
+	}
 	volumeShown, attributed, flagged := false, false, false
 	for _, q := range r.Questions {
 		if v := q.Volume; v != nil {
@@ -106,7 +115,21 @@ func renderInvestigation(out io.Writer, r compare.Investigation, threshold float
 			continue
 		}
 		fmt.Fprintln(out, "\nDid caching get worse?")
-		if c := q.Cache; c != nil {
+		if v := q.CacheView; v != nil {
+			if !v.Before.HasDetail() && !v.After.HasDetail() {
+				fmt.Fprintln(out, "Cache detail not recorded in these summaries.")
+			} else {
+				var beforeTokens, afterTokens uint64
+				for _, counter := range r.Evidence.Counters {
+					if counter.Name == "input_tokens" || counter.Name == "output_tokens" {
+						beforeTokens += counter.Before
+						afterTokens += counter.After
+					}
+				}
+				renderCachePair(out, v.Before, v.After, beforeTokens, afterTokens)
+			}
+			fmt.Fprintln(out, "  "+v.GroupingGap)
+		} else if c := q.Cache; c != nil {
 			fmt.Fprintf(out, "Cached-token share: %.2f%% -> %.2f%% (%+.2f percentage points; %s).\n", c.BeforeShare*100, c.AfterShare*100, c.DeltaPercentagePoints, c.Direction)
 			fmt.Fprintf(out, "  Recorded cache-read/input tokens: %d/%d -> %d/%d.\n", c.BeforeCacheReadInputTokens, c.BeforeInputTokens, c.AfterCacheReadInputTokens, c.AfterInputTokens)
 			for _, entry := range []struct {
@@ -148,6 +171,9 @@ func renderInvestigation(out io.Writer, r compare.Investigation, threshold float
 	}
 	if len(missingRankings) > 0 {
 		fmt.Fprintf(out, "Turn on %s rankings (topk_keys) for more answers.\n", strings.Join(missingRankings, " and "))
+	}
+	if cacheFell {
+		fmt.Fprintln(out, "\n"+cacheDiagnosticsNext)
 	}
 }
 

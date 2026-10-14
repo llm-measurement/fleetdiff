@@ -2,6 +2,73 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.8.0] - 2026-10-11
+
+See the [release notes](docs/releases/v0.8.0.md) for session-budget review and
+the additive SQL export columns.
+
+- Add single-period LiteLLM session-budget review: exact recorded-spend and call
+  distributions, supplied-cap review, shared session counters, positive-spend
+  durations, identity coverage and evidence-based clipped or possibly clipped
+  sessions. Cap or single-period flags imply session grouping; files without a
+  complete UTC day use their labeled observed span. Keep
+  two-period comparisons unchanged.
+- Add content-free `rejection_kind` and `agent_id` columns to the pinned
+  LiteLLM export. Existing exports remain readable with unknown rejection
+  coverage; fleetdiff v0.7.0 safely ignores the additional columns.
+
+## [0.7.0] - 2026-10-11
+
+See the [release notes](docs/releases/v0.7.0.md) for the SQL export default and
+report upgrade.
+
+- Compare recorded cache-read and cache-write shares and uncached input on
+  LiteLLM exports, with keyed uncached-growth rankings and separate coverage.
+  Include version-pinned cache and reasoning columns in the SQL export by
+  default, preserving absent writer paths as NULL.
+- Extend summary cache comparisons with independent read/write coverage and
+  uncached totals; identify unavailable model and contributor breakdowns.
+- Ship a deterministic synthetic OTLP capture for binary-only inspection,
+  checked byte for byte against its generator in CI.
+- Lead with significant recorded cache changes, show request coverage in words,
+  and direct cache-read-share drops to provider diagnostics and route checks.
+
+## [0.6.1] - 2026-10-11
+
+See the [release notes](docs/releases/v0.6.1.md) for upgrade details.
+
+- Upgrade llm-sketchkit to v0.2.3 for parser allocation limits, more efficient
+  summary combination and safer secret/error diagnostics. Keep the existing
+  x/text v0.41.0 normalization dependency, identities and summary wire format.
+  This is the hardening backport; the v0.3.0 identity migration is separate.
+
+## [0.6.0] - 2026-10-11
+
+See the [release notes](docs/releases/v0.6.0.md) for the LiteLLM workflow and
+upgrade details.
+
+- Investigate LiteLLM request-level SQL exports in CSV, JSON or JSONL locally,
+  without a collector. Compare complete UTC periods, recorded request count and
+  size by model, and keyed contributor rankings with concentration bounds.
+- Show ambiguous zero-only rows, missing/invalid usage, failures and exact
+  decimal recorded spend separately. Share token accounting with `inspect` and
+  preserve the collector's accounting fixtures.
+- Bound file, row, field, nesting, model and duplicate-tracking resources;
+  recognize daily aggregate exports and direct operators to request-level rows.
+- Include native Anthropic Messages and Responses spend rows using pinned
+  logging/writer probes. Lead partial comparisons with call-type coverage and
+  keep unpinned token columns separate from analyzed totals.
+- Accept up to 10 million rows with full-length keyed request digests in bounded
+  blocks; export CSV in one database pass, with JSONL opt-in. Compute increase
+  concentration before display truncation and keep tied aliases in file order.
+- Show offsetting contributor changes as token totals instead of percentages
+  above 100%, label the all-model decomposition, and distinguish clean usage
+  from reports with listed quality issues.
+- Lead the shorter README with export, verified installation and investigation;
+  retain summary, trace and configuration workflows in the documentation.
+- Build release artifacts with Go 1.26.9; source builds require Go 1.26 or later.
+  Add signed-commit and sign-off checks, CodeQL scanning and dependency reporting.
+
 ## [0.5.0] - 2026-10-04
 
 See the [release notes](docs/releases/v0.5.0.md) for examples and upgrade details.

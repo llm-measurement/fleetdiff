@@ -5,7 +5,20 @@ accounting, token coverage and origin, and the fields available for user, prompt
 and session questions. It reads locally; it does not start a receiver or contact
 your provider.
 
-## Try It With Go Only
+## Try It With A Binary
+
+With `fleetdiff` on your `PATH`, run from the repository root:
+
+```sh
+fleetdiff inspect examples/inspect/synthetic-traces.json
+```
+
+No Go installation is needed. This ready-made OTLP capture is the deterministic
+stock output of the example generator, with only synthetic identifiers and no
+prompt or response content. `synthetic-spans.json` is the separate generator
+source, not an OTLP capture for `inspect`.
+
+## Regenerate With Go
 
 From the repository root:
 
@@ -18,6 +31,12 @@ The script builds the current CLI in a temporary directory, generates six
 synthetic spans, prints the inspection, and removes its temporary files. No
 collector, Python environment, credentials, or model calls are needed. It also
 works when invoked by absolute path from another directory.
+
+To reproduce the shipped capture (CI checks exact bytes):
+
+```sh
+go run ./examples/inspect --variant stock > examples/inspect/synthetic-traces.json
+```
 
 Both variants contain four model attempts, a tool span, and an agent wrapper.
 The model spans carry 140 input and 30 output tokens. One attempt has no token

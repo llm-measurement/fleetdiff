@@ -1,0 +1,358 @@
+{
+  "schema": "fleetdiff-inspect/v1",
+  "accounting_id": "genai-default-accounting/v1+usage-provenance/v1",
+  "hashing": "environment",
+  "capture": {
+    "files": 1,
+    "bytes": 3503,
+    "records": 1,
+    "spans": 6,
+    "dropped_attributes": 0
+  },
+  "metrics": {
+    "gen_ai_sketch_agent_runs_total": 1,
+    "gen_ai_sketch_cache_read_input_tokens_total": 25,
+    "gen_ai_sketch_cache_write_input_tokens_total": 0,
+    "gen_ai_sketch_dedup_key_missing_total": 0,
+    "gen_ai_sketch_dedup_suppressed_total": 0,
+    "gen_ai_sketch_input_tokens_total": 140,
+    "gen_ai_sketch_missing_token_usage_total": 1,
+    "gen_ai_sketch_output_tokens_total": 30,
+    "gen_ai_sketch_reasoning_output_tokens_total": 5,
+    "gen_ai_sketch_requests_total": 4,
+    "gen_ai_sketch_total_tokens_total": 170
+  },
+  "observed_counters": {
+    "gen_ai_sketch_agent_runs_total": 1,
+    "gen_ai_sketch_cache_read_input_tokens_total": 25,
+    "gen_ai_sketch_cache_write_input_tokens_total": 0,
+    "gen_ai_sketch_dedup_key_missing_total": 0,
+    "gen_ai_sketch_dedup_suppressed_total": 0,
+    "gen_ai_sketch_input_tokens_total": 140,
+    "gen_ai_sketch_missing_token_usage_total": 1,
+    "gen_ai_sketch_output_tokens_total": 30,
+    "gen_ai_sketch_reasoning_output_tokens_total": 5,
+    "gen_ai_sketch_requests_total": 4,
+    "gen_ai_sketch_total_tokens_total": 170
+  },
+  "metric_saturations": [],
+  "token_observations": {
+    "cache_read_input/conflict": 0,
+    "cache_read_input/invalid": 0,
+    "cache_read_input/missing": 0,
+    "cache_read_input/reported": 1,
+    "cache_read_input/subset_violation": 0,
+    "cache_write_input/conflict": 0,
+    "cache_write_input/invalid": 0,
+    "cache_write_input/missing": 0,
+    "cache_write_input/reported": 0,
+    "cache_write_input/subset_violation": 0,
+    "input/conflict": 0,
+    "input/invalid": 0,
+    "input/missing": 1,
+    "input/reported": 3,
+    "input/subset_violation": 0,
+    "output/conflict": 0,
+    "output/invalid": 0,
+    "output/missing": 1,
+    "output/reported": 3,
+    "output/subset_violation": 0,
+    "reasoning_output/conflict": 0,
+    "reasoning_output/invalid": 0,
+    "reasoning_output/missing": 0,
+    "reasoning_output/reported": 1,
+    "reasoning_output/subset_violation": 0
+  },
+  "usage_provenance": {
+    "input/inferred": 0,
+    "input/provider_reported": 0,
+    "input/unavailable": 0,
+    "input/unknown": 4,
+    "output/inferred": 0,
+    "output/provider_reported": 0,
+    "output/unavailable": 0,
+    "output/unknown": 4
+  },
+  "operation_mix": {
+    "agent": 1,
+    "model": 4,
+    "tool": 1
+  },
+  "readiness": {
+    "ready": 2,
+    "total": 7,
+    "questions": [
+      {
+        "id": "model_activity",
+        "status": "ready",
+        "covered_attempts": 4,
+        "total_attempts": 4
+      },
+      {
+        "id": "token_usage",
+        "status": "partial",
+        "covered_attempts": 3,
+        "total_attempts": 4,
+        "next_step": "Record both input and output usage; resolve invalid, conflicting, or subset-violating values. Declare unavailable usage instead of filling in zeros."
+      },
+      {
+        "id": "usage_origin",
+        "status": "cannot_determine",
+        "covered_attempts": 0,
+        "total_attempts": 4,
+        "next_step": "Add usage provenance at the provider/estimator hook. With no declaration, a real zero and a filled-in zero cannot be distinguished."
+      },
+      {
+        "id": "distinct_users",
+        "status": "ready",
+        "covered_attempts": 4,
+        "total_attempts": 4
+      },
+      {
+        "id": "top_users_by_tokens",
+        "status": "partial",
+        "covered_attempts": 3,
+        "total_attempts": 4,
+        "next_step": "Include a user key and complete, consistent token usage on the same model attempts."
+      },
+      {
+        "id": "session_rankings",
+        "status": "partial",
+        "covered_attempts": 2,
+        "total_attempts": 4,
+        "next_step": "Add gen_ai.conversation.id or session.id to model spans to unlock session rankings by attempts."
+      },
+      {
+        "id": "prompt_rankings",
+        "status": "cannot_determine",
+        "covered_attempts": 0,
+        "total_attempts": 4,
+        "next_step": "Prompt rankings use gen_ai.request.prompt when present; retain your existing prompt collection policy."
+      }
+    ]
+  },
+  "dimensions": [
+    {
+      "attribute": "enduser.id",
+      "observations": 4,
+      "estimated_distinct_values": 4.000030517888555,
+      "nominal_rse": 0.008125,
+      "label_risk": "sensitive_identifier"
+    },
+    {
+      "attribute": "attribute-1",
+      "name_hidden": true,
+      "observations": 2,
+      "estimated_distinct_values": 2.0000076294333358,
+      "nominal_rse": 0.008125,
+      "label_risk": "review"
+    },
+    {
+      "attribute": "gen_ai.conversation.id",
+      "observations": 2,
+      "estimated_distinct_values": 2.0000076294333358,
+      "nominal_rse": 0.008125,
+      "label_risk": "sensitive_identifier"
+    },
+    {
+      "attribute": "gen_ai.operation.name",
+      "observations": 4,
+      "estimated_distinct_values": 1.0000019073389315,
+      "nominal_rse": 0.008125,
+      "label_risk": "review"
+    },
+    {
+      "attribute": "gen_ai.request.model",
+      "observations": 4,
+      "estimated_distinct_values": 1.0000019073389315,
+      "nominal_rse": 0.008125,
+      "label_risk": "review"
+    },
+    {
+      "attribute": "service.name",
+      "observations": 4,
+      "estimated_distinct_values": 1.0000019073389315,
+      "nominal_rse": 0.008125,
+      "label_risk": "review"
+    }
+  ],
+  "identities": [
+    {
+      "field": "user",
+      "present_attempts": 4,
+      "token_covered_attempts": 3,
+      "estimated_distinct": 4.000030517888555,
+      "nominal_rse": 0.008125,
+      "rankings": [
+        {
+          "weight": "attempts",
+          "attributed_weight": 4,
+          "candidates": 4,
+          "max_error": 0,
+          "items": [
+            {
+              "alias": "user-3",
+              "hash": "0f27320e0fd4a6c5",
+              "estimate": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "lower_share": 0.25,
+              "upper_share": 0.25
+            },
+            {
+              "alias": "user-4",
+              "hash": "30bb17f1df47a172",
+              "estimate": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "lower_share": 0.25,
+              "upper_share": 0.25
+            },
+            {
+              "alias": "user-1",
+              "hash": "b246afce563a3917",
+              "estimate": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "lower_share": 0.25,
+              "upper_share": 0.25
+            },
+            {
+              "alias": "user-2",
+              "hash": "dd1826ab378d7ea8",
+              "estimate": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "lower_share": 0.25,
+              "upper_share": 0.25
+            }
+          ]
+        },
+        {
+          "weight": "tokens",
+          "attributed_weight": 170,
+          "candidates": 2,
+          "max_error": 0,
+          "items": [
+            {
+              "alias": "user-1",
+              "hash": "b246afce563a3917",
+              "estimate": 120,
+              "lower_bound": 120,
+              "upper_bound": 120,
+              "lower_share": 0.7058823529411765,
+              "upper_share": 0.7058823529411765
+            },
+            {
+              "alias": "user-2",
+              "hash": "dd1826ab378d7ea8",
+              "estimate": 50,
+              "lower_bound": 50,
+              "upper_bound": 50,
+              "lower_share": 0.29411764705882354,
+              "upper_share": 0.29411764705882354
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "session",
+      "present_attempts": 2,
+      "token_covered_attempts": 2,
+      "estimated_distinct": 2.0000076294333358,
+      "nominal_rse": 0.008125,
+      "rankings": [
+        {
+          "weight": "attempts",
+          "attributed_weight": 2,
+          "candidates": 2,
+          "max_error": 0,
+          "items": [
+            {
+              "alias": "session-1",
+              "hash": "4b4a9e332b761cf0",
+              "estimate": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "lower_share": 0.5,
+              "upper_share": 0.5
+            },
+            {
+              "alias": "session-2",
+              "hash": "a9a1ff091bd5497b",
+              "estimate": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "lower_share": 0.5,
+              "upper_share": 0.5
+            }
+          ]
+        },
+        {
+          "weight": "tokens",
+          "attributed_weight": 170,
+          "candidates": 2,
+          "max_error": 0,
+          "items": [
+            {
+              "alias": "session-1",
+              "hash": "4b4a9e332b761cf0",
+              "estimate": 120,
+              "lower_bound": 120,
+              "upper_bound": 120,
+              "lower_share": 0.7058823529411765,
+              "upper_share": 0.7058823529411765
+            },
+            {
+              "alias": "session-2",
+              "hash": "a9a1ff091bd5497b",
+              "estimate": 50,
+              "lower_bound": 50,
+              "upper_bound": 50,
+              "lower_share": 0.29411764705882354,
+              "upper_share": 0.29411764705882354
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "prompt",
+      "present_attempts": 0,
+      "token_covered_attempts": 0,
+      "estimated_distinct": 0,
+      "nominal_rse": 0.008125,
+      "rankings": [
+        {
+          "weight": "attempts",
+          "attributed_weight": 0,
+          "candidates": 0,
+          "max_error": 0,
+          "items": []
+        },
+        {
+          "weight": "tokens",
+          "attributed_weight": 0,
+          "candidates": 0,
+          "max_error": 0,
+          "items": []
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "Record both input and output usage; resolve invalid, conflicting, or subset-violating values. Declare unavailable usage instead of filling in zeros.",
+    "Add usage provenance at the provider/estimator hook. With no declaration, a real zero and a filled-in zero cannot be distinguished.",
+    "Include a user key and complete, consistent token usage on the same model attempts.",
+    "Add gen_ai.conversation.id or session.id to model spans to unlock session rankings by attempts.",
+    "Prompt rankings use gen_ai.request.prompt when present; retain your existing prompt collection policy."
+  ],
+  "notes": [
+    "Readiness describes fields in this capture, not completeness of traffic. Counts are model attempts; deduplication is off.",
+    "Distinct estimates describe this capture. A label's value count is not the total number of Prometheus series; other labels multiply combinations.",
+    "Ranking shares use attributed weight. Token rankings require both usage fields; attempt rankings also include missing-usage attempts.",
+    "Usage provenance is a declaration, not authenticated provider evidence. Token subsets are not added again.",
+    "Hashes are pseudonymous. Default aliases and ephemeral keys do not support identity matching between runs."
+  ]
+}
