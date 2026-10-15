@@ -120,4 +120,8 @@ check_report diagnose '.status == "supported_safe" and .configuration_parsed == 
 
 check_case scan 3 scan /windows --expected app --recent 2 --as-of 2026-10-04T00:30:00Z --format json
 check_report scan '.schema == "fleetdiff-scan/v1" and .unusual_windows == 2'
-printf 'PASS restricted offline binary smoke: 8 cases (%s)\n' "$platform"
+check_case what-if 0 what-if --litellm-spend /examples/what-if/spend.csv \
+  --period 2026-10-07 --scenario /examples/what-if/scenario.json --format json
+check_report what-if '.schema == "fleetdiff-what-if/v1" and .covered_observations == 3 and
+    .excluded_observations.missing_split == 1 and (.level2 | length) == 3'
+printf 'PASS restricted offline binary smoke: 9 cases (%s)\n' "$platform"

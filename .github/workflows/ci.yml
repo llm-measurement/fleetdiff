@@ -26,6 +26,10 @@ jobs:
           go-version: "1.26.9"
       - run: go test -race ./...
       - run: go vet ./...
+      - name: Reproduce published model-mix factors offline
+        run: |
+          python3 scripts/reproduce-model-mix.py --check
+          python3 -B -m unittest discover -s evidence/model-mix -p 'test_*.py'
       - name: Built Linux CLI with and without networking
         if: runner.os == 'Linux'
         timeout-minutes: 5
@@ -114,6 +118,7 @@ jobs:
       - name: Bounded fuzz smoke
         # Fixed counts avoid timed-fuzz cancellation failures on the release toolchain.
         run: |
+          go test ./internal/reprice -run '^$' -fuzz '^FuzzRepriceComponents$' -fuzztime 1000x -parallel 2 -timeout 2m
           go test ./internal/spend -run '^$' -fuzz '^FuzzReaderBoundedFormats$' -fuzztime 1000x -parallel 2 -timeout 2m
           go test ./internal/spend -run '^$' -fuzz '^FuzzSessionBudget$' -fuzztime 1000x -parallel 2 -timeout 2m
           go test ./internal/spend -run '^$' -fuzz '^FuzzDailyCounts$' -fuzztime 10000x -parallel 2 -timeout 2m

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "date": "2026-10-14",
+  "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#prices",
+  "models": [
+    {
+      "id": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "input": "2",
+      "output": "10",
+      "cache_read": "0.10",
+      "cache_write": "2.50",
+      "source_url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+      "cache_write_ttl": "5m"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "provider": "openai",
+      "input": "2",
+      "output": "10",
+      "cache_read": "0.10",
+      "cache_write": "2.50",
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "cache_write_ttl": "30m minimum retention",
+      "input_tier_max": 272000
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "input": "0.10",
+      "output": "0.50",
+      "cache_read": "0.01",
+      "cache_write": "0.125",
+      "source_url": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+      "cache_write_ttl": "5m",
+      "input_tier_max": 100000
+    },
+    {
+      "id": "gpt-6-luna",
+      "provider": "openai",
+      "input": "0.10",
+      "output": "0.50",
+      "cache_read": "0.01",
+      "cache_write": "0.125",
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+      "cache_write_ttl": "30m minimum retention",
+      "input_tier_max": 272000
+    }
+  ],
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "tier": "Direct-provider standard/global, short input; no batch, fast, regional, account, tax or negotiated modifiers"
+}

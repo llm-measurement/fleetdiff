@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "moves": [
+    {"from": "claude-sonnet-5-5", "to": "gpt-6.1-sol", "fraction": "0.5"}
+  ]
+}
