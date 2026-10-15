@@ -37,6 +37,8 @@ type IncreaseShare struct {
 }
 
 type Report struct {
+	AnalysisGap    string                `json:"analysis_unavailable,omitempty"`
+	RowCoverage    *RowCoverage          `json:"row_coverage,omitempty"`
 	Cache          compare.CacheView     `json:"cache"`
 	Incomplete     bool                  `json:"comparison_incomplete"`
 	CallTypes      []CallType            `json:"call_types"`

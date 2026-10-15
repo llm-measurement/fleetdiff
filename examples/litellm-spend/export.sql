@@ -23,6 +23,29 @@ SELECT 1 / CASE WHEN
   THEN 1 ELSE 0 END AS valid_bounds
 \gset
 
+-- Optional coverage is invoked by export-coverage.sh using distinct inherited
+-- descriptors. Do not accept arbitrary filenames that might alias each other.
+\if :{?daily_csv_file}
+SELECT 1 / CASE WHEN
+  :'start_utc'::timestamptz = date_trunc('day', :'start_utc'::timestamptz)
+  AND :'end_utc'::timestamptz = date_trunc('day', :'end_utc'::timestamptz)
+  AND :'end_utc'::timestamptz - :'start_utc'::timestamptz <= interval '3660 days'
+  THEN 1 ELSE 0 END AS valid_daily_bounds
+\gset
+\if :{?jsonl_file}
+-- The guarded helper exports CSV only.
+SELECT 1 / 0 AS unsupported_daily_jsonl
+\gset
+\else
+SELECT 1 / CASE WHEN
+  :'daily_csv_file' ~ '^/dev/fd/[0-9]+$'
+  AND :'csv_file' ~ '^/dev/fd/[0-9]+$'
+  AND substring(:'daily_csv_file' FROM 9)::bigint <> substring(:'csv_file' FROM 9)::bigint
+  THEN 1 ELSE 0 END AS separate_daily_file
+\gset
+\endif
+\endif
+
 -- Default-on, pinned-writer paths only; usage_details=false omits these columns.
 -- Missing details stay NULL, never zero.
 SELECT CASE WHEN :'usage_details'::boolean THEN $details$
@@ -87,5 +110,8 @@ SELECT row_to_json(r) FROM (:export_query) AS r
 \else
 COPY (:export_query) TO STDOUT WITH (FORMAT CSV, HEADER true)
 \g :csv_file
+\endif
+\if :{?daily_csv_file}
+\ir daily-projection.sql
 \endif
 COMMIT;

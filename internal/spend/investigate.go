@@ -28,6 +28,7 @@ const MaxModels = 128
 
 type Options struct {
 	BeforePeriod, AfterPeriod, GroupBy, SecretEnv string
+	DailySpendPath                                string
 	Top                                           int
 	ShowHashes                                    bool
 	Now                                           time.Time
@@ -175,6 +176,10 @@ func Investigate(path string, opts Options) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
+	coverage, err := newCoverage(opts.DailySpendPath, before, after)
+	if err != nil {
+		return Report{}, err
+	}
 	windows := [2]*aggregate{newAggregate(before, true), newAggregate(after, true)}
 	models := map[[32]byte][2]*aggregate{}
 	modelOrder := map[[32]byte]int{}
@@ -213,6 +218,7 @@ func Investigate(path string, opts Options) (Report, error) {
 			r.OutsidePeriods++
 			return nil
 		}
+		coverage.add(start)
 		if e := recordCallType(&r, callTypes, row, side); e != nil {
 			return e
 		}
@@ -295,7 +301,13 @@ func Investigate(path string, opts Options) (Report, error) {
 		return Report{}, errors.New("export changed while reading; use a completed immutable export")
 	}
 	r.Before, r.After = windows[0].result(), windows[1].result()
+	r.RowCoverage = coverage.result()
 	if r.Before.Requests == 0 && r.After.Requests == 0 {
+		if r.RowCoverage != nil {
+			r.Incomplete = true
+			r.AnalysisGap = "no analyzable model requests in either selected period"
+			return r, nil
+		}
 		names := []string{}
 		for _, c := range r.CallTypes {
 			names = append(names, c.Name)

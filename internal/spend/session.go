@@ -22,6 +22,7 @@ const MaxSessionMemberships = 1_000_000
 
 type SessionOptions struct {
 	Period, BudgetUSD, SecretEnv string
+	DailySpendPath               string
 	CounterWindow                time.Duration
 	Top                          int
 	ShowHashes                   bool
@@ -57,6 +58,7 @@ type Session struct {
 }
 
 type SessionReport struct {
+	RowCoverage                *RowCoverage      `json:"row_coverage,omitempty"`
 	Schema                     string            `json:"schema"`
 	Grouping                   string            `json:"grouping"`
 	Period                     Period            `json:"period"`
@@ -199,6 +201,10 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 	if err != nil {
 		return SessionReport{}, err
 	}
+	coverage, err := newCoverage(opts.DailySpendPath, p)
+	if err != nil {
+		return SessionReport{}, err
+	}
 	r := SessionReport{Schema: "fleetdiff-litellm-session-budget/v1", Grouping: "session_id_only", Period: p, AutomaticPeriod: opts.Period == "", Hashing: mode, CounterWindowSeconds: opts.CounterWindow.Seconds(), Rejections: map[string]uint64{}, Largest: []Session{}, CapReview: []Session{}, LongSpanReview: []Session{}, SharedCounterReview: []Session{}}
 	r.FailureLoggingCompleteness = "unknown"
 	r.ObservedSpan = r.AutomaticPeriod && p.End.Equal(last.Add(time.Nanosecond))
@@ -230,6 +236,7 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 			return nil
 		}
 		r.SelectedRows++
+		coverage.add(t)
 		_, classified := v["rejection_kind"]
 		if classified {
 			r.ClassifiedRows++
@@ -385,7 +392,7 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 	if seen.duplicated() {
 		return SessionReport{}, errors.New("duplicate request_id; export unique request-level rows")
 	}
-	if r.SelectedRows == 0 {
+	if r.SelectedRows == 0 && coverage == nil {
 		return SessionReport{}, errors.New("no records in the selected period")
 	}
 	// Probe only already-retained session digests: outside-period identities do
@@ -421,6 +428,7 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 				last.Before(p.End) && p.End.Sub(s.lastActivity) <= opts.CounterWindow)
 	}
 	r.UnattributedSpend = costText(&unattributedSpend)
+	r.RowCoverage = coverage.result()
 	return finishSessions(r, states, opts, cap), nil
 }
 

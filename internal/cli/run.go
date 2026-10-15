@@ -59,6 +59,7 @@ Options:
   --allow-partial            Permit missing producers or incomplete observation intervals
   --show-hashes              Include pseudonymous, linkable hashes in output
   --litellm-spend FILE        Read a request-level SQL export: CSV, JSON array or JSONL
+  --litellm-daily-spend FILE  Compare row counts with the daily SQL-projection CSV
   --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
   --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
   --group-by KIND            key (default), team, user, end-user or session
@@ -124,6 +125,7 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	partial := flags.Bool("allow-partial", false, "")
 	hashes := flags.Bool("show-hashes", false, "")
 	spendPath := flags.String("litellm-spend", "", "")
+	dailySpendPath := flags.String("litellm-daily-spend", "", "")
 	beforePeriod := flags.String("before-period", "", "")
 	afterPeriod := flags.String("after-period", "", "")
 	group := flags.String("group-by", "key", "")
@@ -148,8 +150,12 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	spendMode, incompatible := false, false
 	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
 	groupExplicit := false
+	emptyDailyOption := false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
+		case "litellm-daily-spend":
+			spendMode = true
+			emptyDailyOption = f.Value.String() == ""
 		case "period", "session-budget-usd":
 			spendMode, sessionMode = true, true
 			emptySessionOption = emptySessionOption || f.Value.String() == ""
@@ -168,6 +174,9 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 		}
 	})
 	if spendMode {
+		if emptyDailyOption {
+			return fail(2, "litellm-daily-spend needs a daily SQL-projection CSV file")
+		}
 		if args[0] != "investigate" || *spendPath == "" || incompatible || flags.NArg() != 0 {
 			return fail(2, "use investigate --litellm-spend FILE with period flags, not summary paths or expected producers")
 		}
@@ -175,9 +184,9 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			if !sessionMode || groupExplicit && *group != "session" || twoPeriods || emptySessionOption || *counterWindow <= 0 {
 				return fail(2, "session review needs --period or --session-budget-usd; grouping is session; do not combine with other groups or two-period flags")
 			}
-			return runSessionBudget(*spendPath, *period, *budget, *secret, *format, *top, *hashes, *counterWindow, out, errout)
+			return runSessionBudget(*spendPath, *period, *budget, *secret, *format, *dailySpendPath, *top, *hashes, *counterWindow, out, errout)
 		}
-		return runSpend(*spendPath, *beforePeriod, *afterPeriod, *group, *secret, *format, *top, *hashes, out, errout)
+		return runSpend(*spendPath, *beforePeriod, *afterPeriod, *group, *secret, *format, *dailySpendPath, *top, *hashes, out, errout)
 	}
 	for _, required := range []struct{ name, value string }{{"before", *before}, {"after", *after}, {"expected", *expected}} {
 		if strings.TrimSpace(required.value) == "" {

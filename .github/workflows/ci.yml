@@ -116,6 +116,7 @@ jobs:
         run: |
           go test ./internal/spend -run '^$' -fuzz '^FuzzReaderBoundedFormats$' -fuzztime 1000x -parallel 2 -timeout 2m
           go test ./internal/spend -run '^$' -fuzz '^FuzzSessionBudget$' -fuzztime 1000x -parallel 2 -timeout 2m
+          go test ./internal/spend -run '^$' -fuzz '^FuzzDailyCounts$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 10000x -parallel 2 -timeout 2m
           go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 10000x -parallel 2 -timeout 2m
