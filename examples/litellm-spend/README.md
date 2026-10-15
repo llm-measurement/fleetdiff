@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.6.0](../../README.md#2-install-v060), then run this fixture
+Install [fleetdiff v0.8.0](../../README.md#2-install-v080), then run this fixture
 from the repository root with the verified binary:
 
 ```sh
@@ -78,6 +78,9 @@ Use `--group-by key|team|user|end-user|session`; model breakdowns are automatic.
 `--top N` controls the contributor list. To reuse hashes across comparisons,
 set your own strong secret in an environment variable and pass
 `--hash-secret-env NAME`. Add `--show-hashes` to display them.
+
+To check for rows missing relative to LiteLLM's daily counters, use the optional
+[daily row coverage check](../../docs/ROW_COVERAGE.md) (unreleased).
 
 ### Usage Details (Default On)
 

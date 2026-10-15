@@ -60,6 +60,43 @@ manually; do not prune unrelated Docker resources.
 
 ## Coverage
 
+### Daily Row Reconciliation
+
+`test_row_coverage_runtime.py` runs the actual pinned proxy, a loopback mock
+provider, and both asynchronous PostgreSQL writers against the image's full
+Prisma schema. PostgreSQL has `--network none`; the proxy, mock provider and
+client share only that container's loopback namespace. No paid provider,
+external network, source-only inference or directly inserted spend/daily row
+is used. Request clock references are controlled to test midnight; persistence
+and accounting code are unchanged. Error logging is tested in its default,
+explicitly enabled and disabled configurations.
+
+| Runtime case | SpendLogs row increment | api_requests | successful_requests | failed_requests |
+| --- | ---: | ---: | ---: | ---: |
+| Successful non-streaming request | 1 | 1 | 1 | 0 |
+| Successful streaming request | 1 | 1 | 1 | 0 |
+| Response-cache hit (no provider forward) | 1 | 1 | 1 | 0 |
+| Failed request, default/enabled error logging | 1 | 1 | 0 | 1 |
+| Failed request, error logging disabled | 0 | 0 | 0 | 0 |
+| Two forwards with the same provider response ID, combined | 1 | 2 | 2 | 0 |
+| Request with no user identity | 1 | 1 | 1 | 0 |
+
+A request starting before midnight and ending afterward increments the start
+day's UTC counters. The second collision request returns HTTP 200, reaches the
+provider and increments the daily table while its duplicate SpendLogs primary
+key loses a row. The [recorded fixture](coverage_runtime_expected.json) binds
+the observations and synthetic exports to image, source, SQL and harness hashes.
+`coverage_runtime_fixture.py` checks the exported fixture; `test_row_coverage.py`
+checks both CLI modes, unchanged accounting and source-safe output. The optional
+daily SQL export uses a SELECT-only role and the same read-only snapshot as the
+request export. Omitting the CLI option preserves the v0.8.0 output goldens.
+
+See [row coverage and its limits](../../docs/ROW_COVERAGE.md). These runtime
+cases pin one chat-completions profile with retries disabled, not every endpoint
+or deployment configuration.
+
+### Request-Level Accounting
+
 - The original 20-row fixture has identical CSV, JSON, and JSONL records.
   Request, token, zero-only, and failure arithmetic is checked separately
   from the actual importer output.

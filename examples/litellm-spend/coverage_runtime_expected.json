@@ -1,0 +1,266 @@
+{
+  "license": "Apache-2.0",
+  "synthetic": true,
+  "provenance": {
+    "images": {
+      "litellm": "ghcr.io/berriai/litellm@sha256:625981c83410a3ea68eb0697590a57ec1d764d634514d54fa5db0591077ee839",
+      "litellm_version": "1.104.0",
+      "litellm_source_commit": "79645770fedc7ec2627e6468d31062f20f82aecc",
+      "schema_sha256": "dbb02f20858ed397ea83b0dfabe2d3cfe59ef658976fdcde373c5baad33df387",
+      "writer_sha256": "e4e468859ad5b42a17a1683782a0bb7671c7122d519801c25b29e088a20e280b",
+      "postgres": "postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826",
+      "postgres_version": "17.11",
+      "postgres_source_commit": "2603e26e245e558218728ee14e0a42dcb020dc7f",
+      "postgres_resolved_tag": "17-bookworm",
+      "postgres_verified_date": "2026-10-10"
+    },
+    "installed": {
+      "version": "1.104.0",
+      "source_sha256": {
+        "schema": "dbb02f20858ed397ea83b0dfabe2d3cfe59ef658976fdcde373c5baad33df387",
+        "writer": "e4e468859ad5b42a17a1683782a0bb7671c7122d519801c25b29e088a20e280b",
+        "db_writer": "c48dbdf704dba3fccb2c9e392e0c6c66ecda46d38c01ce84bd1251bc8e48fde6",
+        "daily_upsert": "54f104fee52e9d1011fac17c815555858627f4967b38b97ba3c34883781b9690",
+        "request_utils": "86ae14eaecc554e7dedc1b807d534b7dd16f09761e39b51d096fdf178759f0eb",
+        "logging": "28f8f13a0913d01f09e1b641d11ec53ed4d7b8696f07589c8a79a704de59b82f",
+        "request_processing": "c68c5007d120c5923d9f249aafe988b8e9b4aa206df5a7e683526c4cf766facd",
+        "cost_callback": "4dac983d1fd0881dea462b72603cfdb3ecdd91dbd3704e431642839894f7555f",
+        "caching": "618217a2cda110f4e59a148c684ec463fa7ded7e565131e512f21b3a15ec9974"
+      }
+    },
+    "export_source_sha256": {
+      "export.sql": "4324cbbdb0c538d24273621a0138a5a31f757e64413e3d813aafec06ee924b17",
+      "daily-projection.sql": "f72e96674a760b7ccf2664bc5f11f5be38af935be99a72015f0dd5476f36f9e5",
+      "export-coverage.sh": "d44304d135a6785358503ed16b04782f8eb31034b6477519cb642e11256b7688"
+    },
+    "runtime_harness_sha256": {
+      "coverage_runtime_probe.py": "b629b42453080a453e7b47e5878b44ce9ff0b549716a357f6dfdf20bb458f951",
+      "test_row_coverage_runtime.py": "5dcabcc935403777dd5a669c974889c49ea6d1cdf031ff08c640b16f59b337b5",
+      "coverage_runtime_pg_service.conf": "1477e5d37ec583fd693d585666af6ba67e754178a834605f6b9a5105558d42bd"
+    },
+    "fixture_generator_sha256": "c85c13d53bdd7a15decf512702758a28f3bee71903eca8ec83657bd37b1423fb",
+    "export_helper": "export-coverage.sh; one psql invocation with inherited distinct file descriptors",
+    "export_safety": {
+      "reader_role": "fixture_reader",
+      "default_transaction_read_only": true,
+      "file_modes": {
+        "directory": "700",
+        "spend.csv": "600",
+        "daily.csv": "600",
+        "private-psql.out": "600",
+        "private-psql.err": "600"
+      },
+      "distinct_output_inodes": true,
+      "rejected_before_output": [
+        "path_alias",
+        "literal_paths",
+        "same_descriptor",
+        "same_descriptor_leading_zero",
+        "daily_jsonl"
+      ],
+      "existing_directory_refused": true,
+      "directory_symlink_refused": true,
+      "dangling_symlink_refused": true,
+      "private_diagnostics": true
+    },
+    "isolation": "PostgreSQL network=none; proxy, provider and client share its loopback namespace; no published ports",
+    "clock_control": "LiteLLM request timing only; no persistence patch",
+    "persistence": "Unmodified full image schema, proxy callbacks and asynchronous DB writers; no inserted spend or daily rows",
+    "failure_logging": "default (disable_error_logs omitted)"
+  },
+  "files": {
+    "spend": {
+      "path": "coverage_runtime_spend.csv",
+      "sha256": "7ebb6dd44eb1bad22c0d0b5843d19e47652a167d05d51498e7deeb5fbee1fb5a"
+    },
+    "daily": {
+      "path": "coverage_runtime_daily.csv",
+      "sha256": "d2950abecf25174677be4aa465ce29977ebaa4113e331e520c323b1b74559f1b"
+    }
+  },
+  "cases": [
+    {
+      "case": "success",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "failure",
+      "http_status": 500,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 0,
+        "failed_requests": 1
+      }
+    },
+    {
+      "case": "stream",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "cache_fill",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "cache_hit",
+      "http_status": 200,
+      "provider_forwards": 0,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "collision_first",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "collision_second",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 0,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "absent_user",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "cross_midnight",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    {
+      "case": "after_midnight",
+      "http_status": 200,
+      "provider_forwards": 1,
+      "delta": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    }
+  ],
+  "expected": {
+    "proxy_requests": 10,
+    "provider_forwards": 9,
+    "spend_rows": 9,
+    "api_requests": 10,
+    "successful_requests": 9,
+    "failed_requests": 1,
+    "days": {
+      "2026-10-07": {
+        "spend_rows": 8,
+        "api_requests": 9,
+        "successful_requests": 8,
+        "failed_requests": 1
+      },
+      "2026-10-08": {
+        "spend_rows": 1,
+        "api_requests": 1,
+        "successful_requests": 1,
+        "failed_requests": 0
+      }
+    },
+    "collision": {
+      "upstream_response_id": "chatcmpl-coverage-collision",
+      "provider_forwards": 2,
+      "spend_rows": 1,
+      "api_requests": 2
+    },
+    "cross_midnight": {
+      "request_id": "chatcmpl-coverage-cross_midnight",
+      "startTime": "2026-10-07T23:59:59.000Z",
+      "endTime": "2026-10-08T00:00:01.000Z",
+      "daily_date": "2026-10-07"
+    },
+    "failure_logging_profiles": {
+      "default": {
+        "http_status": 500,
+        "provider_forwards": 1,
+        "delta": {
+          "spend_rows": 1,
+          "api_requests": 1,
+          "successful_requests": 0,
+          "failed_requests": 1
+        }
+      },
+      "enabled": {
+        "http_status": 500,
+        "provider_forwards": 1,
+        "delta": {
+          "spend_rows": 1,
+          "api_requests": 1,
+          "successful_requests": 0,
+          "failed_requests": 1
+        }
+      },
+      "disabled": {
+        "http_status": 500,
+        "provider_forwards": 1,
+        "delta": {
+          "spend_rows": 0,
+          "api_requests": 0,
+          "successful_requests": 0,
+          "failed_requests": 0
+        }
+      }
+    }
+  },
+  "limits": [
+    "One pinned version and synthetic chat-completions profile, retries disabled",
+    "Daily counters are spend-transaction counts, not universal ingress or provider-call counts",
+    "Identity-free daily sums require the same application and operation population as the export",
+    "Identical missing records on both sides, delayed writes, retention and configuration differences remain distinct limitations",
+    "Only the request clock is controlled; real transport latency is not measured"
+  ]
+}

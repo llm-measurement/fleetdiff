@@ -15,12 +15,12 @@ import (
 	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
-func runSpend(path, before, after, group, secret, format string, top int, hashes bool, out, errout io.Writer) int {
+func runSpend(path, before, after, group, secret, format, daily string, top int, hashes bool, out, errout io.Writer) int {
 	fail := func(code int, msg string) int { fmt.Fprintln(errout, msg); return code }
 	if format != "text" && format != "json" || top < 1 || top > 100 {
 		return fail(2, "use text or json output and top between 1 and 100")
 	}
-	r, err := spend.Investigate(path, spend.Options{BeforePeriod: before, AfterPeriod: after, GroupBy: group, SecretEnv: secret, Top: top, ShowHashes: hashes})
+	r, err := spend.Investigate(path, spend.Options{BeforePeriod: before, AfterPeriod: after, GroupBy: group, SecretEnv: secret, Top: top, ShowHashes: hashes, DailySpendPath: daily})
 	if err != nil {
 		return fail(1, err.Error())
 	}
@@ -41,6 +41,12 @@ func runSpend(path, before, after, group, secret, format string, top int, hashes
 }
 
 func renderSpend(out io.Writer, r spend.Report) {
+	renderRowCoverage(out, r.RowCoverage)
+	if r.AnalysisGap != "" {
+		fmt.Fprintln(out, "No analyzable model requests in either selected period; usage changes cannot be compared.")
+		fmt.Fprintln(out, "Use explicit periods covering model requests for a usage comparison.")
+		return
+	}
 	if r.Incomplete {
 		fmt.Fprintln(out, "Comparison incomplete: some selected call types are not analyzed.")
 		for _, c := range r.CallTypes {
@@ -163,6 +169,11 @@ func renderSpend(out io.Writer, r spend.Report) {
 	}
 	fmt.Fprintln(out, "\nHow complete is the export?")
 	problems := r.Incomplete
+	if r.RowCoverage != nil {
+		for _, day := range r.RowCoverage.Days {
+			problems = problems || day.Status != "matched"
+		}
+	}
 	if r.Incomplete {
 		fmt.Fprintln(out, "  Usage checks below cover analyzed calls only; unsupported token fields above remain unanalyzed.")
 	}

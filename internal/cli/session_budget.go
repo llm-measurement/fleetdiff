@@ -14,12 +14,12 @@ import (
 	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
-func runSessionBudget(path, period, budget, secret, format string, top int, hashes bool, window time.Duration, out, errout io.Writer) int {
+func runSessionBudget(path, period, budget, secret, format, daily string, top int, hashes bool, window time.Duration, out, errout io.Writer) int {
 	fail := func(code int, message string) int { fmt.Fprintln(errout, message); return code }
 	if format != "text" && format != "json" || top < 1 || top > 100 {
 		return fail(2, "use text or json output and top between 1 and 100")
 	}
-	r, err := spend.ReviewSessions(path, spend.SessionOptions{Period: period, BudgetUSD: budget, SecretEnv: secret, CounterWindow: window, Top: top, ShowHashes: hashes})
+	r, err := spend.ReviewSessions(path, spend.SessionOptions{Period: period, BudgetUSD: budget, SecretEnv: secret, CounterWindow: window, Top: top, ShowHashes: hashes, DailySpendPath: daily})
 	if err != nil {
 		return fail(1, err.Error())
 	}
@@ -48,6 +48,7 @@ func sessionUSD(s string) string {
 }
 
 func renderSessionBudget(out io.Writer, r spend.SessionReport) {
+	renderRowCoverage(out, r.RowCoverage)
 	if r.UnsupportedRows != 0 {
 		fmt.Fprintf(out, "Session review is incomplete: %s selected records have unsupported call types.\n", spendNumber(r.UnsupportedRows))
 	}
