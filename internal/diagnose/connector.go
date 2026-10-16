@@ -298,6 +298,12 @@ func (c *checker) topKeys(n *yaml.Node) {
 	}
 	for _, item := range items {
 		m := c.object(item, "field", "weight")
+		// field is required; weight may be omitted (connector default). Point the
+		// finding at the entry when the field key is absent so path/line are useful.
+		if m["field"] == nil {
+			c.add("unsupported_mapping", "unsupported", item)
+			continue
+		}
 		field := c.string(m["field"])
 		c.enum(m["field"], "prompt_key", "user_key", "session_key")
 		c.enum(m["weight"], "tokens", "requests")

@@ -213,3 +213,5 @@ Fix blocking findings and review indeterminate findings before rollout.
 Check unsupported mappings against actual
 instrumentation and the intended released collector before a separate shadow
 trial. The [fixture demo](../examples/diagnose/README.md) exercises the local path.
+
+Each `topk_keys` entry needs a `field`. Omitting `weight` is allowed; the connector applies its default. A missing `field` yields `unsupported_mapping` on the entry path and line.

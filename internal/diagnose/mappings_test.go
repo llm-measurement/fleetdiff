@@ -4,6 +4,7 @@
 package diagnose
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -79,5 +80,76 @@ func TestBackendPreservedAndSecretsNotCopied(t *testing.T) {
 	}
 	if strings.Contains(ShadowConfig(), "PRIVATE_BACKEND_SECRET") || strings.Contains(ShadowConfig(), "private.example") {
 		t.Fatal("copied backend configuration")
+	}
+}
+
+func TestTopKKeysRequireField(t *testing.T) {
+	safe := fixture(t, "safe")
+	for _, tc := range []struct {
+		name, replacement string
+		code              int
+		finding           string
+		wantPathPrefix    string
+		wantAttrEmpty     bool
+	}{
+		{
+			name: "missing-field", replacement: "    topk_keys:\n      - weight: tokens\n    slices:",
+			code: 4, finding: "unsupported_mapping", wantPathPrefix: "connectors.genaisketch.topk_keys[0]", wantAttrEmpty: true,
+		},
+		{
+			name: "empty-field", replacement: "    topk_keys:\n      - field: \"\"\n        weight: tokens\n    slices:",
+			code: 4, finding: "unsupported_mapping", wantPathPrefix: "connectors.genaisketch.topk_keys[0].field", wantAttrEmpty: true,
+		},
+		{
+			name: "unknown-field", replacement: "    topk_keys:\n      - field: not_a_key\n        weight: tokens\n    slices:",
+			code: 4, finding: "unsupported_mapping", wantPathPrefix: "connectors.genaisketch.topk_keys[0].field", wantAttrEmpty: true,
+		},
+		{
+			name: "valid-user-with-weight", replacement: "    topk_keys:\n      - field: user_key\n        weight: tokens\n    slices:",
+			code: 0, finding: "",
+		},
+		{
+			name: "valid-prompt-without-weight", replacement: "    topk_keys:\n      - field: prompt_key\n    slices:",
+			code: 0, finding: "",
+		},
+		{
+			name: "valid-session-with-requests", replacement: "    topk_keys:\n      - field: session_key\n        weight: requests\n    slices:",
+			code: 0, finding: "",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := check(t, strings.Replace(safe, "    slices:", tc.replacement, 1))
+			if r.ExitCode() != tc.code {
+				t.Fatalf("exit %d, want %d; report=%+v", r.ExitCode(), tc.code, r)
+			}
+			if tc.finding == "" {
+				if r.Status != "supported_safe" || len(r.Findings) != 0 {
+					t.Fatalf("want supported_safe with no findings, got %+v", r)
+				}
+				return
+			}
+			if !hasFinding(r, tc.finding) {
+				t.Fatalf("missing %s in %+v", tc.finding, r)
+			}
+			if r.Status == "supported_safe" {
+				t.Fatal("missing field must not be supported_safe")
+			}
+			var hit Finding
+			for _, f := range r.Findings {
+				if f.ID == tc.finding {
+					hit = f
+					break
+				}
+			}
+			if tc.wantPathPrefix != "" && (hit.Path == "" || hit.Line == 0 || !strings.HasPrefix(hit.Path, tc.wantPathPrefix)) {
+				t.Fatalf("path/line = %q:%d, want prefix %q with line", hit.Path, hit.Line, tc.wantPathPrefix)
+			}
+			if tc.wantAttrEmpty && hit.Attribute != "" {
+				t.Fatalf("attribute leaked into report: %q", hit.Attribute)
+			}
+			if strings.Contains(fmt.Sprintf("%+v", r), "not_a_key") {
+				t.Fatal("arbitrary field value leaked into report")
+			}
+		})
 	}
 }
