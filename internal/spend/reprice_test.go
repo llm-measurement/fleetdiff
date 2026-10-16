@@ -4,11 +4,14 @@
 package spend
 
 import (
+	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -317,5 +320,131 @@ func TestReadRepriceReadAndVisitorErrors(t *testing.T) {
 	}
 	if _, err := ReadReprice(filepath.Join(dir, "missing-private-sentinel.json"), repriceDay, func(reprice.Record) error { return nil }); !errors.Is(err, errSpendFile) || strings.Contains(err.Error(), "sentinel") {
 		t.Fatal("file error changed or leaked a path")
+	}
+}
+
+func TestReadRepriceFormatsAndRecordedComponents(t *testing.T) {
+	rows := []map[string]string{repriceRow("one"), repriceRow("two"), repriceRow("outside")}
+	rows[0]["prompt_tokens"], rows[0]["total_tokens"] = "9007199254740993", "9007199254741013"
+	rows[0]["cache_read_input_tokens"], rows[0]["cache_write_input_tokens"] = "0", "0"
+	rows[0]["messages"] = "private-content-sentinel\nwith,\"quotes\""
+	rows[1]["cache_write_input_tokens"] = ""
+	rows[2]["startTime"] = "2020-01-03T00:00:00Z"
+	var csvData bytes.Buffer
+	w := csv.NewWriter(&csvData)
+	var columns []string
+	for column := range rows[0] {
+		columns = append(columns, column)
+	}
+	slices.Sort(columns)
+	if err := w.Write(columns); err != nil {
+		t.Fatal(err)
+	}
+	var jsonRows []json.RawMessage
+	for _, row := range rows {
+		values := make([]string, len(columns))
+		for i, column := range columns {
+			values[i] = row[column]
+		}
+		if err := w.Write(values); err != nil {
+			t.Fatal(err)
+		}
+		object := map[string]any{}
+		for column, value := range row {
+			object[column] = value
+		}
+		for _, column := range []string{"prompt_tokens", "completion_tokens", "total_tokens", "cache_read_input_tokens", "cache_write_input_tokens"} {
+			if row[column] == "" {
+				object[column] = nil
+			} else {
+				object[column] = json.Number(row[column])
+			}
+		}
+		data, err := json.Marshal(object)
+		if err != nil {
+			t.Fatal(err)
+		}
+		jsonRows = append(jsonRows, data)
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		t.Fatal(err)
+	}
+	array, err := json.Marshal(jsonRows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := []string{}
+	for _, row := range jsonRows {
+		lines = append(lines, string(row))
+	}
+	for ext, body := range map[string]string{".csv": csvData.String(), ".json": string(array), ".jsonl": strings.Join(lines, "\n")} {
+		t.Run(ext, func(t *testing.T) {
+			path := readerWrite(t, ext, body)
+			var records []reprice.Record
+			source, err := ReadReprice(path, repriceDay, func(r reprice.Record) error { records = append(records, r); return nil })
+			if err != nil || source.Rows != 2 || source.Outside != 1 || len(records) != 2 {
+				t.Fatalf("format changed selection: %+v, %v", source, err)
+			}
+			if records[0].Input == nil || *records[0].Input != 9007199254740993 || records[0].CacheRead == nil || *records[0].CacheRead != 0 || records[0].CacheWrite == nil || *records[0].CacheWrite != 0 || records[0].Issue != "" {
+				t.Fatal("large integer or explicit-zero cache components changed")
+			}
+			if records[1].Input == nil || *records[1].Input != 100 || records[1].CacheWrite != nil || records[1].Issue != "" {
+				t.Fatal("missing cache was invented or record storage was reused")
+			}
+			encoded, err := json.Marshal(source)
+			if err != nil || strings.Contains(string(encoded), "sentinel") || strings.Contains(string(encoded), path) {
+				t.Fatal("source metadata leaked")
+			}
+			encoded, err = json.Marshal(records)
+			if err != nil || strings.Contains(string(encoded), "private-content-sentinel") || strings.Contains(string(encoded), "shared-session") {
+				t.Fatal("ignored content or unused identity escaped into pricing records")
+			}
+			after, err := os.ReadFile(path)
+			if err != nil || string(after) != body {
+				t.Fatal("source was modified")
+			}
+		})
+	}
+}
+
+func TestReadRepriceLateBoundedReaderFailures(t *testing.T) {
+	first, err := json.Marshal(repriceRow("one"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside := repriceRow("two")
+	outside["startTime"] = "2020-01-03T00:00:00Z"
+	second, err := json.Marshal(outside)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, extra string
+		want        error
+	}{
+		{"field-limit", `"messages":"` + strings.Repeat("x", MaxFieldBytes+1) + `"`, errSpendField},
+		{"row-limit", `"messages":"` + strings.Repeat("x", MaxRowBytes) + `"`, errSpendRow},
+		{"depth-limit", `"messages":` + strings.Repeat("[", MaxDepth) + `"private-content-sentinel"` + strings.Repeat("]", MaxDepth), errSpendDepth},
+		{"duplicate-key", `"private-content-sentinel":0,"private-content-sentinel":1`, errSpendDuplicate},
+		{"invalid-utf8", "\"messages\":\"\xff\"", errSpendUTF8},
+	} {
+		for _, ext := range []string{".json", ".jsonl"} {
+			t.Run(tc.name+ext, func(t *testing.T) {
+				bad := strings.TrimSuffix(string(second), "}") + "," + tc.extra + "}"
+				body := string(first) + "\n" + bad
+				if ext == ".json" {
+					body = "[" + string(first) + "," + bad + "]"
+				}
+				visits := 0
+				source, err := ReadReprice(readerWrite(t, ext, body), repriceDay, func(reprice.Record) error { visits++; return nil })
+				if !errors.Is(err, tc.want) || visits != 1 || !reflect.DeepEqual(source, reprice.Source{}) {
+					t.Fatalf("late reader failure did not invalidate the source: visits %d, source %+v, error %v", visits, source, err)
+				}
+				if strings.Contains(strings.ToLower(err.Error()), "sentinel") {
+					t.Fatal("reader error leaked private input")
+				}
+			})
+		}
 	}
 }

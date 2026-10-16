@@ -42,6 +42,7 @@ func ReadReprice(path, period string, expected []string, visit func(reprice.Reco
 		"Current summaries have no per-model component split; top-k cannot recover model-by-key or model-by-team intersections.",
 	}}
 	selected, incomplete, missingCounts := false, false, false
+	missingUsage, unknownUsage := false, false
 	next := start.UnixNano()
 	for _, f := range frames {
 		requests, known := f.counters["requests"]
@@ -61,6 +62,9 @@ func ReadReprice(path, period string, expected []string, visit func(reprice.Reco
 		selected = true
 		incomplete = incomplete || !f.complete || f.start != next
 		missingCounts = missingCounts || !known
+		missing, usageKnown := f.counters["missing_token_usage"]
+		missingUsage = missingUsage || missing != 0
+		unknownUsage = unknownUsage || !usageKnown
 		next = f.end
 		source.Rows, err = accounting.AddBounded(source.Rows, requests)
 		if err != nil {
@@ -75,6 +79,12 @@ func ReadReprice(path, period string, expected []string, visit func(reprice.Reco
 	}
 	if missingCounts {
 		source.Gaps = append(source.Gaps, "Some selected summaries lack request counts; the observation count includes only recorded counts.")
+	}
+	if missingUsage {
+		source.Gaps = append(source.Gaps, "Selected summaries record requests with missing input/output token usage; recorded request counts include these incomplete observations.")
+	}
+	if unknownUsage {
+		source.Gaps = append(source.Gaps, "Some selected summaries lack token-usage coverage counts; token-usage completeness is unknown.")
 	}
 	return source, nil
 }

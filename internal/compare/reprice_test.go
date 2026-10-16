@@ -125,6 +125,59 @@ func TestReadRepriceSummaryCoverageGaps(t *testing.T) {
 	}
 }
 
+func TestReadRepriceSummaryTokenUsageCoverage(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		missing *uint64
+		gap     string
+	}{
+		{"complete", new(uint64(0)), ""},
+		{"missing-usage", new(uint64(1)), "requests with missing input/output token usage"},
+		{"unknown-coverage", nil, "token-usage completeness is unknown"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := repriceSummary(t)
+			if tc.missing == nil {
+				delete(doc.Counters, "missing_token_usage")
+			} else {
+				doc.Counters["missing_token_usage"] = *tc.missing
+			}
+			source, err := ReadReprice(writeRepriceSummaries(t, doc), repriceSummaryPeriod, []string{doc.ProducerID}, func(reprice.Record) error {
+				t.Fatal("summary fabricated a pricing record")
+				return nil
+			})
+			if err != nil || source.Rows != 1 {
+				t.Fatalf("recorded request count changed: %+v, %v", source, err)
+			}
+			if tc.gap == "" {
+				if len(source.Gaps) != 1 {
+					t.Fatalf("complete usage acquired a coverage gap: %+v", source)
+				}
+			} else if len(source.Gaps) != 2 || !strings.Contains(strings.Join(source.Gaps, " "), tc.gap) {
+				t.Fatalf("token-usage coverage was lost: %+v", source)
+			}
+			encoded, err := json.Marshal(source)
+			if err != nil || strings.Contains(string(encoded), "sentinel") {
+				t.Fatal("coverage report leaked source metadata")
+			}
+		})
+	}
+}
+
+func TestReadRepriceSummaryTokenUsageSelection(t *testing.T) {
+	selected := repriceSummary(t)
+	outside := repriceSummary(t)
+	outside.WindowStart -= minute
+	outside.ObservedStart -= minute
+	outside.ObservedEnd -= minute
+	outside.EmittedAt -= minute
+	outside.Counters["missing_token_usage"] = 1
+	source, err := ReadReprice(writeRepriceSummaries(t, selected, selected, outside), repriceSummaryPeriod, []string{selected.ProducerID}, func(reprice.Record) error { return nil })
+	if err != nil || source.Rows != 1 || source.Outside != 1 || len(source.Gaps) != 1 {
+		t.Fatalf("unselected usage affected selected coverage: %+v, %v", source, err)
+	}
+}
+
 func TestReadRepriceSummaryValidation(t *testing.T) {
 	for _, tc := range []string{"conflicting-sequence", "counter-regression", "observation-regression", "overlapping-epochs", "incompatible", "missing-expected", "duplicate-expected", "unexpected-producer", "partial-window", "outside-period", "future-emission", "missing-usage", "count-overflow"} {
 		t.Run(tc, func(t *testing.T) {
