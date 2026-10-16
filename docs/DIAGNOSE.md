@@ -52,7 +52,13 @@ secret strength, private directory permissions, or actual traffic coverage.
 Checks follow the `genaisketch` connector conventions from collector v0.3.0.
 OTLP receivers with explicit gRPC/HTTP protocol maps, batch and basic
 memory-limiter processors, Prometheus exporters, and basic OTLP/HTTP or OTLP
-exporter settings are recognized. Trace and metric pipeline references, signal
+exporter settings are recognized. Memory-limiter percentage bounds and the
+percentage spike-versus-limit rule follow the
+[OpenTelemetry Collector v0.161.0 validation](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.161.0/internal/memorylimiter/config.go).
+A nonzero `limit_mib` takes precedence over percentage settings; configured
+percentage fields are still validated. An omitted spike limit defaults to 20%
+of the effective limit. These checks are static and do not probe host memory or
+certify that a chosen limit is sufficient. Trace and metric pipeline references, signal
 direction, connector inputs/outputs, duplicate references, and unused components
 are checked. Multiple connector instances or connector input/output pipelines
 need an independent disjointness review and yield indeterminate.
