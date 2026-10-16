@@ -2,6 +2,19 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.9.0] - 2026-10-15
+
+See the [release notes](docs/releases/v0.9.0.md) for daily spend-log row coverage.
+
+- Compare exported LiteLLM spend rows with daily request counts using optional
+  `--litellm-daily-spend`. Report per-UTC-day missing rows and discrepancies
+  without changing recorded token or spend totals.
+- Export both tables in one read-only, repeatable-read transaction with a
+  guarded private-directory helper. Pin the counter definitions and response-ID
+  collision fixture to LiteLLM v1.104.0.
+- Preserve existing output byte for byte when the option is absent. Extract
+  shared import helpers with v0.8.0 output goldens and legacy-hash checks.
+
 ## [0.8.0] - 2026-10-11
 
 See the [release notes](docs/releases/v0.8.0.md) for session-budget review and
