@@ -87,6 +87,9 @@ func Run(args []string, out, errout io.Writer) int {
 // RunWithInput makes stdin explicit for callers embedding the command.
 func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	fail := func(code int, message string) int { fmt.Fprintln(errout, message); return code }
+	if len(args) > 0 && args[0] == "what-if" {
+		return runWhatIf(args[1:], out, errout)
+	}
 	if len(args) > 0 && args[0] == "inspect" {
 		return runInspect(args[1:], in, out, errout)
 	}

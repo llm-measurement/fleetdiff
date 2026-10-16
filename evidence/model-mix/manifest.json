@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "date": "2026-10-14",
+  "scope": "Public scalar provenance bundle; no private-source files; hashes are integrity pins, not provider signatures",
+  "sha256": {
+    "evidence/model-mix/LICENSES.md": "4def9defe1a1ccdb40dc64e462927b25456c7ec9cf12b1ee7fa97baabdb1fab8",
+    "evidence/model-mix/README.md": "f38008d4de7b57fb85e109519a9a9ab687d4e07d677d320f3b0008b34f564eee",
+    "evidence/model-mix/fit-estimates.json": "b2edfd241cddb3bca0d6e9d172d10b463dd12521d665d72d099616b042334e47",
+    "evidence/model-mix/fit-token-counts.csv": "bac7fdc435f52e9f4a3485ef5d4bb5c44f0bad9dc88f39a22530517dda85a9c9",
+    "evidence/model-mix/prediction-audit.csv": "0fe346672097383549cc4dac04b2f67f6fcccbf56c3f86858f878c0cd1fd3c16",
+    "evidence/model-mix/source-record.json": "bf0b5d08d07615ddd7349a62bb31c3cbf5c9fed2718cb4de02fcf2b9068d5c66",
+    "evidence/model-mix/test_reproduce_model_mix.py": "0cacf17ac594e07fead744e907ff61f22437cfcbcc2c748703e20b21747c54e4",
+    "internal/reprice/data/factors.json": "cd1b087e294a3d9768cc52b8dd8a6d0b2ab169bcb8b979bc44957310869d2b99",
+    "internal/reprice/data/prices.json": "5d0e1af2d161af4823e92f00123b3b724b5b7f528d5984cfcc05242e189d252f",
+    "scripts/reproduce-model-mix.py": "7350792bb1444cc6e383dfe932ee7d3a41b2923879089e83a2da522f3f289671"
+  }
+}

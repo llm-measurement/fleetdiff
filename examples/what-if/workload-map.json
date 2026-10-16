@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "mappings": [
+    {"selector": {"kind": "key", "value": "SENTINEL_WHATIF_KEY_A"}, "workload": "coding"},
+    {"selector": {"kind": "team", "value": "SENTINEL_WHATIF_TEAM_B"}, "workload": "extraction"}
+  ]
+}

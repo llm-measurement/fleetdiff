@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "date": "2026-10-14",
+  "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json",
+  "method": "geometric_mean_paired_ratios_normal_approximate_log_mean_95",
+  "input_pairs": [
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6.1-sol",
+      "factor": "0.668804954773279205",
+      "n": 117,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#descriptive-input-pool"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "claude-haiku-5-5",
+      "factor": "1",
+      "n": 117,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#descriptive-input-pool"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6-luna",
+      "factor": "0.668804954773279205",
+      "n": 117,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#descriptive-input-pool"
+    },
+    {
+      "from": "gpt-6.1-sol",
+      "to": "gpt-6-luna",
+      "factor": "1",
+      "n": 117,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#descriptive-input-pool"
+    }
+  ],
+  "pairs": [
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6.1-sol",
+      "workload": "qa",
+      "output": "0.397131399389385392",
+      "output_low": "0.344903301029533255",
+      "output_high": "0.457268306537509511",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6.1-sol",
+      "workload": "extraction",
+      "output": "0.55597460878447372",
+      "output_low": "0.474876997293493908",
+      "output_high": "0.650921748947142696",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6.1-sol",
+      "workload": "coding",
+      "output": "0.860324307838080628",
+      "output_low": "0.749261259213971827",
+      "output_high": "0.987850239893025618",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "claude-haiku-5-5",
+      "workload": "qa",
+      "output": "0.563130807768198646",
+      "output_low": "0.412171745189060162",
+      "output_high": "0.7693790522011764",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "claude-haiku-5-5",
+      "workload": "extraction",
+      "output": "1.257210846097740828",
+      "output_low": "0.983991664753598929",
+      "output_high": "1.606293191458679414",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "claude-haiku-5-5",
+      "workload": "coding",
+      "output": "2.514243560630940388",
+      "output_low": "1.957268279349886238",
+      "output_high": "3.229716002077054063",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6-luna",
+      "workload": "qa",
+      "output": "0.357848220349415744",
+      "output_low": "0.289033875559501219",
+      "output_high": "0.443046160452158547",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6-luna",
+      "workload": "extraction",
+      "output": "0.835689181624448403",
+      "output_low": "0.665526324337839276",
+      "output_high": "1.049359556106191583",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6-luna",
+      "workload": "coding",
+      "output": "2.742726160593518098",
+      "output_low": "2.206941710065925949",
+      "output_high": "3.40858426740203604",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "gpt-6.1-sol",
+      "to": "gpt-6-luna",
+      "workload": "qa",
+      "output": "0.901082666592543383",
+      "output_low": "0.732363103510985309",
+      "output_high": "1.108671324567007768",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "gpt-6.1-sol",
+      "to": "gpt-6-luna",
+      "workload": "extraction",
+      "output": "1.503106739805103953",
+      "output_low": "1.196153376207880184",
+      "output_high": "1.888829573353039835",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    },
+    {
+      "from": "gpt-6.1-sol",
+      "to": "gpt-6-luna",
+      "workload": "coding",
+      "output": "3.18801425881566439",
+      "output_low": "2.701871444994134369",
+      "output_high": "3.76162786473138595",
+      "n": 39,
+      "source_record": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+    }
+  ]
+}

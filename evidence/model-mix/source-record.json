@@ -1,0 +1,457 @@
+{
+  "version": 1,
+  "date": "2026-10-14",
+  "study_id": "model-mix-cost-only-20261014",
+  "public_scope": "468 fit-only scalar observations; 117 tasks; 39 tasks per workload on four requested model IDs",
+  "numeric_allowlist": [
+    "workload",
+    "split_index",
+    "task_id",
+    "model",
+    "input_tokens",
+    "output_tokens"
+  ],
+  "models": [
+    {
+      "id": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "source_url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "provider": "openai",
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol"
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "source_url": "https://platform.claude.com/docs/en/models/haiku-5-5/overview"
+    },
+    {
+      "id": "gpt-6-luna",
+      "provider": "openai",
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-6-luna"
+    }
+  ],
+  "datasets": [
+    {
+      "id": "Dolly",
+      "workloads": [
+        "qa",
+        "extraction"
+      ],
+      "url": "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl",
+      "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+      "sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec",
+      "bytes": 13085339,
+      "license": "CC-BY-SA-3.0",
+      "attribution": "Databricks 2023; Wikipedia contributors where applicable",
+      "license_sha256": "db06c60090a11b20e79d1933b2f316f781605f07761ff2ae2795d6523e3e960b",
+      "license_url": "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/README.md"
+    },
+    {
+      "id": "HumanEval",
+      "workloads": [
+        "coding"
+      ],
+      "url": "https://raw.githubusercontent.com/openai/human-eval/6d43fb980f9fee3c892a914eda09951f772ad10d/data/HumanEval.jsonl.gz",
+      "revision": "6d43fb980f9fee3c892a914eda09951f772ad10d",
+      "sha256": "b796127e635a67f93fb35c04f4cb03cf06f38c8072ee7cee8833d7bee06979ef",
+      "bytes": 44877,
+      "license": "MIT",
+      "attribution": "OpenAI",
+      "license_sha256": "bcba3de214851cce46ed5af42d6698044616eeace887c3231bc7a20474ab639e",
+      "license_url": "https://raw.githubusercontent.com/openai/human-eval/6d43fb980f9fee3c892a914eda09951f772ad10d/LICENSE"
+    }
+  ],
+  "selection": {
+    "eligible_tasks": {
+      "qa": 1564,
+      "extraction": 1242,
+      "coding": 164
+    },
+    "selected_per_workload": 156,
+    "fit_per_workload": 39,
+    "calibration_per_workload": 39,
+    "evaluation_per_workload": 78,
+    "selection_seed": "cost-only-selection-20261014-v1",
+    "split_seed": "cost-only-split-20261014-v1",
+    "ranking": "SHA-256 of compact UTF-8 JSON [seed, original_workload, group_id] followed by LF; no ASCII escaping",
+    "grouping": "Dolly: whitespace-normalized context, shared across QA and extraction; HumanEval: byte-identical task text; first input-eligible source row retained",
+    "eligibility": "Nonempty Dolly instruction and context; all-four request UTF-8 byte length plus 1024 <= 4096 before ranking; no truncation, quality selection or reference-answer selection",
+    "fit_indices": "0 through 38, in frozen split order",
+    "task_id_convention": "Dolly: one-based source JSONL line; HumanEval: original public ID with slash replaced by hyphen"
+  },
+  "configuration": {
+    "effort": {
+      "qa": "low",
+      "extraction": "low",
+      "coding": "medium"
+    },
+    "anthropic": "Messages; adaptive thinking; explicit output_config.effort; global standard",
+    "openai": "Responses; explicit reasoning.effort; service_tier default; store false; explicit-only caching without breakpoints",
+    "output_cap": 4096,
+    "tools": false,
+    "streaming": false,
+    "temperature_set": false,
+    "cold_cache_reads": 0,
+    "cold_cache_writes": 0,
+    "token_accounting": "Input is inclusive processed input; output is inclusive billed output, with reasoning already included; no double addition",
+    "quality_evaluated": false,
+    "same_visible_task_and_system_text": true,
+    "model_identity": "Requested IDs only; exact returned model snapshot identifiers and fingerprints were not retained.",
+    "recovery_disclosure": "The complete study used two authorized retries after privacy stops; discarded responses are unavailable."
+  },
+  "original-fit": {
+    "estimator": "geometric_mean_paired_ratios_normal_approximate_log_mean_95",
+    "decimal_precision": 50,
+    "normal_quantile": "1.959963984540054",
+    "sd_method": "Python statistics.stdev on float-converted Decimal log ratios, ddof=1",
+    "formula": "r_i=target_i/source_i; factor=exp(mean(log(r_i))); endpoints=exp(mean(log(r_i)) +/- 1.959963984540054*s/sqrt(n))",
+    "zero_policy": "No smoothing or omission; zero or undefined ratio blocks the stratum",
+    "interval_target": "Approximate 95% confidence interval for the population geometric mean paired ratio under the fit sampling assumptions; not a prediction interval or arithmetic mean",
+    "estimates": [
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "gpt-6.1-sol",
+        "workload": "qa",
+        "input": {
+          "factor": "0.65464194850112267500777850228649430554333172036297",
+          "low": "0.64263246482604685140209278080728895657913556145044",
+          "high": "0.66687586481232582758996840281530136890434161915443",
+          "n": 39
+        },
+        "output": {
+          "factor": "0.39713139938938539167848684319405790326792727345971",
+          "low": "0.34490330102953325452275163475587159911134919447068",
+          "high": "0.45726830653750951071454655652086022825370969994282",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "gpt-6.1-sol",
+        "workload": "extraction",
+        "input": {
+          "factor": "0.65346843748891233301076028545267222820632799894218",
+          "low": "0.64415018944531515837055132996466992052697499049913",
+          "high": "0.66292148289502642723205953634667699987739099828264",
+          "n": 39
+        },
+        "output": {
+          "factor": "0.55597460878447372041401866915290703710829015604412",
+          "low": "0.47487699729349390798316577933591635845537093008713",
+          "high": "0.65092174894714269580136398505438712899876045212855",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "gpt-6.1-sol",
+        "workload": "coding",
+        "input": {
+          "factor": "0.69931041892290993535401796052095666040693171070543",
+          "low": "0.68589562356726019644777179691388481696102140981535",
+          "high": "0.71298758179957989682761665473729970277761209339287",
+          "n": 39
+        },
+        "output": {
+          "factor": "0.86032430783808062775594921620581694197703687289058",
+          "low": "0.74926125921397182660788611476770956563488948302677",
+          "high": "0.98785023989302561821891008412958786108099967914770",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "claude-haiku-5-5",
+        "workload": "qa",
+        "input": {
+          "factor": "1",
+          "low": "1",
+          "high": "1",
+          "n": 39
+        },
+        "output": {
+          "factor": "0.56313080776819864606857373011041099944286119601394",
+          "low": "0.41217174518906016243961975892877310976368185019083",
+          "high": "0.76937905220117640037926584092738265454800828082278",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "claude-haiku-5-5",
+        "workload": "extraction",
+        "input": {
+          "factor": "1",
+          "low": "1",
+          "high": "1",
+          "n": 39
+        },
+        "output": {
+          "factor": "1.2572108460977408276461513642343593631345838625566",
+          "low": "0.98399166475359892934564478004688763533101831579570",
+          "high": "1.6062931914586794141160630288128739944619467307631",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "claude-haiku-5-5",
+        "workload": "coding",
+        "input": {
+          "factor": "1",
+          "low": "1",
+          "high": "1",
+          "n": 39
+        },
+        "output": {
+          "factor": "2.5142435606309403876741988242666236647244394160682",
+          "low": "1.9572682793498862382294748923648757031423247422168",
+          "high": "3.2297160020770540627503430524141482445441198809994",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "gpt-6-luna",
+        "workload": "qa",
+        "input": {
+          "factor": "0.65464194850112267500777850228649430554333172036297",
+          "low": "0.64263246482604685140209278080728895657913556145044",
+          "high": "0.66687586481232582758996840281530136890434161915443",
+          "n": 39
+        },
+        "output": {
+          "factor": "0.35784822034941574387103204527429574806391403587479",
+          "low": "0.28903387555950121937092169249997639127060824485654",
+          "high": "0.44304616045215854743653520138820210765306244299252",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "gpt-6-luna",
+        "workload": "extraction",
+        "input": {
+          "factor": "0.65346843748891233301076028545267222820632799894218",
+          "low": "0.64415018944531515837055132996466992052697499049913",
+          "high": "0.66292148289502642723205953634667699987739099828264",
+          "n": 39
+        },
+        "output": {
+          "factor": "0.83568918162444840328750890874732777116220955473641",
+          "low": "0.66552632433783927611446795758659982426993647793055",
+          "high": "1.0493595561061915832068765390885933521402165521872",
+          "n": 39
+        }
+      },
+      {
+        "from": "claude-sonnet-5-5",
+        "to": "gpt-6-luna",
+        "workload": "coding",
+        "input": {
+          "factor": "0.69931041892290993535401796052095666040693171070543",
+          "low": "0.68589562356726019644777179691388481696102140981535",
+          "high": "0.71298758179957989682761665473729970277761209339287",
+          "n": 39
+        },
+        "output": {
+          "factor": "2.7427261605935180981400256323681649855824159024597",
+          "low": "2.2069417100659259491093693532708218431553455283545",
+          "high": "3.4085842674020360400949200309340532663002709076533",
+          "n": 39
+        }
+      },
+      {
+        "from": "gpt-6.1-sol",
+        "to": "gpt-6-luna",
+        "workload": "qa",
+        "input": {
+          "factor": "1",
+          "low": "1",
+          "high": "1",
+          "n": 39
+        },
+        "output": {
+          "factor": "0.90108266659254338336818129141119621840035538740946",
+          "low": "0.73236310351098530863505273380795972409575561574873",
+          "high": "1.1086713245670077682825648710631855827751405852312",
+          "n": 39
+        }
+      },
+      {
+        "from": "gpt-6.1-sol",
+        "to": "gpt-6-luna",
+        "workload": "extraction",
+        "input": {
+          "factor": "1",
+          "low": "1",
+          "high": "1",
+          "n": 39
+        },
+        "output": {
+          "factor": "1.5031067398051039534762578282500031092963696464617",
+          "low": "1.1961533762078801839712031281038714316377219168205",
+          "high": "1.8888295733530398350693820869801087250434994105536",
+          "n": 39
+        }
+      },
+      {
+        "from": "gpt-6.1-sol",
+        "to": "gpt-6-luna",
+        "workload": "coding",
+        "input": {
+          "factor": "1",
+          "low": "1",
+          "high": "1",
+          "n": 39
+        },
+        "output": {
+          "factor": "3.1880142588156643897042379659495020601313611305355",
+          "low": "2.7018714449941343694353884798848003307350971381972",
+          "high": "3.7616278647313859495196409168002478827183061553519",
+          "n": 39
+        }
+      }
+    ]
+  },
+  "descriptive-input-pool": {
+    "status": "New descriptive aggregation, not an original fitted artifact or validated range",
+    "estimator": "geometric_mean_paired_ratios_normal_approximate_log_mean_95",
+    "n_per_direction": 117,
+    "workload_counts": {
+      "qa": 39,
+      "extraction": 39,
+      "coding": 39
+    },
+    "weight_definition": "Exactly 39 observations per workload; equal task weighting, not token-volume weighting",
+    "ordering": "qa, extraction, coding; ascending original split_index within each",
+    "runtime": "L1 uses one directed input factor without workload mapping; within-provider input is always 1 by policy. L2 applies workload output only after L1.",
+    "generalization": "The input ratio varies across workloads; this equal-workload pool is not a universal tokenizer ratio, upper bound, or validated conservative production estimate",
+    "diagnostics": "evidence/model-mix/fit-estimates.json",
+    "direction_policy": "Only four original directed comparisons; no automatic reciprocal, composition, or unmeasured cross-provider fallback"
+  },
+  "prices": {
+    "currency": "USD",
+    "unit": "per million tokens",
+    "date": "2026-10-14",
+    "tier": "Direct-provider standard/global, short input; no batch, fast, regional, account, tax or negotiated modifiers",
+    "models": {
+      "claude-sonnet-5-5": {
+        "input": "2",
+        "output": "10",
+        "cache_read": "0.10",
+        "cache_write": "2.50"
+      },
+      "gpt-6.1-sol": {
+        "input": "2",
+        "output": "10",
+        "cache_read": "0.10",
+        "cache_write": "2.50"
+      },
+      "claude-haiku-5-5": {
+        "input": "0.10",
+        "output": "0.50",
+        "cache_read": "0.01",
+        "cache_write": "0.125"
+      },
+      "gpt-6-luna": {
+        "input": "0.10",
+        "output": "0.50",
+        "cache_read": "0.01",
+        "cache_write": "0.125"
+      }
+    },
+    "source_urls": [
+      "https://developers.openai.com/api/docs/pricing",
+      "https://platform.claude.com/docs/en/about-claude/pricing"
+    ],
+    "evidence_kind": "Published Oct 14 standard/global short-input rates; literal decimal transcription, not an invoice or publisher-signed archive.",
+    "cache_write_scope": {
+      "anthropic": "5m",
+      "openai": "30m minimum retention"
+    },
+    "short_input_limit": {
+      "claude-haiku-5-5": 100000,
+      "gpt-6.1-sol": 272000,
+      "gpt-6-luna": 272000
+    },
+    "tier_eligibility": "Check inclusive source input and scaled target input per request against each known input_tier_max. Period totals cannot verify per-request support; do not silently assert the short tier from aggregate totals.",
+    "limit_provenance": {
+      "claude-haiku-5-5": "Frozen Oct 14 transcription input_tier_max field",
+      "gpt-6.1-sol": "Primary model page short-context threshold, corroborating the frozen short-input tier",
+      "gpt-6-luna": "Primary model page short-context threshold, corroborating the frozen short-input tier",
+      "claude-sonnet-5-5": "No separate input-price tier ceiling in the pinned transcription; omission is not an unlimited context-window claim"
+    }
+  },
+  "audit": {
+    "original_validation": {
+      "workload|per_task": {
+        "populations": 12,
+        "coverage_pass": 6,
+        "width_pass": 1,
+        "joint_pass": 0
+      },
+      "workload|six_task_batches": {
+        "populations": 12,
+        "coverage_pass": 10,
+        "width_pass": 1,
+        "joint_pass": 1
+      },
+      "workload|mixed_18_batches": {
+        "populations": 4,
+        "coverage_pass": 4,
+        "width_pass": 0,
+        "joint_pass": 0
+      },
+      "pooled|per_task": {
+        "populations": 12,
+        "coverage_pass": 12,
+        "width_pass": 0,
+        "joint_pass": 0
+      },
+      "pooled|six_task_batches": {
+        "populations": 12,
+        "coverage_pass": 12,
+        "width_pass": 0,
+        "joint_pass": 0
+      },
+      "pooled|mixed_18_batches": {
+        "populations": 4,
+        "coverage_pass": 4,
+        "width_pass": 0,
+        "joint_pass": 0
+      }
+    },
+    "interpretation": "No workload-specific or pooled per-task comparison passed both preregistered coverage and width gates; no calibrated prediction range is supported.",
+    "public_summary": "prediction-audit.csv",
+    "summary_scope": "Population-level audited coverage and width summaries. Reproduction checks gate-count totals, not the unshared underlying held-out observations.",
+    "width_gates": {
+      "median_normalized_width_max": "0.50",
+      "p90_normalized_width_max": "1.00"
+    }
+  },
+  "serialization": {
+    "shipped_factors": "18 fractional decimal places, round-half-even, trailing zeros removed; original 50-digit estimates retained",
+    "prices": "Exact literal decimal strings from frozen transcription"
+  },
+  "reproduce": "python3 -B scripts/reproduce-model-mix.py --check",
+  "tests": "python3 -B -m unittest discover -s evidence/model-mix -p 'test_*.py'",
+  "privacy": "Explicit scalar allowlist only; no task text, answers, answer hashes, response hashes, request bodies, private paths, account identifiers, credentials, or provider request identifiers",
+  "public_data": [
+    {
+      "file": "fit-token-counts.csv",
+      "sha256": "bac7fdc435f52e9f4a3485ef5d4bb5c44f0bad9dc88f39a22530517dda85a9c9",
+      "rows": 468,
+      "scope": "Paired fit-only token counts; 117 tasks, four models"
+    },
+    {
+      "file": "prediction-audit.csv",
+      "sha256": "0fe346672097383549cc4dac04b2f67f6fcccbf56c3f86858f878c0cd1fd3c16",
+      "rows": 56,
+      "scope": "Audited primary population summaries; no fit recalibration"
+    }
+  ]
+}

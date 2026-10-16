@@ -1,0 +1,31 @@
+Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.154400 -> $0.109398 to $0.147974, depending on workload assumptions.
+Period: Wed 2026-10-07 00:00:00 UTC -> Thu 2026-10-08 00:00:00 UTC (end exclusive). Prices: 2026-10-14 (bundled); measured factors: 2026-10-14.
+
+Level 1, same work and output verbosity: $0.148703
+Level 2, qa: $0.112531 (propagated mean-interval endpoints $0.109398 to $0.116140)
+Level 2, extraction: $0.122062 (propagated mean-interval endpoints $0.117196 to $0.127759)
+Level 2, coding: $0.140323 (propagated mean-interval endpoints $0.133659 to $0.147974)
+
+move-1: 50% of claude-sonnet-5-5 -> gpt-6.1-sol
+  Moved traffic, level 1: $0.077200 -> $0.071503; input tokenizer factor 0.668804955
+  Output share of moved target cost at level 1: 83.91%
+  qa: $0.035331 ($0.032198 to $0.038940)
+  extraction: $0.044862 ($0.039996 to $0.050559)
+  coding: $0.063123 ($0.056459 to $0.070774)
+
+Coverage: 3 observations priced; missing splits are excluded, never zero.
+  missing split: 1
+  3 moved observations have no workload mapping; all three workload assumptions are shown where measured.
+Dominant uncertainty: How output verbosity on your traffic differs from the measured workload averages.
+
+Assumptions
+- Fractions move a uniform share of original covered token volume, with the same work and observed cache-read/write shares. Moves do not cascade.
+- Level 1 keeps output tokens unchanged, including billed reasoning. Level 2 uses the study's geometric mean paired output ratios.
+- Baseline and scenarios use the dated price table, not recorded spend. Cache reads and writes are disjoint input subsets; cache-write pricing assumes the measured short-lived cache class.
+- Level 2 endpoints propagate approximate 95% log-mean intervals for geometric mean ratios; combined endpoints and the workload envelope are not joint confidence or prediction intervals.
+
+Limits
+- Factors are averages on public benchmark tasks; customer traffic may differ.
+- Individual requests vary widely; the per-request range test failed.
+- This re-pricing is not a forecast or an invoice.
+- No quality equivalence is claimed.
