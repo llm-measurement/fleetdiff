@@ -2,10 +2,9 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## [0.9.0] - Unreleased
+## [0.9.0] - 2026-10-15
 
 See the [release notes](docs/releases/v0.9.0.md) for daily spend-log row coverage.
-Set the actual release date on the reviewed commit before tagging.
 
 - Compare exported LiteLLM spend rows with daily request counts using optional
   `--litellm-daily-spend`. Report per-UTC-day missing rows and discrepancies
