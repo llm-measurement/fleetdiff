@@ -8,10 +8,11 @@ fixture reproduces a real response-ID collision through pinned LiteLLM's proxy
 and database writers. The next UTC day matches: 1 row and 1 daily request.
 The check leaves token and spend totals exactly as recorded in the export.
 
-This optional check is unreleased. Build this branch to try it:
+Install [fleetdiff v0.9.0](../README.md#2-install-v090). From the repository
+root, select the verified binary for the commands below:
 
 ```sh
-go build -o bin/fleetdiff ./cmd/fleetdiff
+FLEETDIFF_BIN="$PWD/fleetdiff-install/fleetdiff"
 ```
 
 ## Export And Compare
@@ -28,7 +29,7 @@ umask 077
 export_dir="$HOME/litellm-coverage-export"
 sh examples/litellm-spend/export-coverage.sh "$export_dir" \
   2026-09-23T00:00:00Z 2026-10-09T00:00:00Z
-bin/fleetdiff investigate --litellm-spend "$export_dir/spend.csv" \
+"$FLEETDIFF_BIN" investigate --litellm-spend "$export_dir/spend.csv" \
   --litellm-daily-spend "$export_dir/daily.csv" --group-by key
 ```
 
@@ -51,7 +52,7 @@ request export. Omit `--litellm-daily-spend` to keep the existing report byte fo
 Run the recorded fixture from the repository root:
 
 ```sh
-bin/fleetdiff investigate \
+"$FLEETDIFF_BIN" investigate \
   --litellm-spend examples/litellm-spend/coverage_runtime_spend.csv \
   --litellm-daily-spend examples/litellm-spend/coverage_runtime_daily.csv \
   --before-period 2026-10-07 --after-period 2026-10-08

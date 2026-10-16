@@ -81,7 +81,7 @@ verify that every advertised version is downloadable. Do not replace immutable t
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-## After Publishing v0.8.0
+## After Publishing v0.9.0
 
 From an anonymous clone in a fresh directory outside any synced workspace:
 
@@ -90,7 +90,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
    recorded build revision match the approved commit.
 2. Run the README's verified installer into a new directory. Confirm the native
-   executable reports `v0.8.0`, then run the packaged-binary tests above.
+   executable reports `v0.9.0`, then run the packaged-binary tests above.
 3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
    [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
    It exercises the real pinned writer, a SELECT-only SQL export and the released
@@ -104,8 +104,15 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    `--period 2026-10-03`: no session should be labeled clipped or possibly clipped.
 6. Run the cache-drop fixture and inspect the shipped synthetic capture with
    Go absent from PATH. Check the cache headline, coverage, keyed rankings and
-   unchanged capture bytes. Site version updates and a session-budget guide
-   remain separate changes, held until the artifacts pass the outsider check.
+   unchanged capture bytes.
+7. Run the [row-coverage fixture](ROW_COVERAGE.md#reading-coverage): require
+   8 exported rows versus 9 daily requests and one missing row on October 7,
+   with matched counts on October 8. Repeat in JSON and without the optional
+   daily input; the latter must match the v0.8.0 golden output.
+8. Run the paired SQL helper against the pinned test DB and repeat coverage with
+   that export. Record failure-logging-disabled behavior: a request absent from
+   both tables cannot be found by their count comparison. Site bumps and
+   outreach stay separate until these released-artifact checks pass.
 
 The release workflow tests every native platform before publication. The local
 outsider run proves the post-publication download and database path on its own
