@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.8.0](../../README.md#2-install-v080), then run this fixture
+Install [fleetdiff v0.9.0](../../README.md#2-install-v090), then run this fixture
 from the repository root with the verified binary:
 
 ```sh
@@ -80,7 +80,7 @@ set your own strong secret in an environment variable and pass
 `--hash-secret-env NAME`. Add `--show-hashes` to display them.
 
 To check for rows missing relative to LiteLLM's daily counters, use the optional
-[daily row coverage check](../../docs/ROW_COVERAGE.md) (unreleased).
+[daily row coverage check](../../docs/ROW_COVERAGE.md).
 
 ### Usage Details (Default On)
 
@@ -264,7 +264,7 @@ the call types and asks for a supported request-level export.
 [session-budget.csv](session-budget.csv) is a newly authored, deterministic
 Apache-2.0 fixture with four sessions and no production data. The companion
 [license notice](session-budget.csv.license) keeps the CSV directly importable.
-Use fleetdiff v0.8.0 for the session-budget command:
+Use fleetdiff v0.9.0 for the session-budget command:
 
 ```sh
 fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \
