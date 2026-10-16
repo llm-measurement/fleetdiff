@@ -331,6 +331,7 @@ func summaryCause(err error) string {
 	message := err.Error()
 	switch message {
 	case "invalid summary version or sequence", "invalid summary identifier",
+		"invalid model_usage: presence", "invalid model_usage: contract", "invalid model_usage: regression",
 		"invalid summary observation interval", "invalid summary payload count",
 		"invalid summary counter", "invalid summary sketch", "invalid summary sketch state",
 		"summary exceeds size limit", "invalid summary batch size",

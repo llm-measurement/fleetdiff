@@ -5,18 +5,23 @@ package compare
 
 import (
 	"errors"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/accounting"
 	"github.com/llm-measurement/fleetdiff/internal/reprice"
+	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/modelusage"
 )
 
 // ReadReprice validates canonical summaries, selects the latest cumulative
-// snapshots, and reports their attribution limits. The current collector exports
-// aggregate components, not model/component records, so it never invokes visit.
+// snapshots, and emits complete model-usage bins and exclusive exclusions.
+// Legacy summaries have no model/component split and never invoke visit.
 // Rows and Outside count deduplicated model attempts, not snapshot files.
-func ReadReprice(path, period string, expected []string, visit func(reprice.Record) error) (reprice.Source, error) {
+// All source validation precedes visits. Discard callback results on error;
+// visitor errors are returned unchanged and must be safe for display.
+func ReadReprice(path, period string, expected []string, expectedContract string, visit func(reprice.Record) error) (reprice.Source, error) {
 	if visit == nil {
 		return reprice.Source{}, errors.New("repricing visitor is required")
 	}
@@ -27,6 +32,11 @@ func ReadReprice(path, period string, expected []string, visit func(reprice.Reco
 	now := time.Now().UTC()
 	if end.After(now) {
 		return reprice.Source{}, errors.New("select a completed repricing period ending before now")
+	}
+	if expectedContract != "" {
+		if _, err := modelusage.New(expectedContract); err != nil {
+			return reprice.Source{}, errors.New("expected model_usage contract must be model-usage-v1: followed by 64 lowercase hex characters")
+		}
 	}
 	docs, err := ReadSeries(path)
 	if err != nil {
@@ -59,6 +69,19 @@ func ReadReprice(path, period string, expected []string, visit func(reprice.Reco
 		if f.emitted > now.UnixNano() {
 			return reprice.Source{}, errors.New("selected summary was emitted in the future; check producer clocks")
 		}
+		if f.modelUsage == nil {
+			if expectedContract != "" {
+				return reprice.Source{}, errors.New("expected model_usage block is missing; use an enabled export or omit the expected contract for legacy summaries")
+			}
+		} else {
+			if expectedContract == "" {
+				return reprice.Source{}, errors.New("model_usage requires an expected contract ID from trusted producer configuration")
+			}
+			if f.modelUsage.ContractID != expectedContract {
+				return reprice.Source{}, errors.New("model_usage contract does not match the expected contract; check producer configuration")
+			}
+			source.Gaps[0] = "Model usage summaries contain model-level cohorts only; model-by-key and model-by-team intersections are unavailable."
+		}
 		selected = true
 		incomplete = incomplete || !f.complete || f.start != next
 		missingCounts = missingCounts || !known
@@ -85,6 +108,47 @@ func ReadReprice(path, period string, expected []string, visit func(reprice.Reco
 	}
 	if unknownUsage {
 		source.Gaps = append(source.Gaps, "Some selected summaries lack token-usage coverage counts; token-usage completeness is unknown.")
+	}
+	// Finish validating every selected window and contract before any callback.
+	for _, f := range frames {
+		if f.end <= start.UnixNano() || f.start >= end.UnixNano() || f.modelUsage == nil {
+			continue
+		}
+		for _, id := range slices.Sorted(maps.Keys(f.modelUsage.Models)) {
+			model := f.modelUsage.Models[id]
+			if modelusage.IsReserved(id) {
+				if err := visit(reprice.Record{Model: id, Count: model.Requests, Issue: "unpriced_reserved_bucket"}); err != nil {
+					return reprice.Source{}, err
+				}
+				continue
+			}
+			for _, bin := range model.Histogram {
+				c := bin.Complete
+				if c.Requests == 0 {
+					continue
+				}
+				r := reprice.Record{Model: id, Count: c.Requests,
+					Input: &c.InputTokens, Output: &c.OutputTokens, CacheRead: &c.CacheReadInputTokens, CacheWrite: &c.CacheWriteInputTokens,
+					InputMin: new(*c.InputMin), InputMax: new(*c.InputMax)}
+				if err := visit(r); err != nil {
+					return reprice.Source{}, err
+				}
+			}
+			for _, exclusion := range []struct {
+				issue string
+				count uint64
+			}{
+				{"invalid_usage", model.Excluded.InvalidUsage},
+				{"missing_split", model.Excluded.MissingSplit},
+				{"zero_origin_unknown", model.Excluded.ZeroOriginUnknown},
+			} {
+				if exclusion.count != 0 {
+					if err := visit(reprice.Record{Model: id, Count: exclusion.count, Issue: exclusion.issue}); err != nil {
+						return reprice.Source{}, err
+					}
+				}
+			}
+		}
 	}
 	return source, nil
 }

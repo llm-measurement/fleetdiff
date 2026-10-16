@@ -36,3 +36,25 @@ func TestExistingSpendIdentityBytesPreserved(t *testing.T) {
 		}
 	}
 }
+
+func TestLegacySupplementaryPlaneIdentity(t *testing.T) {
+	// The maintenance dependency deliberately preserves the v0.2.3 bytes.
+	// Newer normalization fixes require an explicit identity migration.
+	key := []byte("synthetic-regression-key-32-bytes-long")
+	input := "\U00011f41\u0301"
+	canonical, err := canon.CanonicalizeString(canon.TextV1, input)
+	if err != nil || !hmac.Equal(canonical, []byte{0xe1, 0xbd, 0x85}) {
+		t.Fatalf("legacy canonical bytes changed: %x (%v)", canonical, err)
+	}
+	legacy, err := json.Marshal([]string{"litellm-spend/v1", "key", string([]byte{0xe1, 0xbd, 0x85})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte("user:v1\x00"))
+	mac.Write(legacy)
+	got, err := Identity(key, "litellm-spend/v1", "key", input)
+	if err != nil || got != [32]byte(mac.Sum(nil)) {
+		t.Fatal("legacy supplementary-plane identity changed")
+	}
+}

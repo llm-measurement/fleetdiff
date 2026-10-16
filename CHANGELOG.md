@@ -2,6 +2,22 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.10.0] - 2026-10-16
+
+See the [release notes](docs/releases/v0.10.0.md) for model-mix what-if repricing.
+
+- Re-price covered request-level usage under a proposed model mix with `what-if`.
+  The checked example moves 50% of Sonnet traffic to Sol: USD 0.154400 becomes
+  USD 0.109398 to 0.147974 under the measured workload assumptions.
+- Support fractional moves, key/team scopes, workload mappings, dated price
+  overrides and text/JSON reports, with coverage and exclusions beside costs.
+- Read optional per-model summary accounting with explicit contract checks,
+  replay-safe combination, missing-data exclusions and per-request price-tier
+  checks. Upgrade fleetdiff before enabling producer `model_usage` output.
+- Publish 468 paired fit observations, geometric-mean factors, source/license
+  pins and offline reproduction. Retain the failed per-request prediction
+  evidence; these are descriptive scenarios, not validated bill forecasts.
+
 ## [0.9.0] - 2026-10-15
 
 See the [release notes](docs/releases/v0.9.0.md) for daily spend-log row coverage.

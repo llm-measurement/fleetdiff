@@ -50,6 +50,15 @@ fallback, explicit periods and clipping in each native archive. The existing
 spend examples also exercise the pinned rejection classification and privacy
 sentinels with the packaged importer.
 
+`TestReleaseBinaryWhatIf` checks the simple and scenario commands against the
+checked text/JSON output, plus workload mappings, summary gaps and error privacy.
+Before packaging v0.10.0, reproduce its public numeric bundle offline:
+
+```sh
+python3 -B scripts/reproduce-model-mix.py --check
+python3 -B -m unittest discover -s evidence/model-mix -p 'test_*.py'
+```
+
 For a release, use a clean reviewed commit, update the changelog, and create a
 signed version tag. The build script verifies the requested tag points at the
 checked-out commit and rejects dirty release builds. Protect release tags and
@@ -81,7 +90,7 @@ verify that every advertised version is downloadable. Do not replace immutable t
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-## After Publishing v0.9.0
+## After Publishing v0.10.0
 
 From an anonymous clone in a fresh directory outside any synced workspace:
 
@@ -90,7 +99,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
    recorded build revision match the approved commit.
 2. Run the README's verified installer into a new directory. Confirm the native
-   executable reports `v0.9.0`, then run the packaged-binary tests above.
+   executable reports `v0.10.0`, then run the packaged-binary tests above.
 3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
    [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
    It exercises the real pinned writer, a SELECT-only SQL export and the released
@@ -111,8 +120,14 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    daily input; the latter must match the v0.8.0 golden output.
 8. Run the paired SQL helper against the pinned test DB and repeat coverage with
    that export. Record failure-logging-disabled behavior: a request absent from
-   both tables cannot be found by their count comparison. Site bumps and
-   outreach stay separate until these released-artifact checks pass.
+   both tables cannot be found by their count comparison.
+9. Run the [what-if sample](WHAT_IF.md#no-data-handy-try-the-sample) with the
+   installed executable: require USD 0.154400 -> 0.109398 to 0.147974 under
+   workload assumptions, level 1 USD 0.148703, three covered observations and
+   one missing-split exclusion. Repeat in JSON and with the workload map;
+   require one mapped result and no raw fixture identities. Reproduce the
+   public factors from the tagged checkout with the commands above. Site bumps
+   and outreach stay separate until these released-artifact checks pass.
 
 The release workflow tests every native platform before publication. The local
 outsider run proves the post-publication download and database path on its own

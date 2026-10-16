@@ -38,8 +38,10 @@ type WorkloadMap struct {
 type Record struct {
 	Model, Key, Team                     string
 	Input, Output, CacheRead, CacheWrite *uint64
-	Count                                uint64
-	Issue                                string
+	// Summary cohorts retain per-request extrema; totals are not request sizes.
+	InputMin, InputMax *uint64
+	Count              uint64
+	Issue              string
 }
 
 type Source struct {
