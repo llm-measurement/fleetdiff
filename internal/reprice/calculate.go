@@ -207,6 +207,23 @@ func (c *Calculator) Add(r Record) error {
 	if r.Count == 0 {
 		return errors.New("what-if observation count must be positive")
 	}
+	if (r.InputMin == nil) != (r.InputMax == nil) {
+		return errors.New("what-if cohort input extrema must both be present")
+	}
+	if r.InputMin != nil {
+		if r.Input == nil || *r.InputMin > *r.InputMax {
+			return errors.New("invalid what-if cohort input extrema")
+		}
+		n := new(big.Int).SetUint64(r.Count - 1)
+		total := new(big.Int).SetUint64(*r.Input)
+		lo := new(big.Int).Mul(new(big.Int).SetUint64(*r.InputMin), n)
+		hi := new(big.Int).Mul(new(big.Int).SetUint64(*r.InputMax), n)
+		lo.Add(lo, new(big.Int).SetUint64(*r.InputMax))
+		hi.Add(hi, new(big.Int).SetUint64(*r.InputMin))
+		if total.Cmp(lo) < 0 || total.Cmp(hi) > 0 {
+			return errors.New("what-if cohort input total is outside its extrema")
+		}
+	}
 	indices := []int{}
 	unknownScope := false
 	sum := new(big.Rat)
@@ -247,16 +264,22 @@ func (c *Calculator) Add(r Record) error {
 		}
 	}
 	issue := r.Issue
-	if issue != "" {
+	switch issue {
+	case "", "invalid_usage", "missing_split", "zero_origin_unknown", "unpriced_reserved_bucket":
+	default:
 		issue = "unusable_usage"
 	}
-	if r.Input == nil || r.Output == nil || r.CacheRead == nil || r.CacheWrite == nil {
+	if issue == "" && (r.Input == nil || r.Output == nil || r.CacheRead == nil || r.CacheWrite == nil) {
 		issue = "missing_split"
 	}
-	if c.price(r.Model) == nil {
+	if issue != "unpriced_reserved_bucket" && c.price(r.Model) == nil {
 		issue = "unknown_model_price"
 	}
-	if p := c.price(r.Model); p != nil && r.Input != nil && p.InputTierMax > 0 && *r.Input > p.InputTierMax {
+	requestInput := r.Input
+	if r.InputMax != nil {
+		requestInput = r.InputMax
+	}
+	if p := c.price(r.Model); p != nil && requestInput != nil && p.InputTierMax > 0 && *requestInput > p.InputTierMax {
 		issue = "outside_price_tier"
 	}
 	if r.Issue == "unsupported_call_type" {
@@ -285,7 +308,7 @@ func (c *Calculator) Add(r Record) error {
 		m := &c.moves[i]
 		p := c.price(m.move.To)
 		if p.InputTierMax > 0 {
-			input := new(big.Rat).SetInt(new(big.Int).SetUint64(*r.Input))
+			input := new(big.Rat).SetInt(new(big.Int).SetUint64(*requestInput))
 			input.Mul(input, m.input)
 			limit := new(big.Rat).SetInt(new(big.Int).SetUint64(p.InputTierMax))
 			if input.Cmp(limit) > 0 {

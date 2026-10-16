@@ -67,7 +67,8 @@ class DocumentationTests(unittest.TestCase):
                  ROOT / "docs/releases/v0.6.0.md", ROOT / "docs/releases/v0.7.0.md",
                  ROOT / "docs/releases/v0.8.0.md", ROOT / "docs/SESSION_BUDGET.md",
                  ROOT / "docs/CACHE.md", Path(__file__).with_name("README.md")]
-        paths.extend([ROOT / "docs/ROW_COVERAGE.md", ROOT / "docs/releases/v0.9.0.md"])
+        paths.extend([ROOT / "docs/ROW_COVERAGE.md", ROOT / "docs/releases/v0.9.0.md",
+                      ROOT / "docs/WHAT_IF.md", ROOT / "docs/releases/v0.10.0.md"])
         for path in paths:
             for link in re.findall(r"\]\(([^)\s]+)\)", path.read_text()):
                 parsed = urlsplit(link)

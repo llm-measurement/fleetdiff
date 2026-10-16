@@ -15,7 +15,31 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.9.0"
+const installTestVersion = "v0.10.0"
+
+func TestInstallDocumentationVersionPins(t *testing.T) {
+	parts := strings.Split(strings.TrimPrefix(installTestVersion, "v"), ".")
+	for path, want := range map[string][]string{
+		"../README.md": {"### 2. Install " + installTestVersion, "sh -s -- " + installTestVersion,
+			"cmd/fleetdiff@" + installTestVersion, "docs/releases/" + installTestVersion + ".md"},
+		"../SECURITY.md":                                 {"`" + strings.Join(parts[:2], ".") + ".x` release line"},
+		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion},
+		"../docs/RELEASING.md":                           {"## After Publishing " + installTestVersion},
+		"../docs/WHAT_IF.md":                             {"Available in **" + installTestVersion + "**"},
+		"../docs/releases/" + installTestVersion + ".md": {"# " + installTestVersion + " Release Notes"},
+		"../examples/litellm-spend/README.md":            {"Install [fleetdiff " + installTestVersion + "]"},
+	} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, pin := range want {
+			if !strings.Contains(string(data), pin) {
+				t.Errorf("%s lacks current release reference %q", path, pin)
+			}
+		}
+	}
+}
 
 func TestInstallDefaultVersion(t *testing.T) {
 	root, env := installEnvironment(t, "Darwin", "arm64", "darwin_arm64", "")
@@ -144,7 +168,8 @@ func TestInstallOptions(t *testing.T) {
 			cmd.Dir = t.TempDir()
 			output, err := cmd.CombinedOutput()
 			if args[0] == "--help" {
-				if err != nil || !strings.Contains(string(output), "Usage:") {
+				if err != nil || !strings.Contains(string(output), "Usage:") ||
+					!strings.Contains(string(output), "Defaults: "+installTestVersion+" ") {
 					t.Fatalf("help: %v\n%s", err, output)
 				}
 			} else if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 2 {

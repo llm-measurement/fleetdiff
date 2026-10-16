@@ -124,4 +124,11 @@ check_case what-if 0 what-if --litellm-spend /examples/what-if/spend.csv \
   --period 2026-10-07 --scenario /examples/what-if/scenario.json --format json
 check_report what-if '.schema == "fleetdiff-what-if/v1" and .covered_observations == 3 and
     .excluded_observations.missing_split == 1 and (.level2 | length) == 3'
-printf 'PASS restricted offline binary smoke: 9 cases (%s)\n' "$platform"
+contract=$(cat examples/what-if-summaries/snapshots/contract.txt)
+check_case what-if-summaries 0 what-if --summaries /examples/what-if-summaries/snapshots \
+  --expected demo-a,demo-b --period 2026-10-07T00:00:00Z/2026-10-07T00:01:00Z \
+  --model-usage-contract "$contract" --from claude-sonnet-5-5 --to gpt-6.1-sol --fraction 0.5 --format json
+check_report what-if-summaries '.covered_observations == 5 and .source.observations == 9 and
+    .excluded_observations.invalid_usage == 1 and .excluded_observations.missing_split == 1 and
+    .excluded_observations.zero_origin_unknown == 1 and .excluded_observations.unpriced_reserved_bucket == 1'
+printf 'PASS restricted offline binary smoke: 10 cases (%s)\n' "$platform"

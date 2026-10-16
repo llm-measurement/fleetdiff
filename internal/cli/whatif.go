@@ -30,6 +30,7 @@ Options:
   --scope-team ID            Restrict a simple move to a recorded team
   --prices FILE              Versioned, dated USD-per-million price override
   --workload-map FILE        Map key/team selectors to qa, extraction or coding
+  --model-usage-contract ID  Expected model_usage contract (summaries only)
   --format text|json         Output format (default text)
 
 PERIOD is a UTC date or RFC3339 start/end. Fractions are uniform shares of
@@ -45,6 +46,7 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 	spendFile := f.String("litellm-spend", "", "")
 	summaryFile := f.String("summaries", "", "")
 	expected := f.String("expected", "", "")
+	modelContract := f.String("model-usage-contract", "", "")
 	period := f.String("period", "", "")
 	from := f.String("from", "", "")
 	to := f.String("to", "", "")
@@ -67,6 +69,9 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 	if f.NArg() != 0 || (*spendFile == "") == (*summaryFile == "") || *period == "" || (*format != "text" && *format != "json") || *spendFile != "" && *expected != "" || *summaryFile != "" && *expected == "" {
 		return fail(2, "choose one input, a period, and text or json; summaries also require expected producers")
 	}
+	if *spendFile != "" && *modelContract != "" {
+		return fail(2, "--model-usage-contract applies only to summaries")
+	}
 	scenario := reprice.Scenario{Version: 1}
 	if *scenarioFile != "" {
 		if *from != "" || *to != "" || *fraction != "" || *key != "" || *team != "" {
@@ -87,6 +92,16 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 			m.Scope = &reprice.Selector{Kind: "team", Value: *team}
 		}
 		scenario.Moves = []reprice.Move{m}
+	}
+	if *summaryFile != "" {
+		if *mappingFile != "" {
+			return fail(2, "summary model_usage has no key/team intersections; workload maps require request-level exports")
+		}
+		for _, move := range scenario.Moves {
+			if move.Scope != nil {
+				return fail(2, "summary model_usage has no key/team intersections; scoped moves require request-level exports")
+			}
+		}
 	}
 	prices, factors, err := reprice.Bundled()
 	if err != nil {
@@ -117,7 +132,7 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 	if *spendFile != "" {
 		source, err = spend.ReadReprice(*spendFile, *period, c.Add)
 	} else {
-		source, err = compare.ReadReprice(*summaryFile, *period, strings.Split(*expected, ","), c.Add)
+		source, err = compare.ReadReprice(*summaryFile, *period, strings.Split(*expected, ","), *modelContract, c.Add)
 	}
 	if err != nil {
 		return fail(1, err.Error())
@@ -207,7 +222,7 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 		}
 	}
 	fmt.Fprintf(out, "\nCoverage: %d observations priced; missing splits are excluded, never zero.\n", r.Covered)
-	for _, k := range []string{"missing_split", "missing_scope_identity", "unusable_usage", "unsupported_call_type", "unknown_model_price", "invalid_cache_partition", "outside_price_tier"} {
+	for _, k := range []string{"missing_split", "missing_scope_identity", "unusable_usage", "unsupported_call_type", "unknown_model_price", "invalid_cache_partition", "outside_price_tier", "invalid_usage", "zero_origin_unknown", "unpriced_reserved_bucket"} {
 		if r.Excluded[k] > 0 {
 			fmt.Fprintf(out, "  %s: %d\n", strings.ReplaceAll(k, "_", " "), r.Excluded[k])
 		}

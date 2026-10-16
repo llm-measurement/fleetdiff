@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/llm-measurement/fleetdiff/internal/localfile"
+	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/modelusage"
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/summary"
 )
 
@@ -105,6 +106,10 @@ func ReadSeries(path string) ([]summary.Envelope, error) {
 		total += len(data)
 		doc, err := summary.Parse(data)
 		if err != nil {
+			var extension *modelusage.Error
+			if errors.As(err, &extension) && extension.Reason == "unsupported_extension" {
+				return nil, fmt.Errorf("input file %d: summary includes unsupported model_usage; upgrade fleetdiff before enabling this producer format", i+1)
+			}
 			return nil, fmt.Errorf("input file %d: invalid or noncanonical summary", i+1)
 		}
 		documents = append(documents, doc)

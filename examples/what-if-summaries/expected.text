@@ -1,0 +1,35 @@
+Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.798000 -> $0.659080 to $0.675154, depending on workload assumptions.
+Period: Wed 2026-10-07 00:00:00 UTC -> Wed 2026-10-07 00:01:00 UTC (end exclusive). Prices: 2026-10-14 (bundled); measured factors: 2026-10-14.
+
+Level 1, same work and output verbosity: $0.675458
+Level 2, qa: $0.660386 (propagated mean-interval endpoints $0.659080 to $0.661890)
+Level 2, extraction: $0.664357 (propagated mean-interval endpoints $0.662330 to $0.666731)
+Level 2, coding: $0.671966 (propagated mean-interval endpoints $0.669189 to $0.675154)
+
+move-1: 50% of claude-sonnet-5-5 -> gpt-6.1-sol
+  Moved traffic, level 1: $0.395000 -> $0.272458; input tokenizer factor 0.668804955
+  Output share of moved target cost at level 1: 9.18%
+  qa: $0.257386 ($0.256080 to $0.258890)
+  extraction: $0.261357 ($0.259330 to $0.263731)
+  coding: $0.268966 ($0.266189 to $0.272154)
+
+Coverage: 5 observations priced; missing splits are excluded, never zero.
+  missing split: 1
+  invalid usage: 1
+  zero origin unknown: 1
+  unpriced reserved bucket: 1
+  4 moved observations have no workload mapping; all three workload assumptions are shown where measured.
+  Model usage summaries contain model-level cohorts only; model-by-key and model-by-team intersections are unavailable.
+Dominant uncertainty: How output verbosity on your traffic differs from the measured workload averages.
+
+Assumptions
+- Fractions move a uniform share of original covered token volume, with the same work and observed cache-read/write shares. Moves do not cascade.
+- Level 1 keeps output tokens unchanged, including billed reasoning. Level 2 uses the study's geometric mean paired output ratios.
+- Baseline and scenarios use the dated price table, not recorded spend. Cache reads and writes are disjoint input subsets; cache-write pricing assumes the measured short-lived cache class.
+- Level 2 endpoints propagate approximate 95% log-mean intervals for geometric mean ratios; combined endpoints and the workload envelope are not joint confidence or prediction intervals.
+
+Limits
+- Factors are averages on public benchmark tasks; customer traffic may differ.
+- Individual requests vary widely; the per-request range test failed.
+- This re-pricing is not a forecast or an invoice.
+- No quality equivalence is claimed.

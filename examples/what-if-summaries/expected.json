@@ -1,0 +1,104 @@
+{
+  "schema": "fleetdiff-what-if/v1",
+  "source": {
+    "kind": "summaries",
+    "start": "2026-10-07T00:00:00Z",
+    "end_exclusive": "2026-10-07T00:01:00Z",
+    "observations": 9,
+    "outside_period": 0,
+    "gaps": [
+      "Model usage summaries contain model-level cohorts only; model-by-key and model-by-team intersections are unavailable."
+    ]
+  },
+  "price_date": "2026-10-14",
+  "price_source": "bundled",
+  "price_version": 1,
+  "factor_version": 1,
+  "factor_date": "2026-10-14",
+  "covered_observations": 5,
+  "excluded_observations": {
+    "invalid_usage": 1,
+    "missing_split": 1,
+    "unpriced_reserved_bucket": 1,
+    "zero_origin_unknown": 1
+  },
+  "unmapped_moved_observations": 4,
+  "covered_source_cost_usd": "0.798000000",
+  "covered_level1_cost_usd": "0.675457833",
+  "level2": [
+    {
+      "workload": "qa",
+      "central_usd": "0.660386118",
+      "lower_usd": "0.659080416",
+      "upper_usd": "0.661889541"
+    },
+    {
+      "workload": "extraction",
+      "central_usd": "0.664357198",
+      "lower_usd": "0.662329758",
+      "upper_usd": "0.666730877"
+    },
+    {
+      "workload": "coding",
+      "central_usd": "0.671965941",
+      "lower_usd": "0.669189365",
+      "upper_usd": "0.675154089"
+    }
+  ],
+  "workload_envelope": {
+    "lower_usd": "0.659080416",
+    "upper_usd": "0.675154089"
+  },
+  "moves": [
+    {
+      "item": "move-1",
+      "from": "claude-sonnet-5-5",
+      "to": "gpt-6.1-sol",
+      "fraction": "0.5",
+      "scoped": false,
+      "covered_observations": 4,
+      "excluded_observations": 3,
+      "input_tokenizer_factor": "0.668804955",
+      "input_factor_source": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#descriptive-input-pool",
+      "moved_source_cost_usd": "0.395000000",
+      "moved_level1_cost_usd": "0.272457833",
+      "level1_moved_output_cost_share": "0.091757318",
+      "level2": [
+        {
+          "workload": "qa",
+          "central_usd": "0.257386118",
+          "lower_usd": "0.256080416",
+          "upper_usd": "0.258889541"
+        },
+        {
+          "workload": "extraction",
+          "central_usd": "0.261357198",
+          "lower_usd": "0.259329758",
+          "upper_usd": "0.263730877"
+        },
+        {
+          "workload": "coding",
+          "central_usd": "0.268965941",
+          "lower_usd": "0.266189365",
+          "upper_usd": "0.272154089"
+        }
+      ],
+      "factor_sources": [
+        "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+      ]
+    }
+  ],
+  "dominant_uncertainty": "How output verbosity on your traffic differs from the measured workload averages.",
+  "assumptions": [
+    "Fractions move a uniform share of original covered token volume, with the same work and observed cache-read/write shares. Moves do not cascade.",
+    "Level 1 keeps output tokens unchanged, including billed reasoning. Level 2 uses the study's geometric mean paired output ratios.",
+    "Baseline and scenarios use the dated price table, not recorded spend. Cache reads and writes are disjoint input subsets; cache-write pricing assumes the measured short-lived cache class.",
+    "Level 2 endpoints propagate approximate 95% log-mean intervals for geometric mean ratios; combined endpoints and the workload envelope are not joint confidence or prediction intervals."
+  ],
+  "limits": [
+    "Factors are averages on public benchmark tasks; customer traffic may differ.",
+    "Individual requests vary widely; the per-request range test failed.",
+    "This re-pricing is not a forecast or an invoice.",
+    "No quality equivalence is claimed."
+  ]
+}
