@@ -70,6 +70,8 @@ type Report struct {
 	ZeroFilled     string                `json:"zero_filled"`
 	ProviderOrigin string                `json:"provider_origin"`
 	Notes          []string              `json:"notes"`
+	RoutingAudit   *RoutingAudit         `json:"routing_audit,omitempty"`
+	ScopeCoverage  *ScopeCoverage        `json:"scope_coverage,omitempty"`
 }
 
 type CallType struct {

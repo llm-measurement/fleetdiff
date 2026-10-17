@@ -33,6 +33,7 @@ const (
 // allowlisted fields; numeric JSON values retain their original spelling.
 // rejection_kind alone retains empty values to distinguish an exported null
 // classification from an older export without classification coverage.
+// ReadRouting additionally retains present routing/identity fields when empty.
 type Row struct {
 	Values map[string]string
 	Number int
@@ -72,12 +73,40 @@ func allowedColumn(name string) bool {
 	return false
 }
 
+func routingReaderColumn(name string) bool {
+	switch name {
+	case "original_model_group", "attempted_fallbacks", "internal_call_origin":
+		return true
+	}
+	return false
+}
+
+func retainSpendEmpty(name string, routing bool) bool {
+	if name == "rejection_kind" {
+		return true
+	}
+	return routing && (routingReaderColumn(name) || name == "agent_id" || name == "model" || name == "model_id")
+}
+
 // Read streams a regular file without modifying it. The caller must discard
 // results if Read fails: validation can fail after earlier visits. Visitor errors
 // are returned unchanged; the visitor is responsible for keeping its errors safe.
 // CSV record bytes include line endings; JSON array record bytes exclude the
 // array delimiters. Field limits apply to decoded text, including ignored fields.
 func Read(path string, visit func(Row) error) error {
+	return readSpend(path, visit, false)
+}
+
+// ReadRouting uses Read's limits and validation while retaining the optional
+// original_model_group, attempted_fallbacks and internal_call_origin columns.
+// Present null/empty values in those columns and agent_id, model and model_id
+// are retained as empty strings; absent columns remain absent. Numeric text is
+// preserved without interpretation, including invalid fallback count spellings.
+func ReadRouting(path string, visit func(Row) error) error {
+	return readSpend(path, visit, true)
+}
+
+func readSpend(path string, visit func(Row) error, routing bool) error {
 	if visit == nil {
 		return errors.New("spend row visitor is required; configure an importer before reading")
 	}
@@ -109,7 +138,7 @@ func Read(path string, visit func(Row) error) error {
 	if current.Size() > MaxFileBytes {
 		return errSpendSize
 	}
-	return readSpendStream(f, ext, MaxFileBytes, visit)
+	return readSpendStreamMode(f, ext, MaxFileBytes, visit, routing)
 }
 
 // Keep a byte budget on the open descriptor as well as checking its initial
@@ -146,21 +175,25 @@ func (r *spendByteBudget) Read(p []byte) (int, error) {
 }
 
 func readSpendStream(r io.Reader, ext string, limit int64, visit func(Row) error) error {
+	return readSpendStreamMode(r, ext, limit, visit, false)
+}
+
+func readSpendStreamMode(r io.Reader, ext string, limit int64, visit func(Row) error, routing bool) error {
 	b := bufio.NewReaderSize(&spendByteBudget{r: r, left: limit}, 4096)
 	// A fixed record buffer bounds framing before csv/json can allocate fields.
 	frame := make([]byte, 0, MaxRowBytes)
 	switch ext {
 	case ".csv":
-		return readSpendCSV(b, frame, visit)
+		return readSpendCSV(b, frame, visit, routing)
 	case ".json":
-		return readSpendArray(b, frame, visit)
+		return readSpendArray(b, frame, visit, routing)
 	case ".jsonl":
-		return readSpendLines(b, frame, visit)
+		return readSpendLines(b, frame, visit, routing)
 	}
 	return errSpendType
 }
 
-func readSpendCSV(b *bufio.Reader, frame []byte, visit func(Row) error) error {
+func readSpendCSV(b *bufio.Reader, frame []byte, visit func(Row) error, routing bool) error {
 	var header []string
 	number := 0
 	var source bytes.Reader
@@ -234,7 +267,7 @@ func readSpendCSV(b *bufio.Reader, frame []byte, visit func(Row) error) error {
 		}
 		values := make(map[string]string)
 		for i, value := range record {
-			if (value != "" || header[i] == "rejection_kind") && allowedColumn(header[i]) {
+			if (value != "" || retainSpendEmpty(header[i], routing)) && (allowedColumn(header[i]) || routing && routingReaderColumn(header[i])) {
 				// csv fields share a backing string; clone retained values so ignored
 				// content does not survive in rows held by the visitor.
 				values[header[i]] = strings.Clone(value)
@@ -304,7 +337,7 @@ func spendJSONReadError(err error) error {
 	return err
 }
 
-func readSpendArray(b *bufio.Reader, frame []byte, visit func(Row) error) error {
+func readSpendArray(b *bufio.Reader, frame []byte, visit func(Row) error, routing bool) error {
 	c, err := nextSpendJSONByte(b)
 	if err == nil && c == '{' {
 		return errSpendAggregate
@@ -353,7 +386,7 @@ func readSpendArray(b *bufio.Reader, frame []byte, visit func(Row) error) error 
 			}
 			frame = append(frame, c)
 		}
-		values, decodeErr := decodeSpendJSON(frame, 1)
+		values, decodeErr := decodeSpendJSON(frame, 1, routing)
 		if decodeErr != nil {
 			return decodeErr
 		}
@@ -382,7 +415,7 @@ func readSpendArray(b *bufio.Reader, frame []byte, visit func(Row) error) error 
 	return nil
 }
 
-func readSpendLines(b *bufio.Reader, frame []byte, visit func(Row) error) error {
+func readSpendLines(b *bufio.Reader, frame []byte, visit func(Row) error, routing bool) error {
 	number := 0
 	for {
 		frame = frame[:0]
@@ -410,7 +443,7 @@ func readSpendLines(b *bufio.Reader, frame []byte, visit func(Row) error) error 
 		if number == MaxRows {
 			return errSpendRows
 		}
-		values, err := decodeSpendJSON(data, 0)
+		values, err := decodeSpendJSON(data, 0, routing)
 		if err != nil {
 			return err
 		}
@@ -522,7 +555,7 @@ func spendJSONStringEnd(data []byte, i int) (int, error) {
 	return 0, errSpendJSON
 }
 
-func decodeSpendJSON(data []byte, outerDepth int) (map[string]string, error) {
+func decodeSpendJSON(data []byte, outerDepth int, routing bool) (map[string]string, error) {
 	if err := preflightSpendJSON(data, outerDepth); err != nil {
 		return nil, err
 	}
@@ -533,13 +566,13 @@ func decodeSpendJSON(data []byte, outerDepth int) (map[string]string, error) {
 	dec.UseNumber()
 	_, _ = dec.Token() // json.Valid has checked the complete bounded record.
 	values := make(map[string]string)
-	if err := spendJSONObject(dec, values); err != nil {
+	if err := spendJSONObject(dec, values, routing); err != nil {
 		return nil, err
 	}
 	return values, nil
 }
 
-func spendJSONObject(dec *json.Decoder, values map[string]string) error {
+func spendJSONObject(dec *json.Decoder, values map[string]string, routing bool) error {
 	seen := make(map[string]bool)
 	for dec.More() {
 		token, _ := dec.Token()
@@ -549,8 +582,8 @@ func spendJSONObject(dec *json.Decoder, values map[string]string) error {
 		}
 		seen[key] = true
 		token, _ = dec.Token()
-		if values != nil && allowedColumn(key) {
-			if key == "rejection_kind" {
+		if values != nil && (allowedColumn(key) || routing && routingReaderColumn(key)) {
+			if retainSpendEmpty(key, routing) {
 				values[key] = ""
 			}
 			switch value := token.(type) {
@@ -578,7 +611,7 @@ func spendJSONObject(dec *json.Decoder, values map[string]string) error {
 func skipSpendJSONValue(dec *json.Decoder, token json.Token) error {
 	switch token {
 	case json.Delim('{'):
-		return spendJSONObject(dec, nil)
+		return spendJSONObject(dec, nil, false)
 	case json.Delim('['):
 		for dec.More() {
 			token, _ := dec.Token()

@@ -107,7 +107,8 @@ def assert_private(result, paths=(), records=()):
     sentinels.extend(str(path) for path in paths)
     for row in records:
         for key in ("request_id", "api_key", "user", "team_id", "organization_id",
-                    "end_user", "model", "model_id", "model_group", "session_id", "agent_id"):
+                    "end_user", "model", "model_id", "model_group", "session_id", "agent_id",
+                    "original_model_group"):
             if isinstance(row.get(key), str) and row[key]:
                 sentinels.append(row[key])
     for value in sentinels:
@@ -316,7 +317,8 @@ def seed_database(container, records):
     ''')
 
 
-def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:00:00Z", details=None):
+def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:00:00Z", details=None,
+                    routing=None):
     exports = {}
     for fmt in ("csv", "jsonl"):
         directory = "/tmp/export-" + uuid.uuid4().hex
@@ -328,6 +330,8 @@ def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:
             arguments.extend(("-v", "jsonl_file=" + directory + "/spend.jsonl"))
         if details is not None:
             arguments.extend(("-v", "usage_details=" + str(details).lower()))
+        if routing is not None:
+            arguments.extend(("-v", "routing_details=" + str(routing).lower()))
         output = psql(container, *arguments, "-f", "/example/export.sql", reader=True)
         require(not output.strip(), "SQL export leaked output outside its selected file")
         files = docker("exec", container, "ls", "-1", directory).splitlines()

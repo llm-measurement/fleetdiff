@@ -29,7 +29,7 @@
       }
     },
     "export_source_sha256": {
-      "export.sql": "4324cbbdb0c538d24273621a0138a5a31f757e64413e3d813aafec06ee924b17",
+      "export.sql": "0abae1edc8187812ae579596b5f166e7c236e3c79a95586122910db43c0943bd",
       "daily-projection.sql": "f72e96674a760b7ccf2664bc5f11f5be38af935be99a72015f0dd5476f36f9e5",
       "export-coverage.sh": "d44304d135a6785358503ed16b04782f8eb31034b6477519cb642e11256b7688"
     },

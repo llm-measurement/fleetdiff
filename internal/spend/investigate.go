@@ -29,6 +29,9 @@ const MaxModels = 128
 type Options struct {
 	BeforePeriod, AfterPeriod, GroupBy, SecretEnv string
 	DailySpendPath                                string
+	ScopeRoute, ScopeAgent                        string
+	RoutingAudit                                  bool
+	RoutingBy                                     string
 	Top                                           int
 	ShowHashes                                    bool
 	Now                                           time.Time
@@ -163,6 +166,9 @@ func Investigate(path string, opts Options) (Report, error) {
 	if !slices.Contains([]string{"key", "team", "user", "end-user", "session"}, opts.GroupBy) || opts.Top < 1 || opts.Top > 100 {
 		return Report{}, errors.New("group-by must be key, team, user, end-user or session; top must be 1-100")
 	}
+	if err := validateRoutingOptions(&opts); err != nil {
+		return Report{}, err
+	}
 	if opts.Now.IsZero() {
 		opts.Now = time.Now().UTC()
 	}
@@ -171,12 +177,22 @@ func Investigate(path string, opts Options) (Report, error) {
 		return Report{}, err
 	}
 	defer clear(key)
+	selection, err := newScopeSelection(opts, key)
+	if err != nil {
+		return Report{}, err
+	}
+	opts.ScopeRoute, opts.ScopeAgent = "", ""
+	routing := newRoutingAccumulator(opts, selection)
+	read := Read
+	if routing != nil {
+		read = ReadRouting
+	}
 	var earliest, latest time.Time
 	firstDigest := sha256.New()
 	automatic := opts.BeforePeriod == "" && opts.AfterPeriod == ""
 	if automatic {
 		enc := json.NewEncoder(firstDigest)
-		err = Read(path, func(row Row) error {
+		err = read(path, func(row Row) error {
 			t, e := timestamp(row.Values["startTime"])
 			if e != nil {
 				return e
@@ -211,7 +227,7 @@ func Investigate(path string, opts Options) (Report, error) {
 	r := Report{Schema: "fleetdiff-litellm-spend/v1", AccountingID: accounting.ID, SourceContract: "litellm-spend-rows/v1", GroupBy: opts.GroupBy, Hashing: mode, Models: []Model{}, ZeroFilled: "cannot determine from this export", ProviderOrigin: "not declared by the supported SQL projection"}
 	secondDigest := sha256.New()
 	enc := json.NewEncoder(secondDigest)
-	err = Read(path, func(row Row) error {
+	err = read(path, func(row Row) error {
 		r.Rows++
 		if e := enc.Encode(row.Values); e != nil {
 			return e
@@ -240,24 +256,25 @@ func Investigate(path string, opts Options) (Report, error) {
 			return nil
 		}
 		coverage.add(start)
+		matched := routing.observe(row, side, key)
+		// Validate completed supported rows even if the new scope excludes them.
+		if !matched && supported {
+			if e := validateRoutingEnd(row, start, opts.Now); e != nil {
+				return e
+			}
+		}
+		if !matched {
+			return nil
+		}
 		if e := recordCallType(&r, callTypes, row, side); e != nil {
 			return e
 		}
 		if !supported {
 			r.Incomplete = true
-			return nil
+			return routing.add(row, side, key, accounting.Observation{}, Quality{})
 		}
-		if endText := row.Values["endTime"]; endText != "" {
-			end, e := timestamp(endText)
-			if e != nil {
-				return e
-			}
-			if end.Before(start) {
-				return errors.New("endTime precedes startTime; review the export")
-			}
-			if end.After(opts.Now) {
-				return errors.New("export contains unfinished or future records; export completed requests")
-			}
+		if e := validateRoutingEnd(row, start, opts.Now); e != nil {
+			return e
 		}
 		a, e := accounting.Tokens(attributes(row))
 		if e != nil {
@@ -266,6 +283,9 @@ func Investigate(path string, opts Options) (Report, error) {
 		q := classify(row, a)
 		if row.Values["endTime"] == "" {
 			q.Unclear = 1
+		}
+		if e := routing.add(row, side, key, a, q); e != nil {
+			return e
 		}
 		group, present, e := groupIdentity(row, opts.GroupBy, key)
 		if e != nil {
@@ -323,8 +343,12 @@ func Investigate(path string, opts Options) (Report, error) {
 	}
 	r.Before, r.After = windows[0].result(), windows[1].result()
 	r.RowCoverage = coverage.result()
+	r.RoutingAudit, r.ScopeCoverage, err = routing.result(opts.Top, opts.ShowHashes)
+	if err != nil {
+		return Report{}, err
+	}
 	if r.Before.Requests == 0 && r.After.Requests == 0 {
-		if r.RowCoverage != nil {
+		if r.RowCoverage != nil || routing != nil {
 			r.Incomplete = true
 			r.AnalysisGap = "no analyzable model requests in either selected period"
 			return r, nil
@@ -382,7 +406,7 @@ func Investigate(path string, opts Options) (Report, error) {
 	if r.Before.Cache.Read.Covered == nil || r.After.Cache.Read.Covered == nil || *r.Before.Cache.Read.Covered == 0 || *r.After.Cache.Read.Covered == 0 {
 		r.Cache.Rankings = nil
 	}
-	if err := orderCandidates(path, &r, key, secondDigest.Sum(nil)); err != nil {
+	if err := orderCandidates(path, &r, key, secondDigest.Sum(nil), selection, routing != nil); err != nil {
 		return Report{}, err
 	}
 	if !r.Incomplete {

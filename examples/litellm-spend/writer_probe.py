@@ -111,7 +111,63 @@ def project_payload(payload):
     return projected
 
 
-def payloads(rejections=False):
+def routing_payloads(writer):
+    """Writer-ready routing cases; this does not execute HTTP routing decisions."""
+    result = []
+    for day in (7, 8):
+        for case in ("ordinary", "recovery", "classifier", "responses", "interrupted",
+                     "rejected", "empty", "null"):
+            metadata = {
+                "user_api_key": "SENTINEL_ROUTING_KEY", "user_api_key_user_id": "SENTINEL_OWNER",
+                "user_api_key_team_id": "SENTINEL_TEAM", "agent_id": "SENTINEL_ROUTING_AGENT",
+                "model_info": {"id": "SENTINEL_SELECTED_DEPLOYMENT"},
+                "model_group": "SENTINEL_CURRENT_GROUP", "status": "success",
+                "original_model_group": "SENTINEL_ORIGINAL_ROUTE", "attempted_fallbacks": 0,
+                "internal_call_origin": None,
+            }
+            call_type = "acompletion"
+            usage = {"prompt_tokens": 12, "completion_tokens": 3, "total_tokens": 15}
+            if case == "recovery":
+                metadata.update(model_group="SENTINEL_RECOVERY_GROUP", attempted_fallbacks=1,
+                                routing_decision=None)
+            elif case == "classifier":
+                call_type = "pass_through_endpoint"
+                metadata.update(internal_call_origin="autorouter_classifier", model_info={})
+            elif case == "responses":
+                call_type = "aresponses"
+                metadata["agent_id"] = None
+            elif case == "interrupted":
+                call_type = "aresponses"
+                metadata.update(status="failure", original_model_group=None, attempted_fallbacks=None)
+                usage = {"prompt_tokens": 14, "completion_tokens": 0, "total_tokens": 14}
+            elif case == "rejected":
+                metadata.update(status="failure", model_info={})
+                del metadata["original_model_group"], metadata["attempted_fallbacks"]
+                usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            elif case in ("empty", "null"):
+                for name in ("original_model_group", "attempted_fallbacks", "internal_call_origin"):
+                    metadata[name] = "" if case == "empty" else None
+            label = f"synthetic-routing-{day}-{case}"
+            kwargs = {"call_type": call_type, "model": "SENTINEL_DISPATCH",
+                      "litellm_call_id": label, "litellm_trace_id": "SENTINEL_SESSION",
+                      "response_cost": 0.0123, "custom_llm_provider": "openai",
+                      "litellm_params": {"metadata": metadata}}
+            response = {"id": label, "usage": usage}
+            if case == "responses":
+                response, standard = native_response(call_type, "native_cached", "SENTINEL_SESSION")
+                response.id = label
+                kwargs["standard_logging_object"] = standard
+            start = datetime(2026, 10, day, 12, tzinfo=timezone.utc)
+            payload = writer.get_logging_payload(kwargs, response, start, start + timedelta(seconds=1))
+            stored = json.loads(payload["metadata"])
+            require(all(stored.get(field) == metadata.get(field) for field in
+                        ("original_model_group", "attempted_fallbacks", "internal_call_origin")),
+                    "routing writer metadata paths changed")
+            result.append(project_payload(payload))
+    return result
+
+
+def payloads(rejections=False, routing=False):
     import litellm
     from litellm.proxy.spend_tracking import spend_tracking_utils as writer
 
@@ -123,6 +179,8 @@ def payloads(rejections=False):
             pins["schema_sha256"], "writer schema mismatch")
     if rejections:
         return asyncio.run(rejection_payloads(writer))
+    if routing:
+        return routing_payloads(writer)
     base = json.loads((ROOT / "synthetic.json").read_text())
     # Preserve the original inputs. Missing/explicit-zero usage collapse to the
     # same stock writer output; select one of each among the zero-only rows.
@@ -258,7 +316,8 @@ def main():
     # Library import/log failures can contain source values. Never replay them.
     with open(os.devnull, "w") as sink, redirect_stdout(sink), redirect_stderr(sink):
         try:
-            result = payloads(rejections="--rejections" in sys.argv[1:])
+            result = payloads(rejections="--rejections" in sys.argv[1:],
+                              routing="--routing" in sys.argv[1:])
         except Exception:
             result = None
     if result is None:

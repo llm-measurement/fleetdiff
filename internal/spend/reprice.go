@@ -6,6 +6,8 @@ package spend
 import (
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/accounting"
@@ -19,6 +21,17 @@ import (
 // on error: duplicate detection and input validation can finish after visits.
 // Visitor errors are returned unchanged and must be safe for display.
 func ReadReprice(path, period string, visit func(reprice.Record) error) (reprice.Source, error) {
+	return readReprice(path, period, visit, false)
+}
+
+// ReadRoutingReprice retains routing identities and reports source attribution
+// before exclusions. Model plus deployment attests gateway selection, not an
+// independently confirmed provider response. Legacy ReadReprice is unchanged.
+func ReadRoutingReprice(path, period string, visit func(reprice.Record) error) (reprice.Source, error) {
+	return readReprice(path, period, visit, true)
+}
+
+func readReprice(path, period string, visit func(reprice.Record) error, routing bool) (reprice.Source, error) {
 	if visit == nil {
 		return reprice.Source{}, errors.New("repricing visitor is required")
 	}
@@ -36,10 +49,17 @@ func ReadReprice(path, period string, visit func(reprice.Record) error) (reprice
 	}
 	defer clear(key)
 	source := reprice.Source{Kind: "litellm-spend", Start: p.Start, End: p.End, Gaps: []string{}}
+	read := Read
+	var callTypes map[string]*reprice.AttributionFields
+	if routing {
+		read = ReadRouting
+		source.Attribution = &reprice.AttributionCoverage{IdentityBasis: "gateway-selected model+deployment; not provider-response confirmation"}
+		callTypes = map[string]*reprice.AttributionFields{}
+	}
 	var seen requestDigests
 	unsupported := false
 	var failedUsage uint64
-	err = Read(path, func(row Row) error {
+	err = read(path, func(row Row) error {
 		if row.Values["request_id"] == "" {
 			return errors.New("each request-level row needs a nonempty request_id")
 		}
@@ -54,6 +74,37 @@ func ReadReprice(path, period string, visit func(reprice.Record) error) (reprice
 		}
 		source.Rows++
 		r := reprice.Record{Model: row.Values["model"], Key: row.Values["api_key"], Team: row.Values["team_id"], Count: 1, Failed: row.Values["status"] == "failure"}
+		if routing {
+			r.Route, r.Agent = row.Values["original_model_group"], row.Values["agent_id"]
+			modelKnown := routingModelState(row, "model") == routingKnown
+			deploymentKnown := routingModelState(row, "model_id") == routingKnown
+			r.ServedIdentityKnown = RoutingSelectedModelKnown(row)
+			callType := row.Values["call_type"]
+			if operation(callType) == "" && callType != "pass_through_endpoint" {
+				callType = "unknown"
+			}
+			if callTypes[callType] == nil {
+				callTypes[callType] = &reprice.AttributionFields{}
+			}
+			for _, fields := range []*reprice.AttributionFields{&source.Attribution.AttributionFields, callTypes[callType]} {
+				fields.Rows++ // ReadRouting bounds all source rows to MaxRows.
+				for _, field := range []struct {
+					counts *reprice.IdentityCoverage
+					known  bool
+				}{
+					{&fields.Route, routingTextState(row, "original_model_group") == routingKnown},
+					{&fields.Agent, routingTextState(row, "agent_id") == routingKnown},
+					{&fields.Model, modelKnown}, {&fields.Deployment, deploymentKnown},
+					{&fields.ServedIdentity, r.ServedIdentityKnown},
+				} {
+					if field.known {
+						field.counts.Known++
+					} else {
+						field.counts.Unknown++
+					}
+				}
+			}
+		}
 		if operation(row.Values["call_type"]) == "" {
 			unsupported = true
 			r.Issue = "unsupported_call_type"
@@ -130,6 +181,12 @@ func ReadReprice(path, period string, visit func(reprice.Record) error) (reprice
 	}
 	if failedUsage != 0 {
 		source.Gaps = append(source.Gaps, fmt.Sprintf("Complete recorded usage on failed requests: %d; billing finality is unknown.", failedUsage))
+	}
+	if routing {
+		for name, fields := range callTypes {
+			source.Attribution.ByCallType = append(source.Attribution.ByCallType, reprice.CallTypeAttribution{CallType: name, AttributionFields: *fields})
+		}
+		slices.SortFunc(source.Attribution.ByCallType, func(a, b reprice.CallTypeAttribution) int { return strings.Compare(a.CallType, b.CallType) })
 	}
 	return source, nil
 }

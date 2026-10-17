@@ -82,6 +82,50 @@ set your own strong secret in an environment variable and pass
 To check for rows missing relative to LiteLLM's daily counters, use the optional
 [daily row coverage check](../../docs/ROW_COVERAGE.md).
 
+### Routing Details (Opt In)
+
+The source-checkout SQL recipe accepts `-v routing_details=true` on the same
+private-file export command. Omitted or `false` leaves the default columns and
+output bytes unchanged. This option is independent of `usage_details` and adds
+exactly three columns:
+
+| Export alias | Pinned path in `metadata` |
+| --- | --- |
+| `original_model_group` | `metadata->>'original_model_group'` |
+| `attempted_fallbacks` | `metadata->>'attempted_fallbacks'` |
+| `internal_call_origin` | `metadata->>'internal_call_origin'` |
+
+These paths are pinned to LiteLLM 1.104.0 and the image/source hashes in
+[images.json](images.json). Original route and origin must be JSON strings;
+missing, null or wrong-shaped values export as SQL NULL. Empty strings remain
+empty. The fallback counter exports as text, including JSONL strings: explicit
+zero is `"0"`, not NULL. Numeric/string values are preserved for bounded reader
+validation, without a SQL integer cast or an invented zero. Arrays, objects
+and booleans export as NULL. Blank CSV cannot distinguish NULL from empty text.
+
+Use original route for attribution, not `model_group`, which becomes the
+recovery group after fallback. A route alias is not a workload class. `model`
+and `model_id` identify the gateway-selected dispatch and deployment under this
+pin, not an independently confirmed provider snapshot. Missing route, agent,
+deployment or fallback metadata stays unknown; never fill it from another field.
+Responses rows can retain original-route metadata while agent attribution is
+missing; the routing coverage reports that gap separately.
+
+Classifier overhead is identified by **both** `call_type=pass_through_endpoint`
+and `internal_call_origin=autorouter_classifier`. Only final serving rows were
+retained on tested recoveries: neither a positive fallback counter nor several
+models behind one route reconstructs individual attempts. Routing-decision
+objects and call IDs are not added to this projection.
+
+The source export is private and may contain raw route/agent identities. Keep
+the restrictive directory, file permissions and private psql logs shown above;
+do not publish the export or print it to the terminal. Derived reports must use
+local aliases or keyed hashes, never raw identities. Released v0.10.1 and v0.7.0
+readers ignore the added columns; they do not implement routing-audit features.
+See the per-column [compatibility checks](TESTING.md#routing-projection).
+For the **UNRELEASED** routing audit and route/agent selectors, see the
+[routing guide](../../docs/ROUTING.md).
+
 ### Usage Details (Default On)
 
 The SQL includes these three projection aliases by default. Add

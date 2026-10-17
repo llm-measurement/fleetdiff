@@ -28,8 +28,10 @@ Usage:
 Options:
   --scope-key ID             Restrict a simple move to a recorded API key
   --scope-team ID            Restrict a simple move to a recorded team
+  --scope-route ID           Restrict a simple move to its recorded original route
+  --scope-agent ID           Restrict a simple move to a recorded agent
   --prices FILE              Versioned, dated USD-per-million price override
-  --workload-map FILE        Map key/team selectors to qa, extraction or coding
+  --workload-map FILE        Map key/team/route/agent selectors to a workload
   --model-usage-contract ID  Expected model_usage contract (summaries only)
   --format text|json         Output format (default text)
 
@@ -54,8 +56,16 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 	scenarioFile := f.String("scenario", "", "")
 	pricesFile := f.String("prices", "", "")
 	mappingFile := f.String("workload-map", "", "")
-	key := f.String("scope-key", "", "")
-	team := f.String("scope-team", "", "")
+	var scope *reprice.Selector
+	for _, kind := range []string{"key", "team", "route", "agent"} {
+		f.Func("scope-"+kind, "", func(value string) error {
+			if scope != nil || strings.TrimSpace(value) == "" {
+				return errors.New("a simple move accepts one nonempty identity scope")
+			}
+			scope = &reprice.Selector{Kind: kind, Value: value}
+			return nil
+		})
+	}
 	format := f.String("format", "text", "")
 	if err := f.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -72,34 +82,31 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 	if *spendFile != "" && *modelContract != "" {
 		return fail(2, "--model-usage-contract applies only to summaries")
 	}
+	simpleFlags := false
+	f.Visit(func(v *flag.Flag) {
+		if v.Name == "from" || v.Name == "to" || v.Name == "fraction" || strings.HasPrefix(v.Name, "scope-") {
+			simpleFlags = true
+		}
+	})
 	scenario := reprice.Scenario{Version: 1}
 	if *scenarioFile != "" {
-		if *from != "" || *to != "" || *fraction != "" || *key != "" || *team != "" {
+		if simpleFlags {
 			return fail(2, "use either a scenario file or simple move flags")
 		}
 		if err := reprice.ReadConfig(*scenarioFile, &scenario); err != nil {
 			return fail(2, err.Error())
 		}
 	} else {
-		if *key != "" && *team != "" {
-			return fail(2, "a simple move accepts one key or team scope")
-		}
-		m := reprice.Move{From: *from, To: *to, Fraction: *fraction}
-		if *key != "" {
-			m.Scope = &reprice.Selector{Kind: "key", Value: *key}
-		}
-		if *team != "" {
-			m.Scope = &reprice.Selector{Kind: "team", Value: *team}
-		}
+		m := reprice.Move{From: *from, To: *to, Fraction: *fraction, Scope: scope}
 		scenario.Moves = []reprice.Move{m}
 	}
 	if *summaryFile != "" {
 		if *mappingFile != "" {
-			return fail(2, "summary model_usage has no key/team intersections; workload maps require request-level exports")
+			return fail(2, "summary model_usage has no key/team/route/agent intersections; workload maps require request-level exports")
 		}
 		for _, move := range scenario.Moves {
 			if move.Scope != nil {
-				return fail(2, "summary model_usage has no key/team intersections; scoped moves require request-level exports")
+				return fail(2, "summary model_usage has no key/team/route/agent intersections; scoped moves require request-level exports")
 			}
 		}
 	}
@@ -130,7 +137,11 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 	defer c.Close()
 	var source reprice.Source
 	if *spendFile != "" {
-		source, err = spend.ReadReprice(*spendFile, *period, c.Add)
+		read := spend.ReadReprice
+		if c.UsesRouting() {
+			read = spend.ReadRoutingReprice
+		}
+		source, err = read(*spendFile, *period, c.Add)
 	} else {
 		source, err = compare.ReadReprice(*summaryFile, *period, strings.Split(*expected, ","), *modelContract, c.Add)
 	}
@@ -222,7 +233,7 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 		}
 	}
 	fmt.Fprintf(out, "\nCoverage: %d observations priced; missing splits are excluded, never zero.\n", r.Covered)
-	for _, k := range []string{"missing_split", "missing_scope_identity", "unusable_usage", "unsupported_call_type", "unknown_model_price", "invalid_cache_partition", "outside_price_tier", "invalid_usage", "zero_origin_unknown", "unpriced_reserved_bucket"} {
+	for _, k := range []string{"missing_split", "missing_scope_identity", "unusable_usage", "unsupported_call_type", "unknown_served_identity", "unknown_model_price", "invalid_cache_partition", "outside_price_tier", "invalid_usage", "zero_origin_unknown", "unpriced_reserved_bucket"} {
 		if r.Excluded[k] > 0 {
 			fmt.Fprintf(out, "  %s: %d\n", strings.ReplaceAll(k, "_", " "), r.Excluded[k])
 		}
@@ -234,6 +245,12 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 		fmt.Fprintln(out, "  "+gap)
 		if strings.HasPrefix(gap, "Complete recorded usage on failed requests:") {
 			fmt.Fprintln(out, "  This is a pre-pricing source count, not a priced-failure count; pricing exclusions still apply.")
+		}
+	}
+	if a := r.Source.Attribution; a != nil {
+		fmt.Fprintln(out, "\nSource attribution before pricing exclusions: gateway-selected model + deployment, not provider-confirmed.")
+		for _, row := range append([]reprice.CallTypeAttribution{{CallType: "all", AttributionFields: a.AttributionFields}}, a.ByCallType...) {
+			fmt.Fprintf(out, "  %s: %d rows; original route %d known/%d unknown; agent %d known/%d unknown; selected model %d known/%d unknown; deployment %d known/%d unknown; served identity %d known/%d unknown.\n", row.CallType, row.Rows, row.Route.Known, row.Route.Unknown, row.Agent.Known, row.Agent.Unknown, row.Model.Known, row.Model.Unknown, row.Deployment.Known, row.Deployment.Unknown, row.ServedIdentity.Known, row.ServedIdentity.Unknown)
 		}
 	}
 	if f := r.PricedFailures; f != nil && f.Total.Sign() > 0 {

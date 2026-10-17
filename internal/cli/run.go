@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/compare"
+	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
 // Release stamps take precedence over Go's embedded module version.
@@ -63,6 +64,10 @@ Options:
   --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
   --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
   --group-by KIND            key (default), team, user, end-user or session
+  --routing-audit            Show original-route distributions and attribution coverage
+  --routing-by KIND          route (default) or route-agent; requires routing-audit
+  --scope-route ID           Investigate one recorded original route (explicit periods)
+  --scope-agent ID           Investigate one recorded agent (explicit periods)
   --period PERIOD            Single-period session review: UTC date or RFC3339 start/end
   --session-budget-usd USD    Review observed session totals against a supplied cap
   --session-counter-window DURATION  Compare positive-spend spans with this duration (default 1h)
@@ -136,6 +141,24 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	period := flags.String("period", "", "")
 	budget := flags.String("session-budget-usd", "", "")
 	counterWindow := flags.Duration("session-counter-window", time.Hour, "")
+	routingAudit := flags.Bool("routing-audit", false, "")
+	routingBy := flags.String("routing-by", "", "")
+	var scopeRoute, scopeAgent string
+	var routeSet, agentSet bool
+	flags.Func("scope-route", "", func(value string) error {
+		if routeSet {
+			return errors.New("scope option cannot be repeated")
+		}
+		routeSet, scopeRoute = true, value
+		return nil
+	})
+	flags.Func("scope-agent", "", func(value string) error {
+		if agentSet {
+			return errors.New("scope option cannot be repeated")
+		}
+		agentSet, scopeAgent = true, value
+		return nil
+	})
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			if _, err := io.WriteString(out, help); err != nil {
@@ -154,8 +177,12 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
 	groupExplicit := false
 	emptyDailyOption := false
+	routingSet, routingBySet := false, false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
+		case "routing-audit", "routing-by", "scope-route", "scope-agent":
+			spendMode, routingSet = true, true
+			routingBySet = routingBySet || f.Name == "routing-by"
 		case "litellm-daily-spend":
 			spendMode = true
 			emptyDailyOption = f.Value.String() == ""
@@ -183,13 +210,33 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 		if args[0] != "investigate" || *spendPath == "" || incompatible || flags.NArg() != 0 {
 			return fail(2, "use investigate --litellm-spend FILE with period flags, not summary paths or expected producers")
 		}
+		if routingSet {
+			if sessionMode || windowSet {
+				return fail(2, "routing options require a two-period spend investigation, not a session-budget review")
+			}
+			if routingBySet && (!*routingAudit || *routingBy != "route" && *routingBy != "route-agent") {
+				return fail(2, "routing-by must be route or route-agent and requires routing-audit")
+			}
+			if routeSet && agentSet || routeSet && (strings.TrimSpace(scopeRoute) == "" || len(scopeRoute) > spend.MaxFieldBytes) || agentSet && (strings.TrimSpace(scopeAgent) == "" || len(scopeAgent) > spend.MaxFieldBytes) {
+				return fail(2, "choose one nonempty route or agent scope of at most 8192 bytes")
+			}
+			if routeSet || agentSet {
+				if *beforePeriod == "" || *afterPeriod == "" || *dailySpendPath != "" || *group == "session" {
+					return fail(2, "route or agent scopes require both explicit periods; do not combine with daily coverage or session grouping")
+				}
+			}
+		}
 		if sessionMode || windowSet {
 			if !sessionMode || groupExplicit && *group != "session" || twoPeriods || emptySessionOption || *counterWindow <= 0 {
 				return fail(2, "session review needs --period or --session-budget-usd; grouping is session; do not combine with other groups or two-period flags")
 			}
 			return runSessionBudget(*spendPath, *period, *budget, *secret, *format, *dailySpendPath, *top, *hashes, *counterWindow, out, errout)
 		}
-		return runSpend(*spendPath, *beforePeriod, *afterPeriod, *group, *secret, *format, *dailySpendPath, *top, *hashes, out, errout)
+		return runSpend(*spendPath, *format, spend.Options{
+			BeforePeriod: *beforePeriod, AfterPeriod: *afterPeriod, GroupBy: *group,
+			SecretEnv: *secret, Top: *top, ShowHashes: *hashes, DailySpendPath: *dailySpendPath,
+			RoutingAudit: *routingAudit, RoutingBy: *routingBy, ScopeRoute: scopeRoute, ScopeAgent: scopeAgent,
+		}, out, errout)
 	}
 	for _, required := range []struct{ name, value string }{{"before", *before}, {"after", *after}, {"expected", *expected}} {
 		if strings.TrimSpace(required.value) == "" {
