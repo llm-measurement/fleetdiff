@@ -76,6 +76,38 @@ keyed locally before aggregation; only aliases (or opt-in keyed hashes) appear.
   If most sessions have one call, check propagation: a
   generated request-level ID can make every request look like a session.
 
+## Agent Attribution
+
+JSON keeps numeric `agents`: the number of distinct nonempty agent IDs observed,
+not an inferred count of actual agents. Each listed session with incomplete
+attribution adds `agent_attribution` with `known_rows` and `missing_rows`.
+The report adds the same coverage for all selected rows, including rows without
+a session ID, and `agent_attribution_by_call_type`. Coverage includes rejections
+and unsupported calls, matching the rows used for identity membership counts;
+it does not change model-call counts, tokens, spend or cap results. Call-type
+keys use the supported model-call allowlist; all other values share the alias
+`unknown`, never a raw private call-type name.
+
+Text shows `agents: unknown` when no ID is recorded, or an observed lower bound
+when some rows lack an ID. Two known distinct agents still establish observed
+sharing, as do multiple recorded keys or teams; missing agents do not erase
+that evidence. Zero or one known agent cannot rule sharing out. Agent coverage
+is separate from `unattributed_rows` and `missing_group_identity`, which concern
+session IDs.
+
+New text lines appear only for missing attribution. Fully attributed reports
+retain their previous output bytes, including JSON: the additive coverage
+fields are omitted for complete scopes. When report-wide coverage is incomplete,
+the JSON call-type breakdown includes both complete and incomplete call types.
+`--top` limits session lists, not the report-wide coverage counts.
+
+In a pinned LiteLLM v1.104.0 mock capture, **14/14 successful `aresponses` rows
+had null `agent_id`**, across seven streaming and seven nonstreaming requests.
+This is a limitation observed in that capture, not a claim about every Responses
+deployment or proof of its upstream cause. Check exported agent-ID coverage for
+your call types before interpreting an absent sharing section; fleetdiff never
+reconstructs agents from session IDs, keys, teams or other metadata.
+
 ## Context
 
 Review last-call or parallel-call overshoot, counter-window boundaries, agent

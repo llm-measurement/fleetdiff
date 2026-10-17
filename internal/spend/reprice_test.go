@@ -41,7 +41,7 @@ func TestReadRepriceSupportedUsage(t *testing.T) {
 			visits := 0
 			source, err := ReadReprice(path, repriceDay, func(r reprice.Record) error {
 				visits++
-				if r.Count != 1 || r.Issue != "" || r.Model != row["model"] || r.Key != row["api_key"] || r.Team != row["team_id"] {
+				if r.Count != 1 || r.Issue != "" || r.Model != row["model"] || r.Key != row["api_key"] || r.Team != row["team_id"] || r.Failed {
 					t.Fatal("record identity, count, or quality changed")
 				}
 				for i, p := range []*uint64{r.Input, r.Output, r.CacheRead, r.CacheWrite} {
@@ -105,7 +105,7 @@ func TestReadRepriceUnknownAndInvalidComponents(t *testing.T) {
 				visits := 0
 				_, err := ReadReprice(writeRows(t, []map[string]string{row}), repriceDay, func(r reprice.Record) error {
 					visits++
-					if r.Issue != tt.issue || r.Count != 1 || !reflect.DeepEqual([4]*uint64{r.Input, r.Output, r.CacheRead, r.CacheWrite}, tt.values) {
+					if r.Issue != tt.issue || r.Count != 1 || r.Failed != (row["status"] == "failure") || !reflect.DeepEqual([4]*uint64{r.Input, r.Output, r.CacheRead, r.CacheWrite}, tt.values) {
 						t.Fatalf("unexpected components or issue: %+v", r)
 					}
 					return nil
@@ -194,7 +194,11 @@ func TestReadRepriceFailedUsageCoverage(t *testing.T) {
 					if r.Covered != 1 || r.Before == nil || *r.Before != "0.000115500" || len(r.Excluded) != 0 || len(source.Gaps) != 1 || source.Gaps[0] != "Complete recorded usage on failed requests: 1; billing finality is unknown." {
 						t.Fatalf("valid failed usage was not priced: %+v", r)
 					}
-				} else if r.Covered != 0 || r.Before != nil || len(r.Excluded) != 1 || len(source.Gaps) != 0 {
+					v := r.PricedFailures
+					if v == nil || v.Records != 1 || v.Input.String() != "100" || v.Output.String() != "20" || v.Total.String() != "120" || v.CacheRead.String() != "30" || v.CacheWrite.String() != "10" || *v.Before != *r.Before || *v.Level1 != *r.Level1 {
+						t.Fatalf("priced failure contribution: %+v", v)
+					}
+				} else if r.Covered != 0 || r.Before != nil || len(r.Excluded) != 1 || len(source.Gaps) != 0 || r.PricedFailures != nil {
 					t.Fatalf("invalid or incomplete failed usage was priced: %+v", r)
 				}
 			})
@@ -215,6 +219,31 @@ func TestReadRepriceFailedUsageCount(t *testing.T) {
 	}
 	if len(source.Gaps) != 1 || source.Gaps[0] != "Complete recorded usage on failed requests: 2; billing finality is unknown." || c.Result(source).Covered != 3 {
 		t.Fatalf("failure coverage count changed: %+v", source)
+	}
+	v := c.Result(source).PricedFailures
+	if v == nil || v.Records != 2 || v.Total.String() != "240" || *v.Before != "0.000231000" {
+		t.Fatalf("missing cache or successful usage entered failure contribution: %+v", v)
+	}
+}
+
+func TestReadRepriceFailureSourceWarningIsNotPricedCount(t *testing.T) {
+	rows := []map[string]string{repriceRow("unknown-failure"), repriceRow("priced-failure"), repriceRow("outside-failure")}
+	for _, row := range rows {
+		row["status"] = "failure"
+	}
+	rows[0]["model"] = "unknown-model-sentinel"
+	rows[2]["startTime"], rows[2]["endTime"] = "2020-01-03T01:00:00Z", "2020-01-03T01:00:01Z"
+	c := repriceCalculator(t)
+	source, err := ReadReprice(writeRows(t, rows), repriceDay, c.Add)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := c.Result(source)
+	if !reflect.DeepEqual(source.Gaps, []string{"Complete recorded usage on failed requests: 2; billing finality is unknown."}) || source.Outside != 1 || r.Excluded["unknown_model_price"] != 1 {
+		t.Fatalf("legacy source fields changed: %+v", r)
+	}
+	if r.PricedFailures == nil || r.PricedFailures.Records != 1 || r.PricedFailures.Total.String() != "120" {
+		t.Fatalf("pre-pricing count mistaken for priced subset: %+v", r.PricedFailures)
 	}
 }
 

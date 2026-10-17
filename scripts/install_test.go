@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.10.0"
+const installTestVersion = "v0.10.1"
 
 func TestInstallDocumentationVersionPins(t *testing.T) {
 	parts := strings.Split(strings.TrimPrefix(installTestVersion, "v"), ".")

@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.10.0](../../README.md#2-install-v0100), then run this fixture
+Install [fleetdiff v0.10.1](../../README.md#2-install-v0100), then run this fixture
 from the repository root with the verified binary:
 
 ```sh
@@ -225,7 +225,9 @@ the call types and asks for a supported request-level export.
   heuristic does not certify coverage. The [single-period session-budget
   review](../../docs/SESSION_BUDGET.md) has separate period-selection semantics.
 - Zero-only usage has unknown origin. Failures overlap usage categories and
-  retain valid partial tokens. Unclear usage withholds the whole-period split;
+  retain gateway-recorded values whose finality is unknown. Their token subtotal
+  is reported separately when nonzero; it stays included in recorded totals.
+  Unclear usage withholds the whole-period split;
   unchanged recorded totals do not prove unchanged real usage.
 - Prompt and completion tokens are added once; `total_tokens` is a cross-check.
   Usage details are subsets, not extra totals or physical spend-log columns.
@@ -264,7 +266,7 @@ the call types and asks for a supported request-level export.
 [session-budget.csv](session-budget.csv) is a newly authored, deterministic
 Apache-2.0 fixture with four sessions and no production data. The companion
 [license notice](session-budget.csv.license) keeps the CSV directly importable.
-Use fleetdiff v0.10.0 for the session-budget command:
+Use fleetdiff v0.10.1 for the session-budget command:
 
 ```sh
 fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \

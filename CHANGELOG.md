@@ -2,6 +2,21 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.10.1] - 2026-10-17
+
+See the [release notes](docs/releases/v0.10.1.md) for failure-usage and agent
+attribution reporting corrections.
+
+- Show the token subtotal recorded on failed LiteLLM rows, without changing
+  recorded totals. Label gateway-recorded values as finality unknown.
+- Identify the actually priced failure subset in what-if after usage, model,
+  scope and price-tier checks, keeping all existing cost calculations.
+- Expose missing agent attribution by call type and session. Keep JSON `agents`
+  as the observed count; add coverage alongside it and show unknown in text
+  when no agent identity was recorded.
+- Preserve existing goldens and text for unaffected reports. Clarify the pinned
+  Responses attribution and cache-detail limits in the guides.
+
 ## [0.10.0] - 2026-10-16
 
 See the [release notes](docs/releases/v0.10.0.md) for model-mix what-if repricing.

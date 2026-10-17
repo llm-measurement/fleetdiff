@@ -42,6 +42,7 @@ type Record struct {
 	InputMin, InputMax *uint64
 	Count              uint64
 	Issue              string
+	Failed             bool
 }
 
 type Source struct {

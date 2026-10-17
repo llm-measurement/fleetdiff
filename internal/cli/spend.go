@@ -216,6 +216,16 @@ func renderSpend(out io.Writer, r spend.Report) {
 			fmt.Fprintf(out, "  %s: %s -> %s.\n", v.label, spendNumber(v.a), spendNumber(v.b))
 		}
 	}
+	if r.Before.FailureTokens != nil || r.After.FailureTokens != nil {
+		a, b := spend.FailureTokens{}, spend.FailureTokens{}
+		if r.Before.FailureTokens != nil {
+			a = *r.Before.FailureTokens
+		}
+		if r.After.FailureTokens != nil {
+			b = *r.After.FailureTokens
+		}
+		fmt.Fprintf(out, "  Tokens recorded on failure rows: %s -> %s (input %s -> %s; output %s -> %s); gateway-recorded, finality unknown.\n", spendNumber(a.Total), spendNumber(b.Total), spendNumber(a.Input), spendNumber(b.Input), spendNumber(a.Output), spendNumber(b.Output))
+	}
 	fmt.Fprintln(out, "  Zero-filled: "+r.ZeroFilled+". Provider origin: "+r.ProviderOrigin+".")
 	if r.Before.RecordedSpend != "" && r.Before.RecordedSpend != "0" || r.After.RecordedSpend != "" && r.After.RecordedSpend != "0" {
 		fmt.Fprintf(out, "  Recorded spend (USD, analyzed calls): %s -> %s.\n", spendNumber(r.Before.RecordedSpend), spendNumber(r.After.RecordedSpend))

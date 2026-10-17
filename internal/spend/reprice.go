@@ -53,7 +53,7 @@ func ReadReprice(path, period string, visit func(reprice.Record) error) (reprice
 			return nil
 		}
 		source.Rows++
-		r := reprice.Record{Model: row.Values["model"], Key: row.Values["api_key"], Team: row.Values["team_id"], Count: 1}
+		r := reprice.Record{Model: row.Values["model"], Key: row.Values["api_key"], Team: row.Values["team_id"], Count: 1, Failed: row.Values["status"] == "failure"}
 		if operation(row.Values["call_type"]) == "" {
 			unsupported = true
 			r.Issue = "unsupported_call_type"

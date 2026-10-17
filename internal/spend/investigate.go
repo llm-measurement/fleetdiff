@@ -67,6 +67,27 @@ func (a *aggregate) add(row Row, obs accounting.Observation, q Quality) error {
 		return err
 	}
 	a.window.Tokens = total
+	if q.Failed != 0 && obs.Metrics[accounting.Prefix+"total_tokens_total"] != 0 {
+		if a.window.FailureTokens == nil {
+			a.window.FailureTokens = &FailureTokens{Finality: "unknown"}
+		}
+		f := a.window.FailureTokens
+		for _, field := range []struct {
+			dst   *uint64
+			value uint64
+		}{
+			{&f.Records, 1},
+			{&f.Input, obs.Metrics[accounting.Prefix+"input_tokens_total"]},
+			{&f.Output, obs.Metrics[accounting.Prefix+"output_tokens_total"]},
+			{&f.Total, obs.Metrics[accounting.Prefix+"total_tokens_total"]},
+		} {
+			n, err := accounting.AddBounded(*field.dst, field.value)
+			if err != nil {
+				return err
+			}
+			*field.dst = n
+		}
+	}
 	a.window.Requests++
 	if v := row.Values["spend"]; v == "" {
 		q.SpendMissing = 1
