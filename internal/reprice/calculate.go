@@ -44,24 +44,25 @@ type MoveReport struct {
 }
 
 type Report struct {
-	Schema        string            `json:"schema"`
-	Source        Source            `json:"source"`
-	PriceDate     string            `json:"price_date"`
-	PriceSource   string            `json:"price_source"`
-	PriceVersion  int               `json:"price_version"`
-	FactorVersion int               `json:"factor_version"`
-	FactorDate    string            `json:"factor_date"`
-	Covered       uint64            `json:"covered_observations"`
-	Excluded      map[string]uint64 `json:"excluded_observations"`
-	Unmapped      uint64            `json:"unmapped_moved_observations"`
-	Before        *string           `json:"covered_source_cost_usd"`
-	Level1        *string           `json:"covered_level1_cost_usd"`
-	Level2        []WorkloadCost    `json:"level2"`
-	Envelope      *Interval         `json:"workload_envelope"`
-	Moves         []MoveReport      `json:"moves"`
-	Dominant      string            `json:"dominant_uncertainty"`
-	Assumptions   []string          `json:"assumptions"`
-	Limits        []string          `json:"limits"`
+	Schema         string            `json:"schema"`
+	Source         Source            `json:"source"`
+	PriceDate      string            `json:"price_date"`
+	PriceSource    string            `json:"price_source"`
+	PriceVersion   int               `json:"price_version"`
+	FactorVersion  int               `json:"factor_version"`
+	FactorDate     string            `json:"factor_date"`
+	Covered        uint64            `json:"covered_observations"`
+	Excluded       map[string]uint64 `json:"excluded_observations"`
+	Unmapped       uint64            `json:"unmapped_moved_observations"`
+	Before         *string           `json:"covered_source_cost_usd"`
+	Level1         *string           `json:"covered_level1_cost_usd"`
+	Level2         []WorkloadCost    `json:"level2"`
+	Envelope       *Interval         `json:"workload_envelope"`
+	Moves          []MoveReport      `json:"moves"`
+	Dominant       string            `json:"dominant_uncertainty"`
+	Assumptions    []string          `json:"assumptions"`
+	Limits         []string          `json:"limits"`
+	PricedFailures *PricedFailures   `json:"priced_failures,omitempty"`
 }
 
 type totals struct{ input, output, read, write uint64 }
@@ -87,6 +88,8 @@ type Calculator struct {
 	baseline          big.Rat
 	covered, unmapped uint64
 	excluded          map[string]uint64
+	failures          *Calculator
+	failureTokens     [4]big.Int
 }
 
 func New(prices Prices, factors Factors, scenario Scenario, mapping WorkloadMap) (*Calculator, error) {
@@ -351,6 +354,9 @@ func (c *Calculator) Add(r Record) error {
 		}
 		m.covered = n
 	}
+	if r.Failed {
+		return c.addFailure(r)
+	}
 	return nil
 }
 
@@ -396,6 +402,14 @@ func (c *Calculator) outputFactor(from, to, workload string) *Factor {
 }
 
 func (c *Calculator) Result(source Source) Report {
+	r := c.result(source, nil)
+	if c.failures != nil {
+		r.PricedFailures = c.pricedFailures(r.Level2)
+	}
+	return r
+}
+
+func (c *Calculator) result(source Source, variants []string) Report {
 	r := Report{Schema: "fleetdiff-what-if/v1", Source: source, PriceDate: c.prices.Date, FactorDate: c.factors.Date, Covered: c.covered, Excluded: c.excluded, Unmapped: c.unmapped, Moves: []MoveReport{}, Level2: []WorkloadCost{},
 		Dominant:    "How output verbosity on your traffic differs from the measured workload averages.",
 		Assumptions: []string{"Fractions move a uniform share of original covered token volume, with the same work and observed cache-read/write shares. Moves do not cascade.", "Level 1 keeps output tokens unchanged, including billed reasoning. Level 2 uses the study's geometric mean paired output ratios.", "Baseline and scenarios use the dated price table, not recorded spend. Cache reads and writes are disjoint input subsets; cache-write pricing assumes the measured short-lived cache class.", "Level 2 endpoints propagate approximate 95% log-mean intervals for geometric mean ratios; combined endpoints and the workload envelope are not joint confidence or prediction intervals."},
@@ -414,9 +428,11 @@ func (c *Calculator) Result(source Source) Report {
 	l1 := new(big.Rat).Set(&c.baseline)
 	type triple struct{ m, l, h *big.Rat }
 	totals2 := map[string]triple{}
-	variants := slices.Clone(Workloads)
-	if c.unmapped == 0 {
-		variants = []string{"mapped"}
+	if variants == nil {
+		variants = slices.Clone(Workloads)
+		if c.unmapped == 0 {
+			variants = []string{"mapped"}
+		}
 	}
 	for _, w := range variants {
 		totals2[w] = triple{new(big.Rat).Set(&c.baseline), new(big.Rat).Set(&c.baseline), new(big.Rat).Set(&c.baseline)}
@@ -494,7 +510,7 @@ func (c *Calculator) Result(source Source) Report {
 		r.Moves = append(r.Moves, mr)
 	}
 	r.Level1 = ptr(text(l1))
-	if allL2 {
+	if allL2 && len(variants) > 0 {
 		var lo, hi *big.Rat
 		for _, w := range variants {
 			t := totals2[w]

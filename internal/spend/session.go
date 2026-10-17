@@ -36,6 +36,13 @@ type Distribution struct {
 	Max *string `json:"max"`
 }
 
+// SessionAgentCoverage counts selected rows, including rejections and
+// unsupported calls, matching the scope of observed session memberships.
+type SessionAgentCoverage struct {
+	KnownRows   uint64 `json:"known_rows"`
+	MissingRows uint64 `json:"missing_rows"`
+}
+
 type Session struct {
 	Alias             string            `json:"alias"`
 	Hash              string            `json:"hash,omitempty"`
@@ -55,6 +62,8 @@ type Session struct {
 	Keys              uint64            `json:"keys"`
 	Teams             uint64            `json:"teams"`
 	Agents            uint64            `json:"agents"`
+
+	AgentAttribution *SessionAgentCoverage `json:"agent_attribution,omitempty"`
 }
 
 type SessionReport struct {
@@ -102,6 +111,9 @@ type SessionReport struct {
 	LongSpanReview             []Session         `json:"counter_window_review"`
 	SharedCounters             uint64            `json:"sessions_under_multiple_identities"`
 	SharedCounterReview        []Session         `json:"shared_counter_review"`
+
+	AgentAttribution           *SessionAgentCoverage           `json:"agent_attribution,omitempty"`
+	AgentAttributionByCallType map[string]SessionAgentCoverage `json:"agent_attribution_by_call_type,omitempty"`
 }
 
 type sessionState struct {
@@ -207,6 +219,8 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 	}
 	r := SessionReport{Schema: "fleetdiff-litellm-session-budget/v1", Grouping: "session_id_only", Period: p, AutomaticPeriod: opts.Period == "", Hashing: mode, CounterWindowSeconds: opts.CounterWindow.Seconds(), Rejections: map[string]uint64{}, Largest: []Session{}, CapReview: []Session{}, LongSpanReview: []Session{}, SharedCounterReview: []Session{}}
 	r.FailureLoggingCompleteness = "unknown"
+	r.AgentAttribution = &SessionAgentCoverage{}
+	r.AgentAttributionByCallType = map[string]SessionAgentCoverage{}
 	r.ObservedSpan = r.AutomaticPeriod && p.End.Equal(last.Add(time.Nanosecond))
 	if cap != nil {
 		value := costText(cap)
@@ -236,6 +250,21 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 			return nil
 		}
 		r.SelectedRows++
+		// Only supported schema values may become report keys. Unknown values
+		// share one alias, keeping both private names and cardinality out.
+		callType := v["call_type"]
+		if operation(callType) == "" {
+			callType = "unknown"
+		}
+		agentCoverage := r.AgentAttributionByCallType[callType]
+		if v["agent_id"] == "" {
+			r.AgentAttribution.MissingRows++
+			agentCoverage.MissingRows++
+		} else {
+			r.AgentAttribution.KnownRows++
+			agentCoverage.KnownRows++
+		}
+		r.AgentAttributionByCallType[callType] = agentCoverage
 		coverage.add(t)
 		_, classified := v["rejection_kind"]
 		if classified {
@@ -320,8 +349,13 @@ func ReviewSessions(path string, opts SessionOptions) (SessionReport, error) {
 			if len(states) == MaxSessions {
 				return sessionLimitError(states)
 			}
-			s = &sessionState{Session: Session{SpendComplete: true, RejectionCoverage: true, Rejections: map[string]uint64{}}, id: id, order: row.Number}
+			s = &sessionState{Session: Session{SpendComplete: true, RejectionCoverage: true, Rejections: map[string]uint64{}, AgentAttribution: &SessionAgentCoverage{}}, id: id, order: row.Number}
 			states[id] = s
+		}
+		if v["agent_id"] == "" {
+			s.AgentAttribution.MissingRows++
+		} else {
+			s.AgentAttribution.KnownRows++
 		}
 		if s.firstActivity.IsZero() || t.Before(s.firstActivity) {
 			s.firstActivity = t
@@ -446,8 +480,16 @@ func sessionLimitError(states map[[32]byte]*sessionState) error {
 }
 
 func finishSessions(r SessionReport, states map[[32]byte]*sessionState, opts SessionOptions, cap *big.Rat) SessionReport {
+	// Fully attributed reports retain their existing JSON and text bytes.
+	if r.AgentAttribution != nil && r.AgentAttribution.MissingRows == 0 {
+		r.AgentAttribution = nil
+		r.AgentAttributionByCallType = nil
+	}
 	ordered := make([]*sessionState, 0, len(states))
 	for _, s := range states {
+		if s.AgentAttribution != nil && s.AgentAttribution.MissingRows == 0 {
+			s.AgentAttribution = nil
+		}
 		ordered = append(ordered, s)
 	}
 	slices.SortFunc(ordered, func(a, b *sessionState) int {

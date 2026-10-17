@@ -52,7 +52,7 @@ sentinels with the packaged importer.
 
 `TestReleaseBinaryWhatIf` checks the simple and scenario commands against the
 checked text/JSON output, plus workload mappings, summary gaps and error privacy.
-Before packaging v0.10.0, reproduce its public numeric bundle offline:
+Before packaging v0.10.1, reproduce its public numeric bundle offline:
 
 ```sh
 python3 -B scripts/reproduce-model-mix.py --check
@@ -90,7 +90,7 @@ verify that every advertised version is downloadable. Do not replace immutable t
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-## After Publishing v0.10.0
+## After Publishing v0.10.1
 
 From an anonymous clone in a fresh directory outside any synced workspace:
 
@@ -99,7 +99,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
    recorded build revision match the approved commit.
 2. Run the README's verified installer into a new directory. Confirm the native
-   executable reports `v0.10.0`, then run the packaged-binary tests above.
+   executable reports `v0.10.1`, then run the packaged-binary tests above.
 3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
    [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
    It exercises the real pinned writer, a SELECT-only SQL export and the released
@@ -128,6 +128,12 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    require one mapped result and no raw fixture identities. Reproduce the
    public factors from the tagged checkout with the commands above. Site bumps
    and outreach stay separate until these released-artifact checks pass.
+10. Exercise failure rows with recorded tokens and sessions with absent or
+    partial agent attribution. Verify the failure subtotal does not alter
+    recorded or re-priced totals, pricing exclusions apply to the failure
+    subset, and absent agents read as unknown. Keep the v0.8.0 import-refactor
+    output goldens and legacy identity-hash tests unchanged; reports without
+    these conditions must remain byte-identical.
 
 The release workflow tests every native platform before publication. The local
 outsider run proves the post-publication download and database path on its own

@@ -3,7 +3,7 @@
 Re-price a period of recorded usage under a proposed model mix, with the price
 date, measured factors and covered observations shown beside the result.
 
-Available in **v0.10.0**. Install the [verified binary](../README.md#2-install-v0100)
+Available in **v0.10.1**. Install the [verified binary](../README.md#2-install-v0100)
 before running the commands below.
 
 ## Run it on your data
@@ -39,7 +39,7 @@ and [JSON](../examples/what-if/expected.json).
 
 ## No data handy? Try the sample
 
-From a v0.10.0 checkout, using the verified binary installed above:
+From a v0.10.1 checkout, using the verified binary installed above:
 
 ```sh
 ./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
@@ -99,6 +99,13 @@ The subsets must be disjoint and within input. Reasoning is already included in
 output and is not added again. Source and counterfactual costs use the same
 dated table; these are not silently compared with discounted recorded spend.
 
+If priced records include failure rows with tokens, the report shows their
+recorded input/output and cache subsets, plus their contribution to each price
+scenario. This subset is computed after model, scope, usage and price-tier
+exclusions. The values are gateway-recorded, with finality unknown; they remain
+included in the covered totals. The source failure count, when present, is
+before pricing exclusions and is not the priced subset's count.
+
 Level 1 keeps output unchanged, applies the measured pooled input factor across
 providers (1.0 within a provider), and retains cache shares as an assumption.
 Level 2 additionally applies the measured workload output factor. The study used
@@ -142,7 +149,7 @@ explicit expected model-usage contract requires the block to be present.
 | Legacy, block absent | Existing fleetdiff versions | Existing behavior |
 | `model_usage` v1, `input-tiers-v1` | fleetdiff v0.10.0+ | Validated per-model repricing |
 | Enabled block | fleetdiff v0.9.x and older | Rejected; upgrade the reader first |
-| Unknown extension version or histogram | fleetdiff v0.10.0 | Actionable upgrade error |
+| Unknown extension version or histogram | fleetdiff v0.10.0+ | Actionable upgrade error |
 
 The shared format is available in sketchkit v0.4.0 and its identity-preserving
 v0.2.4 maintenance backport. Fleetdiff uses v0.2.4 with its existing normalization
@@ -160,6 +167,10 @@ Reproduce them offline with `python3 scripts/reproduce-model-mix.py --check`.
 
 - Factors are averages on public benchmark tasks; customer traffic may differ.
 - Individual requests vary widely; the per-request range test failed.
+- Repricing requires recorded input, output, cache-read and cache-write counts.
+  Pinned LiteLLM v1.104.0 native Responses can retain positive reads and supplied
+  writes; the bundled writer fixture supplies no write count and therefore
+  lacks a complete split. Missing counts remain unknown, not zero.
 - This re-pricing is not a forecast or an invoice.
 - No quality equivalence is claimed.
 

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -111,17 +112,34 @@ func renderSessionBudget(out io.Writer, r spend.SessionReport) {
 		fmt.Fprintf(out, "\nSessions spanning more than %g seconds between first and last positive-spend request starts: %s.\n", r.CounterWindowSeconds, spendNumber(r.LongSpans))
 		for _, s := range r.LongSpanReview {
 			fmt.Fprintf(out, "  %s: %g seconds.\n", s.Alias, *s.SpendSpanSeconds)
+			renderSessionAttribution(out, s)
 		}
 		fmt.Fprintln(out, "This is a recorded duration, not evidence that a counter reset.")
 	}
 	if r.SharedCounters != 0 {
 		fmt.Fprintf(out, "\nSession IDs observed under multiple keys, teams or agents: %s. Each addresses the same counter key; shared storage and agent budget configuration determine actual tracking.\n", spendNumber(r.SharedCounters))
 		for _, s := range r.SharedCounterReview {
-			fmt.Fprintf(out, "  %s: keys=%d, teams=%d, agents=%d.\n", s.Alias, s.Keys, s.Teams, s.Agents)
+			fmt.Fprintf(out, "  %s: keys=%d, teams=%d, agents=%s.\n", s.Alias, s.Keys, s.Teams, sessionAgents(s))
+			renderSessionAttribution(out, s)
 		}
 	}
 	fmt.Fprintln(out, "\nIdentity and usage coverage")
 	fmt.Fprintf(out, "%s logged model calls in the selected period.\n", spendNumber(r.ModelCalls))
+	if c := r.AgentAttribution; c != nil && c.MissingRows != 0 {
+		fmt.Fprintf(out, "Agent attribution: %s known, %s missing of %s selected rows.\n", spendNumber(c.KnownRows), spendNumber(c.MissingRows), spendNumber(r.SelectedRows))
+		callTypes := make([]string, 0, len(r.AgentAttributionByCallType))
+		for name := range r.AgentAttributionByCallType {
+			callTypes = append(callTypes, name)
+		}
+		slices.Sort(callTypes)
+		for _, name := range callTypes {
+			c := r.AgentAttributionByCallType[name]
+			if c.MissingRows != 0 {
+				fmt.Fprintf(out, "  %s: agent attribution %s known, %s missing rows.\n", name, spendNumber(c.KnownRows), spendNumber(c.MissingRows))
+			}
+		}
+		fmt.Fprintln(out, "Missing agent IDs cannot rule out sharing; known distinct identities still establish observed sharing.")
+	}
 	fmt.Fprintf(out, "%s of %s identified sessions contain one model call.\n", spendNumber(r.Singletons), spendNumber(r.Sessions))
 	if r.Singletons*2 > r.Sessions {
 		fmt.Fprintln(out, "Most sessions have one call; session IDs may have been generated per request. Check identity propagation before treating these as task runs.")
@@ -183,4 +201,21 @@ func renderSessionRow(out io.Writer, s spend.Session) {
 		fmt.Fprintf(out, "; hash %s", s.Hash)
 	}
 	fmt.Fprintln(out, ".")
+	renderSessionAttribution(out, s)
+}
+
+func sessionAgents(s spend.Session) string {
+	if c := s.AgentAttribution; c != nil && c.MissingRows != 0 {
+		if s.Agents == 0 {
+			return "unknown"
+		}
+		return fmt.Sprintf("%d (observed lower bound)", s.Agents)
+	}
+	return fmt.Sprintf("%d", s.Agents)
+}
+
+func renderSessionAttribution(out io.Writer, s spend.Session) {
+	if c := s.AgentAttribution; c != nil && c.MissingRows != 0 {
+		fmt.Fprintf(out, "    agents: %s; agent attribution: %s known, %s missing rows.\n", sessionAgents(s), spendNumber(c.KnownRows), spendNumber(c.MissingRows))
+	}
 }

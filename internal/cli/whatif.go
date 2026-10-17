@@ -232,6 +232,17 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 	}
 	for _, gap := range r.Source.Gaps {
 		fmt.Fprintln(out, "  "+gap)
+		if strings.HasPrefix(gap, "Complete recorded usage on failed requests:") {
+			fmt.Fprintln(out, "  This is a pre-pricing source count, not a priced-failure count; pricing exclusions still apply.")
+		}
+	}
+	if f := r.PricedFailures; f != nil && f.Total.Sign() > 0 {
+		fmt.Fprintf(out, "\nPriced failure subset: %s records; gateway-recorded tokens, provider/billing finality unknown.\n", spendNumber(f.Records))
+		fmt.Fprintf(out, "  Tokens: input %s, output %s, total %s; input includes cache read %s and cache write %s.\n", spendNumber(f.Input), spendNumber(f.Output), spendNumber(f.Total), spendNumber(f.CacheRead), spendNumber(f.CacheWrite))
+		fmt.Fprintf(out, "  Cost contribution already included above: source %s; level 1 %s.\n", money(*f.Before), money(*f.Level1))
+		for _, w := range f.Level2 {
+			fmt.Fprintf(out, "  Level 2 contribution, %s: %s (%s to %s).\n", w.Workload, money(w.Mean), money(w.Low), money(w.High))
+		}
 	}
 	fmt.Fprintln(out, "Dominant uncertainty: "+r.Dominant)
 	fmt.Fprintln(out, "\nAssumptions")

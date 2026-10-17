@@ -16,10 +16,21 @@ type Window struct {
 	Tokens             uint64              `json:"recorded_tokens"`
 	Counters           map[string]uint64   `json:"counters"`
 	Quality            Quality             `json:"quality"`
+	FailureTokens      *FailureTokens      `json:"failure_tokens,omitempty"`
 	RecordedSpend      string              `json:"recorded_spend_usd"`
 	AttributedTokens   uint64              `json:"attributed_tokens,omitempty"`
 	Distinct           float64             `json:"distinct_groups_estimate,omitempty"`
 	DistinctNominalRSE float64             `json:"distinct_nominal_rse,omitempty"`
+}
+
+// These are the same gateway-recorded components included in recorded totals,
+// not independently confirmed provider receipts.
+type FailureTokens struct {
+	Records  uint64 `json:"records_with_tokens"`
+	Input    uint64 `json:"recorded_input_tokens"`
+	Output   uint64 `json:"recorded_output_tokens"`
+	Total    uint64 `json:"recorded_tokens"`
+	Finality string `json:"finality"`
 }
 
 type Model struct {
