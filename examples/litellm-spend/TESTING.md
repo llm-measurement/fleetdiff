@@ -264,6 +264,44 @@ complete deployed failure logging. Next, retain these fixtures as regression
 checks and rerun the suite after subsequent CLI/report changes; no broader
 provider test is needed for this example.
 
+## Routing Projection
+
+`test_routing.py` tests the default-off `routing_details` projection. Fresh
+synthetic records cover each of `original_model_group`, `attempted_fallbacks`
+and `internal_call_origin` independently and together. No original fixture or
+golden is replaced. The native pinned `get_logging_payload` path supplies
+ordinary/recovery, classifier, native Responses, recorded failure and
+missing/empty metadata cases. Separate direct DB mutations test wrong JSON
+shapes, invalid numeric text, negative/fractional counts and integer overflow;
+these controls are not evidence of HTTP routing or asynchronous persistence.
+
+The real PostgreSQL/SELECT-only SQL checks compare CSV, JSONL and locally
+assembled JSON, every routing/usage-details option combination, literal NULLs,
+empty periods, unchanged base columns/row counts/token/spend values, private
+content exclusion and absence of extra output files. Existing pinned image,
+writer/schema hashes and `--network=none` helpers are reused with no pulls.
+The fresh writer fixture intentionally supplies a missing Responses agent;
+the independent frozen HTTP evidence establishes the endpoint limitation.
+
+Set both released-binary variables to independently verified installations.
+Missing binaries are separately skipped compatibility checks, not passes:
+
+```sh
+FLEETDIFF_BIN=/path/to/current-fleetdiff \
+FLEETDIFF_V0101_BIN=/path/to/verified-v0101/fleetdiff \
+FLEETDIFF_V070_BIN=/path/to/verified-v070/fleetdiff \
+FLEETDIFF_SPEND_DOCKER=1 \
+  python3 -B -m unittest discover -s examples/litellm-spend -p 'test_routing.py' -v
+```
+
+Each released reader is checked with each added column and all three, across
+CSV/JSON/JSONL, five legacy groups, hashes on/off and text/JSON. Actual DB exports
+also cover usage-details opt-out. Baselines remove only the three new routing
+columns. The current CLI gets the same default-output/privacy regression.
+`FLEETDIFF_ROUTING_OUTPUT` optionally retains writer payloads, container inspect
+and exports in a new private directory; existing destinations are refused.
+The complete documented suite includes these tests automatically.
+
 ## Scale Measurement
 
 [generate.py](generate.py) streams the reviewed synthetic pattern, preserving

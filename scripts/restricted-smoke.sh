@@ -131,4 +131,25 @@ check_case what-if-summaries 0 what-if --summaries /examples/what-if-summaries/s
 check_report what-if-summaries '.covered_observations == 5 and .source.observations == 9 and
     .excluded_observations.invalid_usage == 1 and .excluded_observations.missing_split == 1 and
     .excluded_observations.zero_origin_unknown == 1 and .excluded_observations.unpriced_reserved_bucket == 1'
-printf 'PASS restricted offline binary smoke: 10 cases (%s)\n' "$platform"
+check_case routing-audit 0 investigate --litellm-spend /examples/routing/synthetic.csv \
+  --before-period 2026-10-01 --after-period 2026-10-02 --routing-audit \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report routing-audit '.routing_audit.model_rows.before.requests == 3 and
+    .routing_audit.classifier_overhead.after.raw_usage.requests == 1 and
+    .routing_audit.coverage.after.agent.missing_rows == 2 and
+    .routing_audit.provider_snapshot_confirmed == false'
+
+check_case routing-scope 0 investigate --litellm-spend /examples/routing/synthetic.csv \
+  --before-period 2026-10-01 --after-period 2026-10-02 --routing-audit \
+  --scope-route coding-default --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report routing-scope '.scope_coverage.after.matched_rows == 3 and
+    .scope_coverage.after.nonmatching_known_rows == 1 and
+    .after.logged_model_requests == 2 and (.routing_audit.cohorts | length) == 1'
+
+check_case what-if-routing 0 what-if --litellm-spend /examples/routing/synthetic.csv \
+  --period 2026-10-02 --from claude-sonnet-5-5 --to gpt-6.1-sol --fraction 0.5 \
+  --scope-route coding-default --format json
+check_report what-if-routing '.covered_observations == 2 and
+    .excluded_observations.missing_split == 1 and
+    .excluded_observations.unsupported_call_type == 1 and .moves[0].scoped == true'
+printf 'PASS restricted offline binary smoke: 13 cases (%s)\n' "$platform"

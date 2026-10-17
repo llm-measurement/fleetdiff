@@ -15,12 +15,12 @@ import (
 	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
-func runSpend(path, before, after, group, secret, format, daily string, top int, hashes bool, out, errout io.Writer) int {
+func runSpend(path, format string, opts spend.Options, out, errout io.Writer) int {
 	fail := func(code int, msg string) int { fmt.Fprintln(errout, msg); return code }
-	if format != "text" && format != "json" || top < 1 || top > 100 {
+	if format != "text" && format != "json" || opts.Top < 1 || opts.Top > 100 {
 		return fail(2, "use text or json output and top between 1 and 100")
 	}
-	r, err := spend.Investigate(path, spend.Options{BeforePeriod: before, AfterPeriod: after, GroupBy: group, SecretEnv: secret, Top: top, ShowHashes: hashes, DailySpendPath: daily})
+	r, err := spend.Investigate(path, opts)
 	if err != nil {
 		return fail(1, err.Error())
 	}
@@ -32,6 +32,7 @@ func runSpend(path, before, after, group, secret, format, daily string, top int,
 			return fail(1, "cannot encode spend investigation")
 		}
 	} else {
+		renderRouting(&b, r)
 		renderSpend(&b, r)
 	}
 	if _, err := io.Copy(out, &b); err != nil {

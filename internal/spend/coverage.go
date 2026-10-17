@@ -95,7 +95,7 @@ func recordCallType(r *Report, index map[string]int, row Row, side int) error {
 // Retain ordinals only for the bounded candidate set. A second streaming pass
 // avoids an exact identity map growing with every user; its digest checks that
 // aliases and totals describe the same file contents.
-func orderCandidates(path string, r *Report, key, expected []byte) error {
+func orderCandidates(path string, r *Report, key, expected []byte, selection *scopeSelection, routing bool) error {
 	groups := []*compare.Concentration{&r.Rankings}
 	if r.Cache.Rankings != nil {
 		groups = append(groups, r.Cache.Rankings)
@@ -115,7 +115,11 @@ func orderCandidates(path string, r *Report, key, expected []byte) error {
 	}
 	digest := sha256.New()
 	enc := json.NewEncoder(digest)
-	err := Read(path, func(row Row) error {
+	read := Read
+	if routing {
+		read = ReadRouting
+	}
+	err := read(path, func(row Row) error {
 		if err := enc.Encode(row.Values); err != nil {
 			return err
 		}
@@ -124,6 +128,9 @@ func orderCandidates(path string, r *Report, key, expected []byte) error {
 			return err
 		}
 		if operation(row.Values["call_type"]) == "" || (!r.Before.Period.contains(start) && !r.After.Period.contains(start)) {
+			return nil
+		}
+		if matched, _ := selection.match(row, key); !matched {
 			return nil
 		}
 		h, present, err := groupIdentity(row, r.GroupBy, key)

@@ -26,7 +26,7 @@ type PricedFailures struct {
 // shares immutable configuration and hashed selectors, never raw identities.
 func (c *Calculator) addFailure(r Record) error {
 	if c.failures == nil {
-		c.failures = &Calculator{prices: c.prices, factors: c.factors, mapping: c.mapping, secret: c.secret, excluded: map[string]uint64{}}
+		c.failures = &Calculator{prices: c.prices, factors: c.factors, mapping: c.mapping, secret: c.secret, routing: c.routing, excluded: map[string]uint64{}}
 		for _, m := range c.moves {
 			c.failures.moves = append(c.failures.moves, moveState{
 				move: m.move, ratio: m.ratio, input: m.input, inputSource: m.inputSource,
