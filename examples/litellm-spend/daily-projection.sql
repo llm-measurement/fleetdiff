@@ -11,5 +11,6 @@ COPY (
   WHERE date >= to_char(:'start_utc'::timestamptz, 'YYYY-MM-DD')
     AND date < to_char(:'end_utc'::timestamptz, 'YYYY-MM-DD')
   GROUP BY date
+  ORDER BY date COLLATE "C"
 ) TO STDOUT WITH (FORMAT CSV, HEADER true)
 \g :daily_csv_file

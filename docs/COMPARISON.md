@@ -83,7 +83,10 @@ does not bypass scope, key, accounting, replay, or structural checks.
 
 ## Trust And Effects
 
-The runtime reads local files and writes stdout/stderr, offline and read-only.
+File-based comparison reads local files and writes stdout/stderr, offline and
+without modifying inputs. The unreleased v0.12 candidate's explicit
+[native database modes](NATIVE_EXPORT.md) have a separate network and private-file
+write boundary; they do not change this summary comparison contract.
 Transfer inputs through authenticated channels and follow
 [Safe Use](../SECURITY.md#safe-use) for producer and metadata trust.
 

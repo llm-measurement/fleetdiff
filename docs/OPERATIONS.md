@@ -1,8 +1,10 @@
 # Operating fleetdiff
 
-fleetdiff is one local binary. It reads LiteLLM spend exports, summary files,
-OTLP captures or collector configurations and prints a report, offline and
-unprivileged. All input and output stays on your machine.
+fleetdiff is one local binary. File-based commands read LiteLLM spend exports,
+summary files, OTLP captures or collector configurations and report offline,
+without administrator privileges. The **unreleased v0.12 candidate** also offers
+explicit native database export; that mode connects to PostgreSQL and writes
+private local exports before analysis. It is not in the v0.11.0 installer.
 
 ## Install And Verify
 
@@ -148,17 +150,61 @@ record the commit and local changes separately. Explicit packaging stamps take
 precedence over module metadata. `sh scripts/build-release.sh dev` explicitly
 stamps `dev`, unlike the unstamped build above.
 
-Builds can download Go dependencies and toolchains. Runtime comparison cannot.
+Builds can download Go dependencies and toolchains. File-based runtime commands
+cannot.
 For an offline build, prepare the approved toolchain and module cache in a
 connected build environment; use `GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off`
 only after verifying those cached dependencies there. Do not disable checksum
 verification for ordinary connected builds. An offline user normally needs only
 the reviewed binary, not Go, Git, Docker, or a compiler.
 
+### Native Candidate Build (Development Only)
+
+Use a reviewed candidate checkout and a new build directory, separate from a
+released installation. Stop if directory creation or the build fails:
+
+```sh
+mkdir ./fleetdiff-install &&
+go build -o ./fleetdiff-install/fleetdiff ./cmd/fleetdiff
+```
+
+This is development setup, not a verified release installation. The v0.11.0
+installer and tagged Go install above do not contain native export. Follow
+[Native LiteLLM Export](NATIVE_EXPORT.md) for administrator-approved credentials,
+read-only grants and a first report. Dependency downloads are build-time access,
+separate from the explicit runtime database connection.
+
+## Native Database Runs
+
+Only `export litellm` and `investigate` / `what-if` with `--litellm-db` connect.
+File inputs remain offline even when database credentials are present. Restrict
+network access to the approved database endpoint and any required DNS resolution;
+there are no provider calls, telemetry or update checks.
+
+Provision a dedicated read-only role and supply credentials through the
+[native credential contract](NATIVE_EXPORT.md#credentials). Remote connections
+require verified TLS. PostgreSQL services and client-certificate authentication
+belong on the manual `psql` path; native export does not inherit those settings.
+
+Native destinations must be new private directories, not existing empty ones.
+Files are built in a private mode-0700 sibling `.fleetdiff-stage-...` directory,
+then the complete export is published atomically as one
+directory without replacing anything. The final destination stays absent until
+successful publication; overwrites and symlink components are refused. A crash
+before publication may leave sibling staging data, never a partial final
+directory. After publication, any final directory is complete.
+
+Temporary convenience exports are cleaned up after analysis; `--keep-export
+NEWDIR` retains a completed export for later offline use. Reports redirected by
+the shell still need `umask 077`. After an externally killed run, remove only its
+abandoned sibling staging directory; do not consume staging files as an export. See
+[limits and failures](NATIVE_EXPORT.md#limits-and-failures) before scheduling runs.
+
 ## Run On Real Exports
 
-1. Use a dedicated, unprivileged account. Grant it read access only to approved
-   completed exports. Do not grant credentials to the model or collector.
+1. For offline analysis, use a dedicated, unprivileged account. Grant it read
+   access only to approved completed exports. Do not grant credentials to the
+   model or collector.
 2. Freeze a copy of both windows in directories that other users cannot rewrite
    during comparison. Symlinks and special files are rejected; parent-directory
    ownership and a trustworthy filesystem remain the operator's responsibility.
@@ -192,7 +238,8 @@ The limits below apply to `compare` and summary-file `investigate`.
 The other commands have separate guides: [diagnose](DIAGNOSE.md) bounds
 static YAML inspection; [scan](SCAN.md) applies the summary input budget to the
 whole history and also limits candidate comparisons. The optional [archive helper](SUMMARY_ARCHIVE.md)
-is a separate, explicitly writing process; fleetdiff itself stays read-only.
+is a separate, explicitly writing process. File-based analysis does not modify
+inputs; native database export writes only its private local export files.
 
 Each side permits at most 512 JSON files, 1,024 directory entries, and 32 MiB of
 encoded input. One summary is limited to 8 MiB. Expected producers are limited
@@ -207,9 +254,10 @@ boundary. See [measured input cases](BENCHMARKS.md); size from your real fixture
 and retain headroom. Start with one comparison process, not unlimited parallel
 jobs. The demonstration's 256 MiB container test covers its small sample only.
 
-CI checks the packaged Linux binary with no network, non-root UID, no Linux
-capabilities, a read-only root, and read-only input mounts. Apply your organization's
-software approval process to the binary and deployment configuration.
+CI checks file-based commands in the packaged Linux binary with no network,
+non-root UID, no Linux capabilities, a read-only root, and read-only input mounts.
+Apply your organization's software approval process to the binary and deployment
+configuration.
 
 ## Automation
 

@@ -6,6 +6,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -15,11 +16,16 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
+	"github.com/llm-measurement/fleetdiff/internal/accounting"
+	"github.com/llm-measurement/fleetdiff/internal/attribution"
 	"github.com/llm-measurement/fleetdiff/internal/compare"
+	"github.com/llm-measurement/fleetdiff/internal/exportdata"
 	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
@@ -38,6 +44,9 @@ const help = `fleetdiff shows what changed between two windows of agent measurem
 Local and read-only.
 
 Usage:
+  fleetdiff export litellm --out NEW_DIRECTORY [options]
+  fleetdiff investigate --litellm-db [--daily] [--routing-audit] [options]
+  fleetdiff what-if --litellm-db --from MODEL --to MODEL --fraction 0.5 [options]
   fleetdiff inspect [options] CAPTURE
   fleetdiff diagnose [options] CONFIG
   fleetdiff scan [options] PATH --expected PRODUCER[,PRODUCER]
@@ -61,6 +70,12 @@ Options:
   --allow-partial            Permit missing producers or incomplete observation intervals
   --show-hashes              Include pseudonymous, linkable hashes in output
   --litellm-spend FILE        Read a request-level SQL export: CSV, JSON array or JSONL
+  --litellm-db                Export a private database snapshot, then analyze locally
+  --database-url-file FILE    Read database credentials from an owner-only regular file
+  --keep-export NEW_DIRECTORY Keep the private export; otherwise remove it after analysis
+  --daily                    Export daily counters for database row coverage
+  --routing-details          Include routing details in the database export
+  --usage-details=false      Omit default-on cache and usage details from the export
   --litellm-daily-spend FILE  Compare row counts with the daily SQL-projection CSV
   --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
   --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
@@ -79,7 +94,9 @@ Options:
 
 inspect reads local OTLP captures; run fleetdiff inspect --help for capture options.
 diagnose checks supported collector configuration; scan checks retained summary history.
-Runs offline using local files. Default output uses aliases for identities.
+File commands run offline. Only explicit database commands connect to Postgres.
+Database periods default to the last 14 complete UTC days; export --help has details.
+Default output uses aliases for identities.
 Spend periods default to the latest two complete 7-day UTC intervals in the file.
 With fewer than 14 complete days, supply both period flags. Daily UI aggregates
 need a request-level SQL export; see examples/litellm-spend/README.md.
@@ -93,9 +110,18 @@ func Run(args []string, out, errout io.Writer) int {
 
 // RunWithInput makes stdin explicit for callers embedding the command.
 func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
+	return RunWithExporter(context.Background(), args, in, out, errout, nil)
+}
+
+// RunWithExporter injects the only database capability. Run and RunWithInput
+// remain offline, including when their callers supply database options.
+func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, errout io.Writer, exporter exportdata.Exporter) int {
 	fail := func(code int, message string) int { fmt.Fprintln(errout, message); return code }
+	if len(args) > 0 && args[0] == "export" {
+		return runExport(ctx, args[1:], out, errout, exporter)
+	}
 	if len(args) > 0 && args[0] == "what-if" {
-		return runWhatIf(args[1:], out, errout)
+		return runWhatIf(ctx, args[1:], out, errout, exporter)
 	}
 	if len(args) > 0 && args[0] == "inspect" {
 		return runInspect(args[1:], in, out, errout)
@@ -124,6 +150,8 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	}
 	flags := flag.NewFlagSet("compare", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
+	var database databaseFlags
+	database.register(flags)
 	before := flags.String("before", "", "")
 	after := flags.String("after", "", "")
 	expected := flags.String("expected", "", "")
@@ -176,13 +204,20 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 		}
 		return fail(2, "invalid compare options; run fleetdiff compare --help")
 	}
-	spendMode, incompatible := false, false
+	if database.enabled && databaseURLArgument(args) {
+		return fail(2, databaseURLMessage)
+	}
+	if err := database.validate(flags); err != nil {
+		return fail(2, err.Error())
+	}
+	spendMode, incompatible := database.enabled, false
 	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
 	groupExplicit := false
 	emptyDailyOption := false
 	routingSet, routingBySet := false, false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
+		case "litellm-db", "keep-export", "database-url-file", "daily", "routing-details", "usage-details":
 		case "routing-audit", "routing-by", "scope-route", "scope-agent", "show-labels":
 			spendMode, routingSet = true, true
 			routingBySet = routingBySet || f.Name == "routing-by"
@@ -210,7 +245,7 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 		if emptyDailyOption {
 			return fail(2, "litellm-daily-spend needs a daily SQL-projection CSV file")
 		}
-		if args[0] != "investigate" || *spendPath == "" || incompatible || flags.NArg() != 0 {
+		if args[0] != "investigate" || *spendPath == "" && !database.enabled || incompatible || flags.NArg() != 0 {
 			return fail(2, "use investigate --litellm-spend FILE with period flags, not summary paths or expected producers")
 		}
 		if routingSet {
@@ -223,11 +258,11 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			if *showLabels && !*routingAudit {
 				return fail(2, "show-labels requires routing-audit")
 			}
-			if routeSet && agentSet || routeSet && (strings.TrimSpace(scopeRoute) == "" || len(scopeRoute) > spend.MaxFieldBytes) || agentSet && (strings.TrimSpace(scopeAgent) == "" || len(scopeAgent) > spend.MaxFieldBytes) {
+			if routeSet && agentSet || routeSet && (strings.TrimSpace(scopeRoute) == "" || len(scopeRoute) > spend.MaxFieldBytes || database.enabled && !utf8.ValidString(scopeRoute)) || agentSet && (strings.TrimSpace(scopeAgent) == "" || len(scopeAgent) > spend.MaxFieldBytes || database.enabled && !utf8.ValidString(scopeAgent)) {
 				return fail(2, "choose one nonempty route or agent scope of at most 8192 bytes")
 			}
 			if routeSet || agentSet {
-				if *beforePeriod == "" || *afterPeriod == "" || *dailySpendPath != "" || *group == "session" {
+				if *beforePeriod == "" || *afterPeriod == "" || *dailySpendPath != "" || database.daily || *group == "session" {
 					return fail(2, "route or agent scopes require both explicit periods; do not combine with daily coverage or session grouping")
 				}
 			}
@@ -236,6 +271,49 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			if !sessionMode || groupExplicit && *group != "session" || twoPeriods || emptySessionOption || *counterWindow <= 0 {
 				return fail(2, "session review needs --period or --session-budget-usd; grouping is session; do not combine with other groups or two-period flags")
 			}
+		}
+		if database.enabled {
+			if *format != "text" && *format != "json" || *top < 1 || *top > 100 || !slices.Contains([]string{"key", "team", "user", "end-user", "session"}, *group) {
+				return fail(2, "use text or json output, top between 1 and 100, and a supported spend group")
+			}
+			key, _, err := attribution.Secret(*secret)
+			clear(key)
+			if err != nil {
+				return fail(2, err.Error())
+			}
+			var p spend.Period
+			if sessionMode || windowSet {
+				if *counterWindow < time.Second || *counterWindow > 365*24*time.Hour {
+					return fail(2, "session-counter-window must be between 1s and 8760h")
+				}
+				if *budget != "" {
+					cap, ok := accounting.Cost(*budget)
+					if !ok || cap.Sign() <= 0 {
+						return fail(2, "session-budget-usd must be a positive decimal no greater than 1e18")
+					}
+				}
+				p, err = databasePeriod(*period, time.Now())
+				*period = periodText(p)
+			} else {
+				if twoPeriods && (*beforePeriod == "" || *afterPeriod == "") {
+					return fail(2, "supply both nonempty before-period and after-period")
+				}
+				p, *beforePeriod, *afterPeriod, err = databaseInvestigationPeriods(*beforePeriod, *afterPeriod, time.Now())
+			}
+			if err != nil {
+				return fail(2, err.Error())
+			}
+			if err := validateDatabaseDaily(p, database.daily); err != nil {
+				return fail(2, err.Error())
+			}
+			r, cleanup, err := database.export(ctx, p, exporter)
+			defer cleanup()
+			if err != nil {
+				return fail(1, err.Error())
+			}
+			*spendPath, *dailySpendPath = r.SpendPath, r.DailyPath
+		}
+		if sessionMode || windowSet {
 			return runSessionBudget(*spendPath, *period, *budget, *secret, *format, *dailySpendPath, *top, *hashes, *counterWindow, out, errout)
 		}
 		return runSpend(*spendPath, *format, spend.Options{

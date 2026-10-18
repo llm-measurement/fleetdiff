@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,8 +13,10 @@ import (
 	"io"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/compare"
+	"github.com/llm-measurement/fleetdiff/internal/exportdata"
 	"github.com/llm-measurement/fleetdiff/internal/reprice"
 	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
@@ -21,11 +24,18 @@ import (
 const whatIfHelp = `Re-price a period of covered usage under explicit model-mix assumptions.
 
 Usage:
+  fleetdiff what-if --litellm-db --from MODEL --to MODEL --fraction 0.5 [--period PERIOD]
   fleetdiff what-if --litellm-spend FILE --period PERIOD --from MODEL --to MODEL --fraction 0.5
   fleetdiff what-if --litellm-spend FILE --period PERIOD --scenario scenario.json
   fleetdiff what-if --summaries PATH --expected PRODUCER[,PRODUCER] --period PERIOD --scenario scenario.json
 
 Options:
+  --litellm-db               Export a private database snapshot, then analyze locally
+  --database-url-file FILE   Read database credentials from an owner-only regular file
+  --keep-export NEW_DIRECTORY Keep the private export; otherwise remove it after analysis
+  --daily                   Include daily counters in the private export
+  --routing-details         Include routing details (always included in database mode)
+  --usage-details=false     Omit default-on cache and usage details from the export
   --scope-key ID             Restrict a simple move to a recorded API key
   --scope-team ID            Restrict a simple move to a recorded team
   --scope-route ID           Restrict a simple move to its recorded original route
@@ -38,13 +48,17 @@ Options:
 PERIOD is a UTC date or RFC3339 start/end. Fractions are uniform shares of
 original covered token volume. Raw identities are never printed. Put selectors
 in a protected scenario file to avoid shell history. See docs/WHAT_IF.md.
-No network requests are made. Missing model or token splits remain unknown.
+File commands run offline. Database mode defaults to the last 14 complete UTC
+days; --period selects the database range. --from and --to always name models.
+Missing model or token splits remain unknown.
 `
 
-func runWhatIf(args []string, out, errout io.Writer) int {
+func runWhatIf(ctx context.Context, args []string, out, errout io.Writer, exporter exportdata.Exporter) int {
 	fail := func(code int, s string) int { fmt.Fprintln(errout, s); return code }
 	f := flag.NewFlagSet("what-if", flag.ContinueOnError)
 	f.SetOutput(io.Discard)
+	var database databaseFlags
+	database.register(f)
 	spendFile := f.String("litellm-spend", "", "")
 	summaryFile := f.String("summaries", "", "")
 	expected := f.String("expected", "", "")
@@ -76,7 +90,13 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 		}
 		return fail(2, "invalid what-if options; run fleetdiff what-if --help")
 	}
-	if f.NArg() != 0 || (*spendFile == "") == (*summaryFile == "") || *period == "" || (*format != "text" && *format != "json") || *spendFile != "" && *expected != "" || *summaryFile != "" && *expected == "" {
+	if database.enabled && databaseURLArgument(args) {
+		return fail(2, databaseURLMessage)
+	}
+	if err := database.validate(f); err != nil {
+		return fail(2, err.Error())
+	}
+	if f.NArg() != 0 || !database.enabled && ((*spendFile == "") == (*summaryFile == "") || *period == "") || (*format != "text" && *format != "json") || *spendFile != "" && *expected != "" || *summaryFile != "" && *expected == "" {
 		return fail(2, "choose one input, a period, and text or json; summaries also require expected producers")
 	}
 	if *spendFile != "" && *modelContract != "" {
@@ -135,6 +155,26 @@ func runWhatIf(args []string, out, errout io.Writer) int {
 		return fail(2, err.Error())
 	}
 	defer c.Close()
+	if database.enabled {
+		emptyPeriod := false
+		f.Visit(func(v *flag.Flag) { emptyPeriod = emptyPeriod || v.Name == "period" && v.Value.String() == "" })
+		if emptyPeriod {
+			return fail(2, "database period must be nonempty when supplied")
+		}
+		p, err := databasePeriod(*period, time.Now())
+		if err != nil {
+			return fail(2, err.Error())
+		}
+		if err := validateDatabaseDaily(p, database.daily); err != nil {
+			return fail(2, err.Error())
+		}
+		r, cleanup, err := database.export(ctx, p, exporter)
+		defer cleanup()
+		if err != nil {
+			return fail(1, err.Error())
+		}
+		*spendFile, *period = r.SpendPath, periodText(p)
+	}
 	var source reprice.Source
 	if *spendFile != "" {
 		read := spend.ReadReprice

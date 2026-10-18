@@ -2,6 +2,31 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [Unreleased] - v0.12.0 Candidate
+
+See the [unreleased notes](docs/releases/v0.12.0.md) and
+[native export guide](docs/NATIVE_EXPORT.md). These features are not in the
+released v0.11.0 installer.
+
+- Add explicit native `export litellm` for private CSV/JSONL snapshots, optional
+  daily counters and routing details, with the pinned LiteLLM v1.104.0 projection.
+- Add `--litellm-db` to `investigate` and `what-if`, with automatic private-export
+  cleanup or `--keep-export NEWDIR`. Default to the last 14 complete UTC days;
+  preserve what-if `--from` / `--to` as model selectors and `--period` as time.
+- Introduce an explicit runtime network boundary for database modes only; file
+  commands remain offline. Require dedicated credential sources, verified remote
+  TLS, bounded read-only snapshots, sanitized errors and new private output paths.
+- Stage exports in a private mode-0700 sibling `.fleetdiff-stage-...` directory, then
+  atomically publish the complete directory without replacement. Keep the final
+  destination absent until publication; crashes beforehand may leave sibling
+  staging data, never a partial final directory.
+- Order candidate SQL exports deterministically by `"startTime", request_id
+  COLLATE "C"` and daily `date COLLATE "C"` for native/psql byte equivalence.
+  Compared with the earlier unsorted recipe, bytes and first-seen/tied report
+  ordering may change; recorded totals and identity hashing are unchanged.
+- Pin `pgx/v5 v5.11.0`, `pgpassfile v1.0.0` and
+  `pgservicefile v0.0.0-20240606120523-5a60cdf6a761`; retain `x/text v0.41.0`.
+
 ## [0.11.0] - 2026-10-17
 
 See the [release notes](docs/releases/v0.11.0.md) for routing evidence and

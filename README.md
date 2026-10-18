@@ -7,45 +7,61 @@ compares LLM usage summaries, flags unusual windows, and checks trace captures
 and collector configurations.
 
 Use it to answer **why LLM token usage spiked, and which users or sessions drove
-the change.** It reads your files and prints a report: no account, upload,
-collector or model API key is needed for the LiteLLM path.
+the change.** File-based commands stay offline. The unreleased native LiteLLM
+path reads your database explicitly, then reports locally: no fleetdiff account,
+upload, collector or model API key is needed.
 
 | | |
 | --- | --- |
-| Commands | `investigate`, `scan`, `compare`, `inspect`, `diagnose` |
+| Commands | `investigate`, `what-if`, `scan`, `compare`, `inspect`, `diagnose`; candidate: `export litellm` |
 | Platforms | Linux and macOS, AMD64 and ARM64 |
 | Status | Pre-1.0; see the [changelog](CHANGELOG.md) |
 | License | Apache-2.0 |
 
 ## Using LiteLLM?
 
-**Export -> install -> investigate.** Use the request logs you already retain to
-compare two periods, see which models and keys drove the change, and check
-whether the usage records are complete.
+**One command to the first report, after setup.** Compare two periods, see which
+models and keys drove the change, and check the usage records you already retain.
+The native path below is an **unreleased v0.12 candidate**, not a feature of the
+released v0.11.0 installer.
+For a released binary, use the fallback below.
 
-### 1. Export Request-Level Rows
+### Native Candidate Setup (Development Only)
 
-Use the [read-only SQL projection](examples/litellm-spend/export.sql) and your
-existing PostgreSQL access. The [export guide](examples/litellm-spend/README.md#export-request-level-rows)
-covers connection settings and version-pinned cache fields. Once your approved
-read-only connection is named `litellm_readonly`, this example exports 16 UTC days:
+From a reviewed candidate source checkout with a patched Go 1.26 toolchain,
+build into a new directory; stop if that directory already exists:
 
 ```sh
-umask 077
-export_dir="$HOME/litellm-export"
-mkdir "$export_dir"
-curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.11.0/examples/litellm-spend/export.sql \
-  --output "$export_dir/export.sql"
-psql 'service=litellm_readonly' -Xq -v ON_ERROR_STOP=1 \
-  -v start_utc=2026-09-23T00:00:00Z -v end_utc=2026-10-09T00:00:00Z \
-  -v csv_file="$export_dir/spend.csv" -f "$export_dir/export.sql" \
-  >"$export_dir/private-psql.out" 2>"$export_dir/private-psql.err"
+mkdir ./fleetdiff-install &&
+go build -o ./fleetdiff-install/fleetdiff ./cmd/fleetdiff
 ```
 
-Choose dates for your own data and continue only after the export succeeds.
-The SQL writes CSV in one pass and excludes prompts and responses. Keep the
-export directory private. Existing request-level JSON and JSONL work too.
+Have your administrator provision the [read-only role and credential file](docs/NATIVE_EXPORT.md#credentials).
+Set `DATABASE_URL_FILE` to that existing, owned mode-0600 regular file. Leave
+`FLEETDIFF_LITELLM_DATABASE_URL` unset when using the file, then run:
+
+```sh
+: "${DATABASE_URL_FILE:?Set the path to your approved database URL file}"
+./fleetdiff-install/fleetdiff investigate --litellm-db \
+  --database-url-file "$DATABASE_URL_FILE" --group-by key
+```
+
+This connects only for the requested export, compares the last 14 complete UTC
+days as two seven-day periods, and removes its private temporary export after
+analysis. Add `--daily` for row coverage or `--routing-audit` for route evidence;
+routing details are included automatically. Use `--keep-export NEWDIR` to retain
+the private files, or `export litellm --out NEWDIR` to export without a report.
+The [native guide](docs/NATIVE_EXPORT.md) covers credentials, periods and what-if.
+
+<a id="1-export-request-level-rows"></a>
+
+### Released Fallback: Export With psql
+
+For v0.11.0, or client certificates, PostgreSQL services and other native-unsupported
+connections, follow the [read-only SQL recipe](examples/litellm-spend/README.md#export-request-level-rows).
+Keep the export private; it excludes prompts and responses but retains identities.
+Existing request-level CSV, JSON and JSONL also work. Install the released binary
+in a separate new directory from any candidate build, then investigate the file.
 
 <a id="2-install-v060"></a>
 <a id="2-install-v061"></a>
@@ -63,13 +79,14 @@ bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://r
 ./fleetdiff-install/fleetdiff --version
 ```
 
-The installer checks signed release provenance and checksums before extracting
-the binary into a new directory. Prefer to inspect the script first? Follow
+The v0.11.0 installer does not provide native database export. It checks signed
+release provenance and checksums before extracting into a new directory. Follow
 [Install and verify](docs/OPERATIONS.md#install-and-verify).
 
 ### 3. Investigate
 
 ```sh
+export_dir="$HOME/litellm-export"
 ./fleetdiff-install/fleetdiff investigate \
   --litellm-spend "$export_dir/spend.csv" --group-by key
 ```
@@ -127,7 +144,7 @@ The summary-file path also shows session concentration:
 
 ## Install
 
-The verified installer above selects the native binary for your machine.
+The verified v0.11.0 installer selects the platform binary for your machine.
 For manual downloads, use the [v0.11.0 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.11.0)
 and [verification instructions](docs/OPERATIONS.md#install-and-verify).
 An administrator can verify and transfer artifacts through an approved internal mirror.
@@ -150,13 +167,14 @@ See [source builds and version reporting](docs/OPERATIONS.md#build-from-source).
   receive instructions for getting those rows. The reader accepts up to 10M rows
   and 16 GiB per file, with [per-record limits](examples/litellm-spend/README.md#data-and-limits).
 - By default, private names use aliases or pseudonymous hashes; public catalog model IDs are readable.
-  keep source files private and share reports under your organization's policy.
+  Keep source files private and share reports under your organization's policy.
 - Rankings carry deterministic bounds; distinct counts are statistical estimates.
   A flagged contributor identifies something to investigate, rather than its cause.
   Compatible summary files need aligned windows, keys and disjoint producer coverage.
 
 ## Documentation
 
+- [Native LiteLLM export](docs/NATIVE_EXPORT.md): unreleased v0.12 candidate setup and connection contract.
 - [LiteLLM spend exports](examples/litellm-spend/README.md): SQL, periods, groupings and source accounting.
 - [Session-budget review](docs/SESSION_BUDGET.md): single-period recorded totals and cap review.
 - [Model-mix what-if](docs/WHAT_IF.md) (v0.10.0): re-price covered usage under explicit assumptions.

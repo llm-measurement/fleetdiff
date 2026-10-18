@@ -29,14 +29,15 @@
       }
     },
     "export_source_sha256": {
-      "export.sql": "0abae1edc8187812ae579596b5f166e7c236e3c79a95586122910db43c0943bd",
-      "daily-projection.sql": "f72e96674a760b7ccf2664bc5f11f5be38af935be99a72015f0dd5476f36f9e5",
+      "export.sql": "0b57656b137d1216f9e657535434800a6ebede545230a4a55a271235ffd1fe2c",
+      "daily-projection.sql": "efd20f10a06a237782664101e36536df94ee4c80bcb47cf7188a6c77222fe1e5",
       "export-coverage.sh": "d44304d135a6785358503ed16b04782f8eb31034b6477519cb642e11256b7688"
     },
     "runtime_harness_sha256": {
       "coverage_runtime_probe.py": "b629b42453080a453e7b47e5878b44ce9ff0b549716a357f6dfdf20bb458f951",
-      "test_row_coverage_runtime.py": "5dcabcc935403777dd5a669c974889c49ea6d1cdf031ff08c640b16f59b337b5",
-      "coverage_runtime_pg_service.conf": "1477e5d37ec583fd693d585666af6ba67e754178a834605f6b9a5105558d42bd"
+      "test_row_coverage_runtime.py": "d3574c9e7ea9fa42ac44050ea7719dcecfcd1c35956e680f0e5bdd25911ffa0a",
+      "coverage_runtime_pg_service.conf": "1477e5d37ec583fd693d585666af6ba67e754178a834605f6b9a5105558d42bd",
+      "test_native_export.py": "76fba62fe4c146297fa9b0d6a91dd0c69ff3f5c4dcac5e6348de228cb9479ee7"
     },
     "fixture_generator_sha256": "c85c13d53bdd7a15decf512702758a28f3bee71903eca8ec83657bd37b1423fb",
     "export_helper": "export-coverage.sh; one psql invocation with inherited distinct file descriptors",
@@ -71,7 +72,7 @@
   "files": {
     "spend": {
       "path": "coverage_runtime_spend.csv",
-      "sha256": "7ebb6dd44eb1bad22c0d0b5843d19e47652a167d05d51498e7deeb5fbee1fb5a"
+      "sha256": "d581125757bbc9fc748c4c79e994ff94457ea111f53b1a7e669373bf5fbf37c0"
     },
     "daily": {
       "path": "coverage_runtime_daily.csv",

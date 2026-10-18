@@ -26,6 +26,16 @@ var errCoverageFile = errors.New("daily spend input must be a readable regular C
 var errCoverageCSV = errors.New("invalid daily spend CSV; use the four-column read-only daily SQL projection")
 var errCoverageLimit = errors.New("daily spend coverage exceeds 3,660 days, 1 MiB or 512 bytes per line; select a shorter period")
 
+// ValidateDailyExportRoot applies the same bounded coverage parser through an
+// already-held export directory, without resolving its public pathname again.
+func ValidateDailyExportRoot(root *os.Root, name string) error {
+	if root == nil {
+		return errCoverageFile
+	}
+	_, err := readDailyCountsRoot(root, name)
+	return err
+}
+
 // RowCoverage compares records with a second accounting path. Matching counts
 // do not establish that requests missing from both paths were recorded.
 type RowCoverage struct {
@@ -56,7 +66,11 @@ func readDailyCounts(path string) (map[string]dailyCounts, error) {
 		return nil, errCoverageFile
 	}
 	defer root.Close()
-	data, err := localfile.Read(root, filepath.Base(path), maxCoverageBytes)
+	return readDailyCountsRoot(root, filepath.Base(path))
+}
+
+func readDailyCountsRoot(root *os.Root, name string) (map[string]dailyCounts, error) {
+	data, err := localfile.Read(root, name, maxCoverageBytes)
 	if err != nil {
 		return nil, fmt.Errorf("daily spend input: %w", err)
 	}

@@ -344,10 +344,11 @@ def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:
 
 
 class FixtureTests(unittest.TestCase):
-    def test_sql_recipe_uses_one_unsorted_export_without_array_aggregation(self):
+    def test_sql_recipe_uses_one_ordered_export_without_array_aggregation(self):
         sql = (ROOT / "export.sql").read_text().upper()
         require(sql.count("COPY (") == 1, "SQL recipe must have one CSV COPY pass")
-        require("ORDER BY" not in sql, "SQL export must not require a database sort")
+        require('ORDER BY "STARTTIME", REQUEST_ID COLLATE "C"' in sql,
+                "SQL export must use the shared deterministic row order")
         require("JSON_AGG" not in sql and "JSONB_AGG" not in sql,
                 "SQL export must not aggregate a JSON array")
         require("JSON_FILE" not in sql, "SQL recipe must not export a JSON array")

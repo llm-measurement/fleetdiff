@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/importer"
 	"go/parser"
 	"go/token"
@@ -34,6 +35,9 @@ import (
 // scripts/restricted-smoke.sh also compares built Linux CLI outputs with Docker
 // bridge networking versus --network none in CI. Assembly, reflection and
 // dynamic loading still require review; neither test proves absence of all I/O.
+// Explicit database export permits only the reviewed adapter/pgconn dial and
+// resolver APIs below. All packages still receive the HTTP/process/cgo checks;
+// offline packages cannot import the adapter or its driver runtime at all.
 func TestProductionHasNoNetwork(t *testing.T) {
 	packages := listNetworkPackages(t, "../..")
 	for _, finding := range networkFindings(t, packages) {
@@ -48,6 +52,64 @@ type networkPackage struct {
 	Standard   bool
 	GoFiles    []string
 	CgoFiles   []string
+	Imports    []string
+	Module     *networkModule
+}
+
+type networkModule struct {
+	Path, Version string
+	Replace       *networkModule
+}
+
+const databaseAdapter = "github.com/llm-measurement/fleetdiff/internal/postgres"
+const databaseMain = "github.com/llm-measurement/fleetdiff/cmd/fleetdiff"
+
+// Exact runtime packages, not a module-prefix exemption. New driver packages
+// and upgrades require review; shared x/text continues to be scanned normally.
+func databaseRuntimeModule(path string) (string, string) {
+	switch path {
+	case "github.com/jackc/pgpassfile":
+		return path, "v1.0.0"
+	case "github.com/jackc/pgservicefile":
+		return path, "v0.0.0-20240606120523-5a60cdf6a761"
+	case "github.com/jackc/pgx/v5/pgconn",
+		"github.com/jackc/pgx/v5/pgconn/ctxwatch",
+		"github.com/jackc/pgx/v5/pgconn/internal/bgreader",
+		"github.com/jackc/pgx/v5/pgproto3",
+		"github.com/jackc/pgx/v5/pgtype",
+		"github.com/jackc/pgx/v5/internal/pgio",
+		"github.com/jackc/pgx/v5/internal/pgdatetime",
+		"github.com/jackc/pgx/v5/internal/iobufpool":
+		return "github.com/jackc/pgx/v5", "v5.11.0"
+	}
+	return "", ""
+}
+
+func databaseBoundaryFindings(packages []networkPackage) []string {
+	var findings []string
+	for _, p := range packages {
+		module, version := databaseRuntimeModule(p.ImportPath)
+		if strings.HasPrefix(p.ImportPath, "github.com/jackc/") && module == "" {
+			findings = append(findings, p.ImportPath+": unreviewed database runtime package")
+		}
+		if module != "" && (p.Module == nil || p.Module.Path != module || p.Module.Version != version || p.Module.Replace != nil) {
+			findings = append(findings, p.ImportPath+": database runtime differs from approved module pin")
+		}
+		for _, imported := range p.Imports {
+			if imported == databaseAdapter && p.ImportPath != databaseMain {
+				findings = append(findings, p.ImportPath+": offline code imports database adapter")
+			}
+			if strings.HasPrefix(imported, "github.com/jackc/") && p.ImportPath != databaseAdapter && module == "" {
+				findings = append(findings, p.ImportPath+": offline code imports database runtime")
+			}
+		}
+	}
+	return findings
+}
+
+func databaseNetworkFunction(owner, path, name string) bool {
+	return (owner == databaseAdapter || owner == "github.com/jackc/pgx/v5/pgconn") &&
+		path == "net" && (name == "DialContext" || name == "LookupHost")
 }
 
 func listNetworkPackages(t *testing.T, dir string) []networkPackage {
@@ -90,7 +152,7 @@ func networkFindings(t *testing.T, packages []networkPackage) []string {
 	imp := importer.ForCompiler(fset, "gc", func(path string) (io.ReadCloser, error) {
 		return os.Open(exports[path])
 	})
-	var findings []string
+	findings := databaseBoundaryFindings(packages)
 	for _, p := range packages {
 		if networkImport(p.ImportPath) {
 			findings = append(findings, p.ImportPath+": forbidden dependency in production graph")
@@ -121,11 +183,12 @@ func networkFindings(t *testing.T, packages []networkPackage) []string {
 				}
 			}
 		}
-		info := &types.Info{Uses: make(map[*ast.Ident]types.Object)}
+		info := &types.Info{Uses: make(map[*ast.Ident]types.Object), Types: make(map[ast.Expr]types.TypeAndValue)}
 		config := types.Config{Importer: imp, Sizes: types.SizesFor("gc", runtime.GOARCH)}
 		if _, err := config.Check(p.ImportPath, fset, files, info); err != nil {
 			t.Fatalf("type-check %s for network guard: %v", p.ImportPath, err)
 		}
+		filesystemCalls := reviewedFilesystemSyscalls(p.ImportPath, files, fset, info)
 		// Resolve symbols, not selector spelling. This catches import aliases,
 		// dot imports, method expressions, and saved function values while
 		// leaving shadowed names and unrelated Dial/Listen methods alone.
@@ -136,13 +199,79 @@ func networkFindings(t *testing.T, packages []networkPackage) []string {
 			if _, ok := obj.(*types.Func); !ok {
 				continue
 			}
-			if networkFunction(obj.Pkg().Path(), obj.Name()) {
+			if networkFunction(obj.Pkg().Path(), obj.Name()) && !databaseNetworkFunction(p.ImportPath, obj.Pkg().Path(), obj.Name()) && !filesystemCalls[id] {
 				findings = append(findings, fmt.Sprintf("%s: %s: forbidden network/process API %s.%s", p.ImportPath, fset.Position(id.Pos()), obj.Pkg().Path(), obj.Name()))
 			}
 		}
 	}
 	slices.Sort(findings)
 	return findings
+}
+
+// Permit only direct, constant-operation calls in the two audited filesystem
+// wrappers. Saved syscall functions, variable operation/flag values, other
+// files, and all socket/process operations remain forbidden.
+func reviewedFilesystemSyscalls(owner string, files []*ast.File, fset *token.FileSet, info *types.Info) map[*ast.Ident]bool {
+	allowed := make(map[*ast.Ident]bool)
+	if owner != databaseAdapter {
+		return allowed
+	}
+	for _, file := range files {
+		filename := filepath.Base(fset.Position(file.Pos()).Filename)
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Body == nil {
+				continue
+			}
+			ast.Inspect(fn.Body, func(node ast.Node) bool {
+				call, ok := node.(*ast.CallExpr)
+				if !ok || len(call.Args) != 7 || call.Ellipsis.IsValid() {
+					return true
+				}
+				selector, ok := call.Fun.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				obj, ok := info.Uses[selector.Sel].(*types.Func)
+				if !ok || obj.Pkg() == nil || obj.Pkg().Path() != "syscall" || obj.Name() != "Syscall6" {
+					return true
+				}
+				is := func(index int, want int64) bool {
+					value := info.Types[call.Args[index]].Value
+					if value == nil || value.Kind() != constant.Int {
+						return false
+					}
+					got, ok := constant.Int64Val(value)
+					return ok && got == want
+				}
+				var rename, unlink, noReplace, removeDir int64
+				switch filename {
+				case "rename_darwin.go":
+					rename, unlink, noReplace, removeDir = 488, 472, 4, 0x80
+				case "rename_linux.go":
+					noReplace, removeDir = 1, 0x200
+					switch runtime.GOARCH {
+					case "amd64":
+						rename, unlink = 316, 263
+					case "arm64":
+						rename, unlink = 276, 35
+					default:
+						return true
+					}
+				default:
+					return true
+				}
+				switch fn.Name.Name {
+				case "renameDirectoryNoReplace":
+					allowed[selector.Sel] = is(0, rename) && is(5, noReplace) && is(6, 0)
+				case "removeEmptyDirectoryAt":
+					allowed[selector.Sel] = is(0, unlink) && is(3, removeDir) && is(4, 0) && is(5, 0) && is(6, 0)
+				}
+				return true
+			})
+		}
+	}
+	return allowed
 }
 
 func networkImport(path string) bool {
@@ -328,6 +457,97 @@ func TestNetworkGuardLowLevelPolicy(t *testing.T) {
 	got := networkFindings(t, []networkPackage{{ImportPath: "fixture/cgo", CgoFiles: []string{"socket.go"}}})
 	if len(got) != 1 || !strings.Contains(got[0], "cgo requires an explicit offline review") {
 		t.Fatalf("cgo was not rejected: %v", got)
+	}
+}
+
+func TestNetworkGuardDatabaseBoundary(t *testing.T) {
+	pgconn := "github.com/jackc/pgx/v5/pgconn"
+	module, version := databaseRuntimeModule(pgconn)
+	approved := []networkPackage{
+		{ImportPath: databaseMain, Imports: []string{databaseAdapter}},
+		{ImportPath: databaseAdapter, Imports: []string{pgconn}},
+		{ImportPath: pgconn, Module: &networkModule{Path: module, Version: version}},
+	}
+	if got := databaseBoundaryFindings(approved); len(got) != 0 {
+		t.Fatalf("reviewed database boundary rejected: %v", got)
+	}
+	for _, p := range []networkPackage{
+		{ImportPath: "github.com/llm-measurement/fleetdiff/internal/cli", Imports: []string{databaseAdapter}},
+		{ImportPath: "github.com/llm-measurement/fleetdiff/internal/spend", Imports: []string{pgconn}},
+		{ImportPath: databaseMain, Imports: []string{pgconn}},
+		{ImportPath: "example.com/transitive", Imports: []string{pgconn}},
+		{ImportPath: "github.com/jackc/pgx/v5/unreviewed"},
+		{ImportPath: pgconn, Module: &networkModule{Path: module, Version: "v5.99.0"}},
+		{ImportPath: pgconn, Module: &networkModule{Path: module, Version: version, Replace: &networkModule{Path: "./local"}}},
+	} {
+		if got := databaseBoundaryFindings([]networkPackage{p}); len(got) == 0 {
+			t.Errorf("database boundary escape accepted: %+v", p)
+		}
+	}
+	for _, owner := range []string{databaseAdapter, pgconn, databaseMain, "github.com/llm-measurement/fleetdiff/internal/cli"} {
+		for _, api := range [][2]string{{"net", "DialContext"}, {"net", "LookupHost"}, {"net", "Listen"}, {"os", "StartProcess"}, {"syscall", "Socket"}, {"net/http", "Get"}} {
+			want := (owner == databaseAdapter || owner == pgconn) && api[0] == "net" && (api[1] == "DialContext" || api[1] == "LookupHost")
+			if got := databaseNetworkFunction(owner, api[0], api[1]); got != want {
+				t.Errorf("database API exception %s %v = %v, want %v", owner, api, got, want)
+			}
+		}
+	}
+}
+
+func TestNetworkGuardFilesystemSyscallExceptions(t *testing.T) {
+	linuxRename, linuxUnlink := 316, 263
+	if runtime.GOARCH == "arm64" {
+		linuxRename, linuxUnlink = 276, 35
+	}
+	for _, tc := range []struct {
+		name, file, function, declarations, body string
+		want                                     bool
+	}{
+		{"darwin_rename", "rename_darwin.go", "renameDirectoryNoReplace", "", "syscall.Syscall6(488, 0, 0, 0, 0, 4, 0)", true},
+		{"darwin_rmdir", "rename_darwin.go", "removeEmptyDirectoryAt", "", "syscall.Syscall6(472, 0, 0, 128, 0, 0, 0)", true},
+		{"linux_rename", "rename_linux.go", "renameDirectoryNoReplace", fmt.Sprintf("const operation = %d", linuxRename), "syscall.Syscall6(operation, 0, 0, 0, 0, 1, 0)", true},
+		{"linux_rmdir", "rename_linux.go", "removeEmptyDirectoryAt", "", fmt.Sprintf("syscall.Syscall6(%d, 0, 0, 512, 0, 0, 0)", linuxUnlink), true},
+		{"wrong_file", "files.go", "renameDirectoryNoReplace", "", "syscall.Syscall6(488, 0, 0, 0, 0, 4, 0)", false},
+		{"wrong_function", "rename_darwin.go", "other", "", "syscall.Syscall6(488, 0, 0, 0, 0, 4, 0)", false},
+		{"variable_operation", "rename_darwin.go", "renameDirectoryNoReplace", "var operation uintptr = 488", "syscall.Syscall6(operation, 0, 0, 0, 0, 4, 0)", false},
+		{"variable_flags", "rename_darwin.go", "renameDirectoryNoReplace", "var flags uintptr = 4", "syscall.Syscall6(488, 0, 0, 0, 0, flags, 0)", false},
+		{"overwriting_rename", "rename_darwin.go", "renameDirectoryNoReplace", "", "syscall.Syscall6(488, 0, 0, 0, 0, 0, 0)", false},
+		{"unlink_file", "rename_darwin.go", "removeEmptyDirectoryAt", "", "syscall.Syscall6(472, 0, 0, 0, 0, 0, 0)", false},
+		{"saved_function", "rename_darwin.go", "renameDirectoryNoReplace", "var saved = syscall.Syscall6", "saved(488, 0, 0, 0, 0, 4, 0)", false},
+		{"raw_syscall", "rename_darwin.go", "renameDirectoryNoReplace", "", "syscall.RawSyscall6(488, 0, 0, 0, 0, 4, 0)", false},
+		{"socket", "rename_darwin.go", "renameDirectoryNoReplace", "", "syscall.Syscall6(syscall.SYS_SOCKET, 0, 0, 0, 0, 4, 0)", false},
+		{"process", "rename_linux.go", "renameDirectoryNoReplace", "", "syscall.Syscall6(syscall.SYS_EXECVE, 0, 0, 0, 0, 1, 0)", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			source := "package postgres\nimport \"syscall\"\n" + tc.declarations + "\nfunc " + tc.function + "() { " + tc.body + " }"
+			file, err := parser.ParseFile(fset, tc.file, source, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			info := &types.Info{Uses: make(map[*ast.Ident]types.Object), Types: make(map[ast.Expr]types.TypeAndValue)}
+			config := types.Config{Importer: importer.Default()}
+			if _, err := config.Check(databaseAdapter, fset, []*ast.File{file}, info); err != nil {
+				t.Fatal(err)
+			}
+			for _, owner := range []string{databaseAdapter, "offline/package"} {
+				allowed := reviewedFilesystemSyscalls(owner, []*ast.File{file}, fset, info)
+				permitted, denied := 0, 0
+				for id, obj := range info.Uses {
+					if obj.Pkg() != nil && obj.Pkg().Path() == "syscall" && networkFunction(obj.Pkg().Path(), obj.Name()) {
+						if allowed[id] {
+							permitted++
+						} else {
+							denied++
+						}
+					}
+				}
+				want := tc.want && owner == databaseAdapter
+				if want && (permitted != 1 || denied != 0) || !want && (permitted != 0 || denied == 0) {
+					t.Fatalf("owner=%s permitted=%d denied=%d want exception=%t", owner, permitted, denied, want)
+				}
+			}
+		})
 	}
 }
 
