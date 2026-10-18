@@ -112,11 +112,13 @@ before pricing exclusions and is not the priced subset's count.
 
 Level 1 keeps output unchanged, applies the measured pooled input factor across
 providers (1.0 within a provider), and retains cache shares as an assumption.
-Level 2 additionally applies the measured workload output factor. The study used
-**geometric mean paired ratios**, with approximate 95% intervals for the log mean,
-not arithmetic-mean token conversion or request prediction intervals. Endpoint
-sums and the workload envelope are sensitivity calculations, not a joint 95%
-confidence statement. Nothing shrinks by the number of customer requests.
+Level 2 additionally applies the measured workload output factor. The factors
+are geometric-mean paired ratios; their endpoints are approximate 95% intervals
+for the log mean. They describe the uncertainty of the average factor, not a
+range for your traffic. In a fresh calibration, they reliably contained measured
+30-task batch costs only for Sol to Luna QA and extraction;
+[see the calibration](WHAT_IF_CALIBRATION.md). Endpoint sums and the workload
+envelope are sensitivity calculations.
 
 ## Collector summaries
 

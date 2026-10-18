@@ -1,0 +1,21 @@
+{
+  "schema": "fleetdiff-calibration-publication/v1",
+  "sha256": {
+    ".github/workflows/ci.yml": "5812e4a690ebbbdbd9ca450a9aaf5aba6c524befdf8d6ef4a052dd37a192859d",
+    "docs/WHAT_IF.md": "bf5be3a7eade73aabc3d1492b7408eeb051e09f5b2a2abaa82507c5dbbccb5c6",
+    "docs/WHAT_IF_CALIBRATION.md": "9e929d6793a8f243950896b7c4672b732e9579687e2ac40dfed9af38f44920da",
+    "docs/calibration/LICENSES.md": "fce7715504d899724474f0519b77ab0ddc5fabe95278ddb437c200b2ed2fdd7d",
+    "docs/calibration/README.md": "d6feb2af08b3fef21f1eca1f18e096cf9c15c8dc1e44c79d3fc5c44ed409c5f7",
+    "docs/calibration/calculate.py": "a29baef530a2220fdf6a995d6b34b6d3753e1759c666dc5980e9e78d9a847204",
+    "docs/calibration/exclusions.csv": "d935f1206ed3664d5effd8588d7b534a2a0fa95258a18e3ddee56881d6cee45d",
+    "docs/calibration/expected-analysis.sha256": "efe78c5d99565689355d4f99d61ec541933d7b336ab8f4fb8240cd06119ec6b1",
+    "docs/calibration/expected-output.txt": "4af7a8d3b22d9deaf29fd8912364eb89731aaaf7fb2e6b925cdd311ec2acea4c",
+    "docs/calibration/reproduce.py": "b9ddde541eacfcc93d932760f3551ec634c0e12d1dda589a2315b3ba034c0f11",
+    "docs/calibration/source-record.json": "a86b552e763096472f401745dd233a1a017be3869ad3c6750e27cf56d0116229",
+    "docs/calibration/tasks.csv": "6b3ec04f683b17691d5af2470a36a1a471f7a46cf12d0bacd8855a4daa032d4c",
+    "docs/calibration/test_calibration.py": "250ca08ab53759047571100fca3308836160ed0415ee3c6f236fddae15985daf",
+    "docs/calibration/usage.csv": "6ca0ad7747ff35cea2a6dc23fea520c347473c750100a3733d1c3965f6926328",
+    "internal/reprice/data/factors.json": "cd1b087e294a3d9768cc52b8dd8a6d0b2ab169bcb8b979bc44957310869d2b99",
+    "internal/reprice/data/prices.json": "5d0e1af2d161af4823e92f00123b3b724b5b7f528d5984cfcc05242e189d252f"
+  }
+}

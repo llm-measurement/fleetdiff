@@ -1,0 +1,75 @@
+{
+  "schema": "fleetdiff-calibration-source/v1",
+  "registration_date": "2026-10-15",
+  "execution_date": "2026-10-17",
+  "timezone": "America/New_York",
+  "machine_count": 1,
+  "frozen_product_version": "v0.10.0",
+  "frozen_sha256": {
+    "factors": "cd1b087e294a3d9768cc52b8dd8a6d0b2ab169bcb8b979bc44957310869d2b99",
+    "prices": "5d0e1af2d161af4823e92f00123b3b724b5b7f528d5984cfcc05242e189d252f",
+    "calculation": "6550dda842db930bcad592518b19f8a923564e7ed8f531af916312cccb547372"
+  },
+  "design": {
+    "planned_batches": 20,
+    "batch_sizes": {"qa": 30, "extraction": 30, "coding": 24},
+    "models": ["claude-sonnet-5-5", "gpt-6.1-sol", "claude-haiku-5-5", "gpt-6-luna"],
+    "movement_fraction": "0.5",
+    "coverage_minimum": 16,
+    "median_width_maximum": "0.50",
+    "p90_width_maximum": "1.00",
+    "width_ranks": [10, 18],
+    "wilson_confidence": "0.95",
+    "wilson_z": "1.959963984540054",
+    "decimal_precision": 80,
+    "effort": {"qa": "low", "extraction": "low", "coding": "medium"},
+    "output_cap_including_reasoning": 4096,
+    "serialized_request_plus_framing_bytes_maximum": 4096,
+    "framing_bytes": 1024,
+    "selection_seed": "fleetdiff-aggregate-v1-20261015",
+    "normalization": "SHA-256 of UTF-8 space-joined Python str.split() tokens; no case folding",
+    "retries": 0,
+    "replacements": 0
+  },
+  "datasets": [
+    {
+      "id": "databricks/databricks-dolly-15k",
+      "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+      "source_file": "databricks-dolly-15k.jsonl",
+      "source_sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec",
+      "license": "CC-BY-SA-3.0",
+      "license_card_sha256": "db06c60090a11b20e79d1933b2f316f781605f07761ff2ae2795d6523e3e960b",
+      "source_url": "https://huggingface.co/datasets/databricks/databricks-dolly-15k/blob/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl",
+      "card_url": "https://huggingface.co/datasets/databricks/databricks-dolly-15k/blob/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/README.md",
+      "attribution": "Copyright (2023) Databricks, Inc.; Copyright Wikipedia editors and contributors.",
+      "categories": {"qa": "closed_qa", "extraction": "information_extraction"},
+      "task_id_convention": "dolly- plus zero-padded five-digit one-based original JSONL line number"
+    },
+    {
+      "id": "google-research-datasets/mbpp",
+      "revision": "4bb6404fdc6cacfda99d4ac4205087b89d32030c",
+      "source_file": "full/test-00000-of-00001.parquet",
+      "source_sha256": "566fd53060ffba5766dace1d1e2f4c38906781526de222b0dfbdbc325b696c77",
+      "license": "CC-BY-4.0",
+      "license_card_sha256": "6377d5c76ba46b9e650daa6d5eb592e671c9b15586e39f23f50ed9bf2ac54cf6",
+      "source_url": "https://huggingface.co/datasets/google-research-datasets/mbpp/blob/4bb6404fdc6cacfda99d4ac4205087b89d32030c/full/test-00000-of-00001.parquet",
+      "card_url": "https://huggingface.co/datasets/google-research-datasets/mbpp/blob/4bb6404fdc6cacfda99d4ac4205087b89d32030c/README.md",
+      "attribution": "Google Research; Program Synthesis with Large Language Models, Austin et al., 2021.",
+      "task_id_convention": "mbpp- plus the original integer task_id; full/test split only"
+    }
+  ],
+  "price_check": {
+    "date": "2026-10-17",
+    "verified_unchanged": true,
+    "sources": ["https://developers.openai.com/api/docs/pricing", "https://platform.claude.com/docs/en/about-claude/pricing"],
+    "models": {
+      "claude-sonnet-5-5": {"input": "2", "output": "10", "cache_read": "0.10", "cache_write": "2.50"},
+      "gpt-6.1-sol": {"input": "2", "output": "10", "cache_read": "0.10", "cache_write": "2.50"},
+      "claude-haiku-5-5": {"input": "0.10", "output": "0.50", "cache_read": "0.01", "cache_write": "0.125"},
+      "gpt-6-luna": {"input": "0.10", "output": "0.50", "cache_read": "0.01", "cache_write": "0.125"}
+    },
+    "unit": "USD per million tokens",
+    "tier": "Standard/global, synchronous, short-context, text-only"
+  },
+  "stop": {"sequence": 5790, "model": "claude-sonnet-5-5", "task_id": "mbpp-383", "reason": "receipt_finality"}
+}

@@ -1,0 +1,4 @@
+Analysis reproduced: 12 cases, 20 planned batches each; 2 pass.
+Cells: 5789 available / 6720 planned.
+Full-precision SHA-256: 55ddad11ce33ee10586f0e6cb552cb3e75c8894dcf517a65940bbe33e2a745ee
+Exact analysis and page table: PASS.
