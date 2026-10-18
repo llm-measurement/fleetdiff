@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.11.0](../../README.md#2-install-v0100), then run this fixture
+Install [fleetdiff v0.12.0](../../README.md#1-install-v0120), then run this fixture
 from the repository root with the verified binary:
 
 ```sh
@@ -31,10 +31,31 @@ The per-model split is available for model-1; the quality counts point to rows
 to review in the local LiteLLM logs. Try the same 20 safe, synthetic records as
 [CSV](synthetic.csv), [JSON array](synthetic.json), or [JSONL](synthetic.jsonl).
 
+## Native Export: One Command
+
+Version v0.12.0 can export and investigate directly. Use the
+[verified installer](../../README.md#1-install-v0120). After administrator-approved read-only access and
+[credential-file setup](../../docs/NATIVE_EXPORT.md#credentials):
+
+```sh
+: "${DATABASE_URL_FILE:?Set the path to your approved database URL file}"
+./fleetdiff-install/fleetdiff investigate --litellm-db \
+  --database-url-file "$DATABASE_URL_FILE" --group-by key
+```
+
+It compares the last 14 complete UTC days and cleans up its private temporary
+export. Add `--daily`, `--routing-audit`, or `--keep-export NEWDIR` as needed.
+For export only, use `export litellm --out NEWDIR`; see the
+[native guide](../../docs/NATIVE_EXPORT.md) for formats, bounds, security and
+what-if's separate model and period flags. Native exports retain private
+identities; reports keep their existing aliasing rules.
+
 ## Export Request-Level Rows
 
-Use [export.sql](export.sql) with `psql` and your existing read-only database
-access. Configure a PostgreSQL service named `litellm_readonly` using approved
+This manual path remains available for offline analysis and for connection
+setups outside the native contract, including client certificates and PostgreSQL
+services. Use [export.sql](export.sql) with `psql` and your existing read-only
+database access. Configure a PostgreSQL service named `litellm_readonly` using approved
 connection settings and your normal credential mechanism. From the repository
 root, choose a new private destination directory outside the checkout:
 
@@ -49,8 +70,11 @@ psql 'service=litellm_readonly' -Xq -v ON_ERROR_STOP=1 \
   >"$export_dir/private-psql.out" 2>"$export_dir/private-psql.err"
 ```
 
-The recipe writes **CSV only by default**, using one `COPY` pass with no
-database sort, in a **REPEATABLE READ, READ ONLY transaction**. The historical
+The recipe writes **CSV only by default**, using one `COPY` pass in a
+**REPEATABLE READ, READ ONLY transaction**. It orders spend rows by `"startTime",
+request_id COLLATE "C"`; optional daily rows use `date COLLATE "C"`. This is an
+ordering change from the v0.11.0 recipe, enabling byte-for-byte parity
+with native export for the same snapshot and options. The historical
 16-day interval leaves room for the importer's default two seven-day windows
 inside the file's edge days. Sparse logs may still need explicit periods;
 the interval alone does not certify coverage.
@@ -84,9 +108,11 @@ To check for rows missing relative to LiteLLM's daily counters, use the optional
 
 ### Routing Details (Opt In)
 
-The source-checkout SQL recipe accepts `-v routing_details=true` on the same
-private-file export command. Omitted or `false` leaves the default columns and
-output bytes unchanged. This option is independent of `usage_details` and adds
+The SQL recipe accepts `-v routing_details=true` on the same private-file export
+command; standalone native export uses `--routing-details`. Convenience database
+modes include these details automatically. Within this recipe, omitted
+or `false` leaves the default columns and bytes unchanged. This option is
+independent of `usage_details` and adds
 exactly three columns:
 
 | Export alias | Pinned path in `metadata` |
@@ -126,14 +152,15 @@ catalog provider both match the prefix; pricing uses the same rule. The routing
 guide describes the explicit local label option. Released v0.10.1 and v0.7.0
 readers ignore the added columns; they do not implement routing-audit features.
 See the per-column [compatibility checks](TESTING.md#routing-projection).
-For the **v0.11.0** routing audit and route/agent selectors, see the
+For the routing audit and route/agent selectors introduced in **v0.11.0**, see the
 [routing guide](../../docs/ROUTING.md).
 
 ### Usage Details (Default On)
 
 The SQL includes these three projection aliases by default. Add
 `-v usage_details=false` to the `psql` command to omit all three columns;
-`-v usage_details=true` explicitly selects the default behavior.
+`-v usage_details=true` explicitly selects the default behavior. Native export
+uses `--usage-details=false` or `--usage-details=true` for the same selection.
 
 | Export alias | Path below `metadata.additional_usage_values` |
 | --- | --- |
@@ -223,7 +250,7 @@ Released v0.7.0 ignores both added columns; it does not interpret rejection
 evidence or provide the new session-budget review. See the reproducible
 [compatibility checks](TESTING.md#released-reader-compatibility).
 
-### Claude Code And Codex Requests
+### Native Messages And Responses Requests
 
 The importer reads `anthropic_messages` / `aanthropic_messages` and `responses` /
 `aresponses`, alongside Chat Completions and text completions. The pinned
@@ -253,8 +280,9 @@ the call types and asks for a supported request-level export.
   array, or JSONL. LiteLLM Usage dashboard CSV/JSON exports are daily aggregates:
   the importer recognizes them and requests row-level data. API page envelopes
   and session-grouped views are unsupported; no API export recipe is included.
-- fleetdiff reads a local file without a collector, database connection, model
-  key, or provider call. Counts describe supplied logged model requests, not
+- File-based fleetdiff commands read locally without a collector, database
+  connection, model key, or provider call. Only explicit native database modes
+  connect. Counts describe supplied logged model requests, not
   proven provider sends. Hidden retries and missing records cannot be recovered.
 - Supported call types are Chat Completions, text completions, Anthropic Messages
   and Responses, including their asynchronous names. Other call types remain
@@ -289,6 +317,8 @@ the call types and asks for a supported request-level export.
   session ID alone within the supplied application/cache namespace. In either
   mode, session IDs may be generated trace IDs, not conversations.
 - Tied contributors and models follow their first appearance in the file.
+  The v0.12.0 deterministic SQL ordering can therefore change aliases and
+  tied report order relative to older unsorted exports, without changing totals.
   Concentration uses the full tracked candidate set before `--top` truncates
   display rows. Its denominator is the net recorded increase, so offsets from
   declining contributors appear as added, offsetting and net token totals in
@@ -296,24 +326,30 @@ the call types and asks for a supported request-level export.
 - The SQL excludes raw error messages, prompts, responses, code, request bodies, IP addresses,
   API bases, and whole metadata objects. Exports and database diagnostics still
   contain sensitive information: keep them private. Use only successful exports;
-  failed SQL can leave partial files. Retry into a new directory because `psql`
-  can overwrite files. A consistent snapshot does not establish complete logging.
+  failed manual SQL can leave partial files. Retry into a new directory because
+  `psql` can overwrite files. The native exporter stages in a private
+  mode-0700 sibling `.fleetdiff-stage-...` directory and atomically publishes the complete
+  directory without replacement. The final path stays absent until publication;
+  a crash beforehand may leave sibling staging data, never a partial final
+  directory. A consistent snapshot does not
+  establish complete logging.
 - Shared input limits: **10,000,000 rows; 16 GiB/file; 64 KiB/row; 8 KiB/field;
   64 fields/row; JSON depth 8.** Input limits also apply to ignored content.
   Two-period comparisons additionally limit context to **128 models and
   64 call types**. The single-period session-budget review instead has the
   [session and identity-membership limits](../../docs/SESSION_BUDGET.md)
   described in its guide. Select a narrower SQL interval when necessary.
-  The recipe writes one selected format
-  without sorting or aggregating rows and has a two-minute per-statement
-  timeout; review large exports with your database operator.
+  The recipe writes one selected format, orders rows without JSON-array
+  aggregation, and has two-minute statement and idle-in-transaction timeouts.
+  Review large exports with your database operator; the native guide lists
+  [export failure handling](../../docs/NATIVE_EXPORT.md#limits-and-failures).
 
 ## Synthetic Session-Budget Review
 
 [session-budget.csv](session-budget.csv) is a newly authored, deterministic
 Apache-2.0 fixture with four sessions and no production data. The companion
 [license notice](session-budget.csv.license) keeps the CSV directly importable.
-Use fleetdiff v0.11.0 for the session-budget command:
+Use fleetdiff v0.12.0 for the session-budget command:
 
 ```sh
 fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \

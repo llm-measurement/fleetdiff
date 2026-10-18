@@ -15,15 +15,17 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.11.0"
+const installTestVersion = "v0.12.0"
+const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/65990e302913fb960db3ba3a53cb4633bef63117/scripts/install.sh"
 
 func TestInstallDocumentationVersionPins(t *testing.T) {
 	parts := strings.Split(strings.TrimPrefix(installTestVersion, "v"), ".")
 	for path, want := range map[string][]string{
-		"../README.md": {"### 2. Install " + installTestVersion, "sh -s -- " + installTestVersion,
-			"cmd/fleetdiff@" + installTestVersion, "docs/releases/" + installTestVersion + ".md"},
+		"../README.md": {"### 1. Install " + installTestVersion, "sh -s -- " + installTestVersion,
+			"cmd/fleetdiff@" + installTestVersion, "docs/releases/" + installTestVersion + ".md", installTestURL,
+			"`gh` need not be signed in"},
 		"../SECURITY.md":                                 {"`" + strings.Join(parts[:2], ".") + ".x` release line"},
-		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion},
+		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion, installTestURL},
 		"../docs/RELEASING.md":                           {"## After Publishing " + installTestVersion},
 		"../docs/WHAT_IF.md":                             {"Available in **" + installTestVersion + "**"},
 		"../docs/releases/" + installTestVersion + ".md": {"# " + installTestVersion + " Release Notes"},
@@ -38,6 +40,47 @@ func TestInstallDocumentationVersionPins(t *testing.T) {
 				t.Errorf("%s lacks current release reference %q", path, pin)
 			}
 		}
+	}
+}
+
+func TestDocumentedReadmeInstall(t *testing.T) {
+	doc, err := os.ReadFile("../README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, rest, ok := strings.Cut(string(doc), "```sh\n")
+	if !ok {
+		t.Fatal("missing README install example")
+	}
+	block, _, ok := strings.Cut(rest, "\n```")
+	if !ok {
+		t.Fatal("unterminated README install example")
+	}
+	script, err := os.ReadFile("install.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, failure := range []string{"", "download", "archive", "manifest", "checksum", "missing"} {
+		t.Run("failure="+failure, func(t *testing.T) {
+			root, env := installEnvironment(t, "Darwin", "arm64", "darwin_arm64", failure)
+			installer := filepath.Join(root, "reviewed-install.sh")
+			// The reviewed pin has an older default; the README must select its version explicitly.
+			writeTestFile(t, installer, strings.ReplaceAll(string(script), installTestVersion, "v0.11.0"), 0600)
+			env = append(env, "TEST_INSTALLER_URL="+installTestURL, "TEST_INSTALLER="+installer)
+			cmd := exec.Command("bash", "-c", block)
+			cmd.Dir, cmd.Env = root, env
+			output, err := cmd.CombinedOutput()
+			if (err != nil) != (failure != "") {
+				t.Fatalf("README install example: %v\n%s", err, output)
+			}
+			_, statErr := os.Stat(filepath.Join(root, "fleetdiff-install", "fleetdiff"))
+			if failure == "" && statErr != nil {
+				t.Fatal(statErr)
+			}
+			if failure != "" && !os.IsNotExist(statErr) {
+				t.Fatalf("README extracts on failed checks: %v", statErr)
+			}
+		})
 	}
 }
 
@@ -223,7 +266,11 @@ func installEnvironment(t *testing.T, system, arch, target, failure string) (str
 set -eu
 [ "$TEST_FAILURE" != download ] || exit 1
 for url do :; done
-case "$url" in "https://github.com/llm-measurement/fleetdiff/releases/download/$TEST_VERSION/"*) ;; *) exit 1 ;; esac
+case "$url" in
+  "${TEST_INSTALLER_URL:-}") cat "$TEST_INSTALLER"; exit 0 ;;
+  "https://github.com/llm-measurement/fleetdiff/releases/download/$TEST_VERSION/"*) ;;
+  *) exit 1 ;;
+esac
 asset=${url##*/}
 if [ "$TEST_FAILURE" = missing ] && [ "$asset" = "$TEST_ARCHIVE" ]; then exit 0; fi
 cp "$TEST_ASSETS/$asset" "$asset"

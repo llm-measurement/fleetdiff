@@ -3,7 +3,7 @@
 Re-price a period of recorded usage under a proposed model mix, with the price
 date, measured factors and covered observations shown beside the result.
 
-Available in **v0.11.0**. Install the [verified binary](../README.md#2-install-v0100)
+Available in **v0.12.0**. Install the [verified binary](../README.md#1-install-v0120)
 before running the commands below.
 
 ## Run it on your data
@@ -39,7 +39,7 @@ and [JSON](../examples/what-if/expected.json).
 
 ## No data handy? Try the sample
 
-From a v0.11.0 checkout, using the verified binary installed above:
+From a v0.12.0 checkout, using the verified binary installed above:
 
 ```sh
 ./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \

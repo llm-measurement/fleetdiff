@@ -18,6 +18,8 @@ SET LOCAL TIME ZONE 'UTC';
 SET LOCAL search_path = pg_catalog;
 SET LOCAL statement_timeout = '120s';
 SET LOCAL lock_timeout = '5s';
+SET LOCAL idle_in_transaction_session_timeout = '120s';
+SET LOCAL client_encoding = 'UTF8';
 
 -- Require explicit UTC RFC3339 bounds, ascending and half-open.
 SELECT 1 / CASE WHEN
@@ -115,6 +117,7 @@ SELECT format($projection$
   FROM public."LiteLLM_SpendLogs"
   WHERE "startTime" >= (%L::timestamptz AT TIME ZONE 'UTC')
     AND "startTime" < (%L::timestamptz AT TIME ZONE 'UTC')
+  ORDER BY "startTime", request_id COLLATE "C"
 $projection$, :'detail_projection' || :'routing_projection', :'start_utc', :'end_utc') AS export_query
 \gset
 

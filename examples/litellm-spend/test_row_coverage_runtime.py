@@ -17,7 +17,7 @@ import time
 import unittest
 import uuid
 
-from test_spend import DOCKER, PINS, ROOT, docker, psql, require, run
+from test_spend import DOCKER, PINS, ROOT, assert_private, docker, psql, require, run
 
 CASES = ("success", "failure", "stream", "cache_fill", "cache_hit", "collision_first",
          "collision_second", "absent_user", "cross_midnight", "after_midnight")
@@ -47,6 +47,16 @@ def totals(snapshot):
 def runtime(output, failure_logging="default"):
     name = "fleetdiff-coverage-" + uuid.uuid4().hex
     gateway, volume = name + "-proxy", name + "-data"
+    native_mount = []
+    if os.environ.get("FLEETDIFF_LINUX_BIN"):
+        try:
+            binary = Path(os.environ["FLEETDIFF_LINUX_BIN"]).resolve(strict=True)
+            with binary.open("rb") as source:
+                require(source.read(4) == b"\x7fELF" and os.access(binary, os.X_OK),
+                        "native runtime parity requires an executable Linux ELF binary")
+        except OSError:
+            raise AssertionError("cannot read native runtime binary; details suppressed") from None
+        native_mount = ["--mount", f"type=bind,src={binary},dst=/native/fleetdiff,readonly"]
     docker("volume", "create", volume)
     try:
         docker("run", "-d", "--name", name, "--pull=never", "--network=none", "--read-only",
@@ -56,7 +66,7 @@ def runtime(output, failure_logging="default"):
                "--mount", f"type=bind,src={ROOT},dst=/example,readonly",
                "--pids-limit=128", "--memory=512m", "--log-driver=none",
                "-e", "POSTGRES_DB=fixture", "-e", "POSTGRES_HOST_AUTH_METHOD=trust",
-               PINS["postgres"], "-c", "listen_addresses=127.0.0.1",
+               *native_mount, PINS["postgres"], "-c", "listen_addresses=127.0.0.1",
                "-c", "log_statement=none", "-c", "log_min_error_statement=panic")
         deadline = time.monotonic() + 60
         while True:
@@ -104,6 +114,46 @@ def runtime(output, failure_logging="default"):
 
 
 class RuntimeCoverageTests(unittest.TestCase):
+    def check_native_export(self, database, spend_bytes, daily_bytes, records):
+        from test_native_export import apply_documented_grants
+
+        apply_documented_grants(database)
+        directory = "/tmp/coverage-export-private/native"
+        inspected = json.loads(docker("inspect", database))[0]
+        require(inspected["HostConfig"]["NetworkMode"] == "none" and
+                any(m["Destination"] == "/native/fleetdiff" and not m["RW"]
+                    for m in inspected["Mounts"]),
+                "native runtime export requires network-none and a read-only binary mount")
+        identity = psql(database, "-At", "-c", '''SELECT current_user,
+            has_column_privilege(current_user, 'public."LiteLLM_SpendLogs"', 'request_id', 'SELECT'),
+            has_table_privilege(current_user, 'public."LiteLLM_SpendLogs"', 'INSERT,UPDATE,DELETE'),
+            has_column_privilege(current_user, 'public."LiteLLM_DailyUserSpend"', 'api_requests', 'SELECT'),
+            has_table_privilege(current_user, 'public."LiteLLM_DailyUserSpend"', 'INSERT,UPDATE,DELETE');''',
+            reader=True)
+        require(identity.strip() == b"fixture_reader|t|f|t|f", "native runtime reader privileges differ")
+        result = run(["docker", "exec", database, "env", "-i",
+            "PATH=/usr/local/bin:/usr/bin:/bin", "HOME=/tmp", "LC_ALL=C",
+            "FLEETDIFF_LITELLM_DATABASE_URL=postgres://fixture_reader@/fixture?host=/var/run/postgresql&sslmode=disable",
+            "sh", "-c", 'umask 000; exec "$@"', "native-runtime",
+            "/native/fleetdiff", "export", "litellm", "--out", directory,
+            "--from", "2026-10-07T00:00:00Z", "--to", "2026-10-09T00:00:00Z",
+            "--format", "csv", "--daily"])
+        assert_private(result, records=records)
+        require(result.returncode == 0, "native export of the full pinned Prisma database failed")
+        require(docker("exec", database, "ls", "-A1", directory).splitlines() ==
+                [b"daily.csv", b"spend.csv"], "native runtime export created unexpected files")
+        require(docker("exec", database, "stat", "-c", "%a", directory).strip() == b"700",
+                "native runtime output directory is not private")
+        for name, expected in (("spend.csv", spend_bytes), ("daily.csv", daily_bytes)):
+            path = directory + "/" + name
+            require(docker("exec", database, "stat", "-c", "%a", path).strip() == b"600",
+                    "native runtime output file is not private")
+            require(docker("exec", database, "cat", path) == expected,
+                    "native runtime output bytes differ from the paired psql oracle")
+        return {"full_pinned_prisma_schema": True, "reader_role": "fixture_reader",
+                "documented_column_grants_only": True,
+                "spend_csv_byte_equivalent": True, "daily_csv_byte_equivalent": True}
+
     def export_with_helper(self, database, output):
         parent = "/tmp/coverage-export-private"
         directory = parent + "/paired"
@@ -299,6 +349,9 @@ class RuntimeCoverageTests(unittest.TestCase):
             self.assertEqual(len(exported), len(snapshot["spend"]))
             spend_bytes, daily_bytes, safety = self.export_with_helper(database, output)
             evidence["export_safety"] = safety
+            if os.environ.get("FLEETDIFF_LINUX_BIN"):
+                evidence["native_export"] = self.check_native_export(
+                    database, spend_bytes, daily_bytes, exported)
             daily_export = list(csv.DictReader(io.StringIO(daily_bytes.decode())))
             exported_again = list(csv.DictReader(io.StringIO(spend_bytes.decode())))
             self.assertEqual(sorted(exported, key=lambda r: r["request_id"]),
@@ -317,7 +370,7 @@ class RuntimeCoverageTests(unittest.TestCase):
                 for name in ("export.sql", "daily-projection.sql", "export-coverage.sh")}
             evidence["harness_sha256"] = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
                 for name in ("coverage_runtime_probe.py", "test_row_coverage_runtime.py",
-                             "coverage_runtime_pg_service.conf")}
+                             "coverage_runtime_pg_service.conf", "test_native_export.py")}
             if output:
                 for fmt, data in exports.items():
                     (output / ("spend." + fmt)).write_bytes(data)

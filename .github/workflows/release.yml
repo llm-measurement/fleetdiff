@@ -58,6 +58,10 @@ jobs:
           jq -e 'any(.packages[]; .name == "github.com/llm-measurement/llm-sketchkit") and
             any(.packages[]; .name == "go.opentelemetry.io/proto/slim/otlp") and
             any(.packages[]; .name == "go.yaml.in/yaml/v3") and
+            any(.packages[]; .name == "github.com/jackc/pgx/v5" and .versionInfo == "v5.11.0") and
+            any(.packages[]; .name == "github.com/jackc/pgpassfile" and .versionInfo == "v1.0.0") and
+            any(.packages[]; .name == "github.com/jackc/pgservicefile" and .versionInfo == "v0.0.0-20240606120523-5a60cdf6a761") and
+            any(.packages[]; .name == "golang.org/x/text" and .versionInfo == "v0.41.0") and
             any(.packages[]; .name == "google.golang.org/protobuf")' sbom.spdx.json >/dev/null
           mv sbom.spdx.json dist/
           cd dist
@@ -108,6 +112,10 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.9'
+      - name: Native export safety on each supported platform
+        run: |
+          go test ./internal/postgres -count=1
+          go test ./internal/cli -run '^TestProductionHasNoNetwork$' -count=1
       - name: Verify spend, summary, trace, configuration, and scan commands from the packaged binary
         env:
           FLEETDIFF_RELEASE_BINARY: ${{ github.workspace }}/unpacked/fleetdiff
@@ -117,6 +125,7 @@ jobs:
         timeout-minutes: 10
         env:
           FLEETDIFF_BIN: ${{ github.workspace }}/unpacked/fleetdiff
+          FLEETDIFF_LINUX_BIN: ${{ github.workspace }}/unpacked/fleetdiff
           FLEETDIFF_SPEND_DOCKER: '1'
         run: |
           docker pull ghcr.io/berriai/litellm@sha256:625981c83410a3ea68eb0697590a57ec1d764d634514d54fa5db0591077ee839

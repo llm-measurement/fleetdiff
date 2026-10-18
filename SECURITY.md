@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Security fixes target the latest patch in the `0.11.x` release line and `main`.
+Security fixes target the latest patch in the `0.12.x` release line and `main`.
 Use the newest patch and record its version and revision when running trials.
 Older patches and development snapshots do not receive routine backports.
 Dependencies and the Go toolchain are reviewed on an ongoing basis.
@@ -42,9 +42,45 @@ contractual response-time commitment.
   per-run key and aliases for shared reports, and remove captures after inspection.
   Raw values are transiently decoded in process memory; this is not secure erasure.
 
-The comparison and inspection commands read local files and write stdout/stderr
-without network access. Inspection also accepts stdin. Initial builds may download dependencies, and the live example starts
-local Docker collectors and may download its pinned image. See the
+File-based commands read local files and write stdout/stderr without network
+access; inspection also accepts stdin. Merely setting database credentials does
+not enable a connection. Initial builds may download dependencies, and the live
+example starts local Docker collectors and may download its pinned image.
+
+## Native Database Export
+
+Only explicit `export litellm`, `investigate --litellm-db` and `what-if --litellm-db`
+connect to PostgreSQL. This adds a network boundary, not telemetry, update checks
+or provider calls.
+
+- Supply exactly one credential source: `FLEETDIFF_LITELLM_DATABASE_URL` or
+  `--database-url-file` pointing to an owned regular mode-0600 file. Literal
+  URL arguments and symlink components are rejected. Native export ignores
+  inherited `PG*` settings, `~/.pgpass`, PostgreSQL service files and implicit
+  client certificates. It never prints connection details or raw driver errors.
+- Remote connections require `sslmode=verify-full`; `verify-ca` is not accepted.
+  Only numeric loopback addresses or Unix sockets may use `sslmode=disable`.
+  The query allowlist is `sslmode`, optional `sslrootcert`, and `host` only for
+  an absolute Unix socket directory. Client-certificate and service-based setups
+  use the separately reviewed `psql` recipe, not a native TLS bypass.
+- Use a dedicated SELECT-only role. Every native export uses one read-only,
+  repeatable-read snapshot with bounded statements and idle time. Role creation
+  and grants are administrator actions; fleetdiff never changes the database.
+- Native export writes private local files. Destinations must be new, with no
+  symlink components; existing directories, even empty ones, and overwrites are
+  refused. Files are built in a mode-0700 sibling `.fleetdiff-stage-...` directory,
+  with mode-0600 files. The final destination stays absent until the complete
+  directory is atomically published without replacement, including when another
+  process creates the destination during export. Convenience modes remove
+  temporary exports unless `--keep-export NEWDIR` is selected.
+- Exports retain raw identities. Reports keep existing aliases and keyed-hash
+  rules; optional label/hash disclosure remains explicit. A crash before
+  publication may leave private sibling `.fleetdiff-stage-...` staging data, never a
+  partial final directory. After publication, the final directory is complete.
+  Remove only the run's abandoned staging data under your retention policy.
+
+See the [native export contract](docs/NATIVE_EXPORT.md) for setup, exact grants,
+limits and failure handling. See the
 [comparison contract](docs/COMPARISON.md) for input limits and trust assumptions.
 See [inspection](docs/INSPECT.md) for bounded decoding, source semantics, and key handling.
 See [operations](docs/OPERATIONS.md) for installation verification, isolated

@@ -3,6 +3,59 @@
 
 # LiteLLM Spend Export Checks
 
+## Documentation Checks
+
+Run the standard-library documentation checks without building or connecting to
+a database:
+
+```sh
+python3 -B -m unittest discover -s examples/litellm-spend -p 'test_docs.py' -v
+```
+
+These check the README line budget, legacy anchors, linked documents and pinned
+usage table. They do not establish native export, TLS or database equivalence.
+
+## Native Export Checks
+
+The [native guide](../../docs/NATIVE_EXPORT.md) describes the v0.12.0 database
+path. Run the acceptance checks below on the exact binary being verified.
+
+| Gate | Required evidence |
+| --- | --- |
+| Native / psql equivalence | Byte-identical spend CSV and JSONL and daily CSV on the same frozen pinned database contents, bounds and options; every usage/routing combination, empty periods and equal-timestamp request-ID ties |
+| Ordering | Spend `"startTime", request_id COLLATE "C"`; daily `date COLLATE "C"`, independent of database default collation |
+| Snapshot and schema | One read-only repeatable snapshot for spend/daily, SELECT-only role, pinned v1.104.0 column types and request primary key; incompatible schema fails |
+| Credentials and transport | Reject literal URL arguments, multiple credential sources, wrong owner/mode, nonregular or symlinked credential paths, remote plaintext, `verify-ca`, invalid certificates/hostnames and unknown URL keys |
+| Ambient settings | Hostile `PG*`, passfiles, service files and implicit client certificates cannot change native destinations or authentication |
+| Atomic publication | Build mode-0600 files in a private mode-0700 sibling `.fleetdiff-stage-...` directory; final destination absent until one atomic no-replace complete-directory publication; never publish files individually |
+| Publication failures and crashes | Reject existing/empty destinations and symlink components; a destination created concurrently is neither replaced nor removed; interrupt before and across publication to check absent-or-complete final paths, with only sibling staging debris before publication |
+| Bounds and cleanup | Row/byte/field limits, timeouts and handled cancellation remove staging without publishing a partial final directory; convenience cleanup and retained-export behavior remain correct |
+| Privacy and offline behavior | Sentinels absent from reports/errors; no raw driver diagnostics; local-file commands never connect even with database credentials set |
+| Convenience modes | Default UTC windows, explicit periods, automatic routing details, cleanup and retained exports; what-if model `--from` / `--to` remain distinct from `--period` |
+| Release readiness | Full race/vet checks, vulnerability and license review, dependency inventory, reproducible builds and an outsider following the versioned README from a fresh environment |
+
+Reuse the cached immutable images below; native validation requires no
+new image or paid call. Existing writer/psql tests alone do not prove that the
+supplied binary ran the native exporter. Record the exact binary,
+snapshot/fixture, image digests, option matrix and byte comparisons for that run.
+Tests requiring a local database connection must explicitly describe that
+boundary; the older `--network=none` writer harness description is not a claim
+that all native integration tests are network-free.
+
+For native database tests, also set `FLEETDIFF_LINUX_BIN` to a verified Linux
+executable matching Docker's architecture. The harness mounts it read-only and
+runs it inside the pinned database container. On Linux this can be the same
+executable as `FLEETDIFF_BIN`; on macOS use a separately verified Linux archive.
+The release workflow binds both variables to the unpacked Linux AMD64 binary.
+Unset `FLEETDIFF_LINUX_BIN` skips native database tests, not just optional detail.
+
+The dependency approval covers `pgx/v5 v5.11.0`, `pgpassfile v1.0.0` and
+`pgservicefile v0.0.0-20240606120523-5a60cdf6a761`, retaining `x/text v0.41.0`.
+It does not substitute for the release checks above. Keep historical verification
+results below scoped to their original binaries and harnesses.
+
+## Existing Fixture Suite
+
 Build the current CLI and run Python 3.10+ standard-library tests from the
 repository root:
 
@@ -106,7 +159,8 @@ or deployment configuration.
   and Responses operation names are exercised. Unpinned operations are inventoried
   separately and make the selected-period comparison incomplete.
   Expected export membership comes from actual writer timestamps and the
-  half-open UTC bounds, not a fixed row count or database row order.
+  half-open UTC bounds, not a fixed row count. The v0.12.0 recipe additionally
+  fixes row order for native/psql byte equivalence.
 - The real writer produces the usage detail metadata. SQL aliases
   are compared to each actual payload's pinned metadata paths, including native
   usage details and absent values. Base token counts must remain unchanged;
@@ -131,8 +185,9 @@ or deployment configuration.
   CSV; setting `jsonl_file` must create only JSONL, with or without `csv_file`.
   These checks cover both default-detail and opt-out projections. Records match
   across both SQL formats and the locally assembled JSON array. Empty intervals
-  also produce valid files. A fixture-only check rejects database sorting,
-  JSON-array aggregation, and multiple CSV `COPY` passes in the recipe.
+  also produce valid files. The native fixture-only check requires the
+  deterministic SQL order and rejects JSON-array aggregation and multiple CSV
+  `COPY` passes in the recipe.
 - Fixed-secret JSON reports match for all five groups, with and without
   displayed hashes. Importer totals and individual usage-detail counters are
   checked against exported row arithmetic without adding subsets to totals.

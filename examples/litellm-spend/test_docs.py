@@ -59,7 +59,32 @@ class DocumentationTests(unittest.TestCase):
             "questions-it-answers", "user-and-session-contributors",
             "how-it-works", "run-it-through-real-collectors", "use-your-own-data",
             "reading-the-results", "built-to-be-checked", "docs",
+            "1-export-request-level-rows", "3-investigate",
+            "2-install-v060", "2-install-v061", "2-install-v070",
+            "2-install-v080", "2-install-v090", "2-install-v0100",
+            "2-install-v0110", "1-install-v0120",
         } <= anchors(readme))
+
+    def test_native_release_promotion(self):
+        readme = (ROOT / "README.md").read_text()
+        self.assertLess(readme.index("### 1. Install v0.12.0"),
+                        readme.index("investigate --litellm-db"))
+        self.assertIn("Manual Alternative: Export With psql", readme)
+        self.assertNotIn("go build", readme)
+        notes = (ROOT / "docs/releases/v0.12.0.md").read_text()
+        self.assertIn("2026-10-18", notes)
+        for phrase in ("first-seen aliases", "tied", "identity hashing"):
+            self.assertIn(phrase, notes)
+        self.assertIn("## [0.12.0] - 2026-10-18",
+                      (ROOT / "CHANGELOG.md").read_text())
+        for name in ("README.md", "SECURITY.md", "docs/NATIVE_EXPORT.md",
+                     "docs/OPERATIONS.md", "docs/INSPECT.md", "docs/COMPARISON.md",
+                     "docs/releases/v0.12.0.md", "examples/litellm-spend/README.md",
+                     "examples/litellm-spend/TESTING.md"):
+            with self.subTest(document=name):
+                content = (ROOT / name).read_text()
+                self.assertNotRegex(content.lower(),
+                                    r"unreleased v0\.12|native candidate|candidate (?:build|recipe|checkout)")
 
     def test_document_links(self):
         paths = [ROOT / "README.md", ROOT / "docs/WORKFLOWS.md",
@@ -69,6 +94,10 @@ class DocumentationTests(unittest.TestCase):
                  ROOT / "docs/CACHE.md", Path(__file__).with_name("README.md")]
         paths.extend([ROOT / "docs/ROW_COVERAGE.md", ROOT / "docs/releases/v0.9.0.md",
                       ROOT / "docs/WHAT_IF.md", ROOT / "docs/releases/v0.10.0.md"])
+        paths.extend(ROOT / name for name in (
+            "SECURITY.md", "CHANGELOG.md", "docs/NATIVE_EXPORT.md", "docs/ROUTING.md",
+            "docs/INSPECT.md", "docs/COMPARISON.md", "docs/releases/v0.11.0.md",
+            "docs/releases/v0.12.0.md", "examples/litellm-spend/TESTING.md"))
         for path in paths:
             for link in re.findall(r"\]\(([^)\s]+)\)", path.read_text()):
                 parsed = urlsplit(link)

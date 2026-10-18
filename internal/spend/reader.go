@@ -106,6 +106,29 @@ func ReadRouting(path string, visit func(Row) error) error {
 	return readSpend(path, visit, true)
 }
 
+// ReadRoutingRoot validates an export through an already-held directory. It
+// keeps ReadRouting's file checks and limits without reopening a public path.
+func ReadRoutingRoot(root *os.Root, name string, visit func(Row) error) error {
+	if visit == nil {
+		return errors.New("spend row visitor is required; configure an importer before reading")
+	}
+	if root == nil {
+		return errSpendFile
+	}
+	info, err := root.Lstat(name)
+	if err != nil || !info.Mode().IsRegular() {
+		return errSpendFile
+	}
+	if info.Size() > MaxFileBytes {
+		return errSpendSize
+	}
+	ext := strings.ToLower(filepath.Ext(name))
+	if ext != ".csv" && ext != ".json" && ext != ".jsonl" {
+		return errSpendType
+	}
+	return readSpendRoot(root, name, info, ext, visit, true)
+}
+
 func readSpend(path string, visit func(Row) error, routing bool) error {
 	if visit == nil {
 		return errors.New("spend row visitor is required; configure an importer before reading")
@@ -126,7 +149,11 @@ func readSpend(path string, visit func(Row) error, routing bool) error {
 		return errSpendFile
 	}
 	defer root.Close()
-	f, err := root.OpenFile(filepath.Base(path), os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+	return readSpendRoot(root, filepath.Base(path), info, ext, visit, routing)
+}
+
+func readSpendRoot(root *os.Root, name string, info os.FileInfo, ext string, visit func(Row) error, routing bool) error {
+	f, err := root.OpenFile(name, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return errSpendFile
 	}

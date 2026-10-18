@@ -7,45 +7,21 @@ compares LLM usage summaries, flags unusual windows, and checks trace captures
 and collector configurations.
 
 Use it to answer **why LLM token usage spiked, and which users or sessions drove
-the change.** It reads your files and prints a report: no account, upload,
-collector or model API key is needed for the LiteLLM path.
+the change.** File-based commands stay offline. The native LiteLLM
+path reads your database explicitly, then reports locally: no fleetdiff account,
+upload, collector or model API key is needed.
 
 | | |
 | --- | --- |
-| Commands | `investigate`, `scan`, `compare`, `inspect`, `diagnose` |
+| Commands | `investigate`, `what-if`, `scan`, `compare`, `inspect`, `diagnose`, `export litellm` |
 | Platforms | Linux and macOS, AMD64 and ARM64 |
 | Status | Pre-1.0; see the [changelog](CHANGELOG.md) |
 | License | Apache-2.0 |
 
 ## Using LiteLLM?
 
-**Export -> install -> investigate.** Use the request logs you already retain to
-compare two periods, see which models and keys drove the change, and check
-whether the usage records are complete.
-
-### 1. Export Request-Level Rows
-
-Use the [read-only SQL projection](examples/litellm-spend/export.sql) and your
-existing PostgreSQL access. The [export guide](examples/litellm-spend/README.md#export-request-level-rows)
-covers connection settings and version-pinned cache fields. Once your approved
-read-only connection is named `litellm_readonly`, this example exports 16 UTC days:
-
-```sh
-umask 077
-export_dir="$HOME/litellm-export"
-mkdir "$export_dir"
-curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.11.0/examples/litellm-spend/export.sql \
-  --output "$export_dir/export.sql"
-psql 'service=litellm_readonly' -Xq -v ON_ERROR_STOP=1 \
-  -v start_utc=2026-09-23T00:00:00Z -v end_utc=2026-10-09T00:00:00Z \
-  -v csv_file="$export_dir/spend.csv" -f "$export_dir/export.sql" \
-  >"$export_dir/private-psql.out" 2>"$export_dir/private-psql.err"
-```
-
-Choose dates for your own data and continue only after the export succeeds.
-The SQL writes CSV in one pass and excludes prompts and responses. Keep the
-export directory private. Existing request-level JSON and JSONL work too.
+**One command to the first report, after setup.** Compare two periods, see which
+models and keys drove the change, and check the usage records you already retain.
 
 <a id="2-install-v060"></a>
 <a id="2-install-v061"></a>
@@ -53,23 +29,55 @@ export directory private. Existing request-level JSON and JSONL work too.
 <a id="2-install-v080"></a>
 <a id="2-install-v090"></a>
 <a id="2-install-v0100"></a>
+<a id="2-install-v0110"></a>
 
-### 2. Install v0.11.0
+### 1. Install v0.12.0
 
-Run this in Bash with `curl`, `gh`, `shasum` and `tar` available:
+Run this in Bash with `curl`, `gh`, `shasum` and `tar` available; `gh` need not be signed in:
 
 ```sh
-bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/7773f212e4ae6e800f066b394e5507c0df8ada5f/scripts/install.sh | sh -s -- v0.11.0 ./fleetdiff-install'
+bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/65990e302913fb960db3ba3a53cb4633bef63117/scripts/install.sh | sh -s -- v0.12.0 ./fleetdiff-install'
 ./fleetdiff-install/fleetdiff --version
 ```
 
 The installer checks signed release provenance and checksums before extracting
-the binary into a new directory. Prefer to inspect the script first? Follow
-[Install and verify](docs/OPERATIONS.md#install-and-verify).
+into a new directory. No Go compiler is needed. Follow
+[Install and verify](docs/OPERATIONS.md#install-and-verify) for manual verification.
 
-### 3. Investigate
+### 2. Investigate Your Database
+
+Have your administrator provision the [read-only role and credential file](docs/NATIVE_EXPORT.md#credentials).
+Set `DATABASE_URL_FILE` to that existing, owned mode-0600 regular file. Leave
+`FLEETDIFF_LITELLM_DATABASE_URL` unset when using the file, then run:
 
 ```sh
+: "${DATABASE_URL_FILE:?Set the path to your approved database URL file}"
+./fleetdiff-install/fleetdiff investigate --litellm-db \
+  --database-url-file "$DATABASE_URL_FILE" --group-by key
+```
+
+This connects only for the requested export, compares the last 14 complete UTC
+days as two seven-day periods, and removes its private temporary export after
+analysis. Add `--daily` for row coverage or `--routing-audit` for route evidence;
+routing details are included automatically. Use `--keep-export NEWDIR` to retain
+the private files, or `export litellm --out NEWDIR` to export without a report.
+The [native guide](docs/NATIVE_EXPORT.md) covers credentials, periods and what-if.
+
+<a id="1-export-request-level-rows"></a>
+
+### Manual Alternative: Export With psql
+
+For client certificates, PostgreSQL services and other native-unsupported
+connections, follow the [read-only SQL recipe](examples/litellm-spend/README.md#export-request-level-rows).
+Keep the export private; it excludes prompts and responses but retains identities.
+Existing request-level CSV, JSON and JSONL also work with the same installed binary.
+
+<a id="3-investigate"></a>
+
+Investigate the exported file offline:
+
+```sh
+export_dir="$HOME/litellm-export"
 ./fleetdiff-install/fleetdiff investigate \
   --litellm-spend "$export_dir/spend.csv" --group-by key
 ```
@@ -94,7 +102,7 @@ Download the synthetic spend file and use the installed binary:
 
 ```sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.11.0/examples/litellm-spend/synthetic.csv \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.12.0/examples/litellm-spend/synthetic.csv \
   --output synthetic.csv
 ./fleetdiff-install/fleetdiff investigate --litellm-spend synthetic.csv \
   --before-period 2026-10-07 --after-period 2026-10-08
@@ -127,15 +135,15 @@ The summary-file path also shows session concentration:
 
 ## Install
 
-The verified installer above selects the native binary for your machine.
-For manual downloads, use the [v0.11.0 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.11.0)
+The verified v0.12.0 installer selects the platform binary for your machine.
+For manual downloads, use the [v0.12.0 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.12.0)
 and [verification instructions](docs/OPERATIONS.md#install-and-verify).
 An administrator can verify and transfer artifacts through an approved internal mirror.
 
 With a security-patched Go 1.26 toolchain, install the same version from its module:
 
 ```sh
-go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.11.0
+go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.12.0
 ```
 
 The executable goes to `GOBIN`, or `$(go env GOPATH)/bin` when unset.
@@ -150,13 +158,14 @@ See [source builds and version reporting](docs/OPERATIONS.md#build-from-source).
   receive instructions for getting those rows. The reader accepts up to 10M rows
   and 16 GiB per file, with [per-record limits](examples/litellm-spend/README.md#data-and-limits).
 - By default, private names use aliases or pseudonymous hashes; public catalog model IDs are readable.
-  keep source files private and share reports under your organization's policy.
+  Keep source files private and share reports under your organization's policy.
 - Rankings carry deterministic bounds; distinct counts are statistical estimates.
   A flagged contributor identifies something to investigate, rather than its cause.
   Compatible summary files need aligned windows, keys and disjoint producer coverage.
 
 ## Documentation
 
+- [Native LiteLLM export](docs/NATIVE_EXPORT.md): setup, credentials and connection contract.
 - [LiteLLM spend exports](examples/litellm-spend/README.md): SQL, periods, groupings and source accounting.
 - [Session-budget review](docs/SESSION_BUDGET.md): single-period recorded totals and cap review.
 - [Model-mix what-if](docs/WHAT_IF.md) (v0.10.0): re-price covered usage under explicit assumptions.
@@ -168,7 +177,7 @@ See [source builds and version reporting](docs/OPERATIONS.md#build-from-source).
 - <a id="questions-it-answers"></a><a id="user-and-session-contributors"></a> [Questions and contributor rankings](docs/WORKFLOWS.md#questions-it-answers).
 - <a id="how-it-works"></a><a id="use-your-own-data"></a><a id="reading-the-results"></a> [How summary comparison works](docs/WORKFLOWS.md#how-it-works), [comparison contract](docs/COMPARISON.md) and [investigation contract](docs/INVESTIGATION.md).
 - <a id="built-to-be-checked"></a> [Operations](docs/OPERATIONS.md), [resource measurements](docs/BENCHMARKS.md) and [checks](docs/WORKFLOWS.md#built-to-be-checked).
-- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.11.0.md) and [release procedure](docs/RELEASING.md).
+- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.12.0.md) and [release procedure](docs/RELEASING.md).
 
 Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
 See [Contributing](CONTRIBUTING.md) for checks and signed, signed-off commits.

@@ -1,14 +1,16 @@
 # Operating fleetdiff
 
-fleetdiff is one local binary. It reads LiteLLM spend exports, summary files,
-OTLP captures or collector configurations and prints a report, offline and
-unprivileged. All input and output stays on your machine.
+fleetdiff is one local binary. File-based commands read LiteLLM spend exports,
+summary files, OTLP captures or collector configurations and report offline,
+without administrator privileges. Version v0.12.0 also offers
+explicit native database export; that mode connects to PostgreSQL and writes
+private local exports before analysis.
 
 ## Install And Verify
 
 The initial supported targets are Linux and macOS on AMD64 and ARM64. Native
 Windows binaries are not provided. Download a binary from the
-[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.11.0).
+[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.12.0).
 Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
@@ -20,7 +22,7 @@ subshell stops on any download or verification failure:
 ```sh
 (
 set -eu
-version=v0.11.0
+version=v0.12.0
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
@@ -54,7 +56,7 @@ From a reviewed repository checkout, the same download and verification steps
 are available as a script (no Go compiler needed):
 
 ```sh
-sh scripts/install.sh v0.11.0 ./fleetdiff-install
+sh scripts/install.sh v0.12.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -62,14 +64,18 @@ To download and inspect the pinned installer before running it:
 
 ```sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/e75518e1b62ead77a6870cfeabd3ddae944a1e0a/scripts/install.sh \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/65990e302913fb960db3ba3a53cb4633bef63117/scripts/install.sh \
   --output fleetdiff-install.sh
 less fleetdiff-install.sh
-sh fleetdiff-install.sh v0.11.0 ./fleetdiff-install
+sh fleetdiff-install.sh v0.12.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
-The v0.11.0 binary includes [model-mix what-if repricing](WHAT_IF.md), the
+The immutable script pin is a reviewed installer; the explicit `v0.12.0`
+argument selects the release independently of that script's older default.
+
+The v0.12.0 binary includes [native LiteLLM export](NATIVE_EXPORT.md),
+[model-mix what-if repricing](WHAT_IF.md), the
 [LiteLLM spend importer](../examples/litellm-spend/README.md) and optional
 [daily row coverage](ROW_COVERAGE.md), alongside summary, trace and configuration
 commands.
@@ -117,7 +123,7 @@ Install a published version with a currently patched Go 1.26 or later toolchain:
 go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 ```
 
-Use `@v0.11.0` instead of `@latest` to pin that release. The binary is installed
+Use `@v0.12.0` instead of `@latest` to pin that release. The binary is installed
 under `GOBIN`, or `$(go env GOPATH)/bin` when unset; put that directory on `PATH`.
 This path uses Go module verification rather than the archive attestation above,
 and does not include unreleased checkout features.
@@ -138,7 +144,7 @@ Check `--version` on the binary you actually run:
 | Build | Version | Revision |
 |---|---|---|
 | Unstamped checkout build above | Go's embedded module/VCS version, or `dev` when unavailable | `unknown` |
-| Tagged `go install ...@v0.11.0` | `v0.11.0`, from Go's module metadata | `unknown` |
+| Tagged `go install ...@v0.12.0` | `v0.12.0`, from Go's module metadata | `unknown` |
 | Verified release archive | Stamped release version | Stamped source revision |
 
 A checkout may report a pseudo-version and `+dirty`, depending on the Go toolchain
@@ -148,17 +154,45 @@ record the commit and local changes separately. Explicit packaging stamps take
 precedence over module metadata. `sh scripts/build-release.sh dev` explicitly
 stamps `dev`, unlike the unstamped build above.
 
-Builds can download Go dependencies and toolchains. Runtime comparison cannot.
+Builds can download Go dependencies and toolchains. File-based runtime commands
+cannot.
 For an offline build, prepare the approved toolchain and module cache in a
 connected build environment; use `GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off`
 only after verifying those cached dependencies there. Do not disable checksum
 verification for ordinary connected builds. An offline user normally needs only
 the reviewed binary, not Go, Git, Docker, or a compiler.
 
+## Native Database Runs
+
+Only `export litellm` and `investigate` / `what-if` with `--litellm-db` connect.
+File inputs remain offline even when database credentials are present. Restrict
+network access to the approved database endpoint and any required DNS resolution;
+there are no provider calls, telemetry or update checks.
+
+Provision a dedicated read-only role and supply credentials through the
+[native credential contract](NATIVE_EXPORT.md#credentials). Remote connections
+require verified TLS. PostgreSQL services and client-certificate authentication
+belong on the manual `psql` path; native export does not inherit those settings.
+
+Native destinations must be new private directories, not existing empty ones.
+Files are built in a private mode-0700 sibling `.fleetdiff-stage-...` directory,
+then the complete export is published atomically as one
+directory without replacing anything. The final destination stays absent until
+successful publication; overwrites and symlink components are refused. A crash
+before publication may leave sibling staging data, never a partial final
+directory. After publication, any final directory is complete.
+
+Temporary convenience exports are cleaned up after analysis; `--keep-export
+NEWDIR` retains a completed export for later offline use. Reports redirected by
+the shell still need `umask 077`. After an externally killed run, remove only its
+abandoned sibling staging directory; do not consume staging files as an export. See
+[limits and failures](NATIVE_EXPORT.md#limits-and-failures) before scheduling runs.
+
 ## Run On Real Exports
 
-1. Use a dedicated, unprivileged account. Grant it read access only to approved
-   completed exports. Do not grant credentials to the model or collector.
+1. For offline analysis, use a dedicated, unprivileged account. Grant it read
+   access only to approved completed exports. Do not grant credentials to the
+   model or collector.
 2. Freeze a copy of both windows in directories that other users cannot rewrite
    during comparison. Symlinks and special files are rejected; parent-directory
    ownership and a trustworthy filesystem remain the operator's responsibility.
@@ -192,7 +226,8 @@ The limits below apply to `compare` and summary-file `investigate`.
 The other commands have separate guides: [diagnose](DIAGNOSE.md) bounds
 static YAML inspection; [scan](SCAN.md) applies the summary input budget to the
 whole history and also limits candidate comparisons. The optional [archive helper](SUMMARY_ARCHIVE.md)
-is a separate, explicitly writing process; fleetdiff itself stays read-only.
+is a separate, explicitly writing process. File-based analysis does not modify
+inputs; native database export writes only its private local export files.
 
 Each side permits at most 512 JSON files, 1,024 directory entries, and 32 MiB of
 encoded input. One summary is limited to 8 MiB. Expected producers are limited
@@ -207,9 +242,10 @@ boundary. See [measured input cases](BENCHMARKS.md); size from your real fixture
 and retain headroom. Start with one comparison process, not unlimited parallel
 jobs. The demonstration's 256 MiB container test covers its small sample only.
 
-CI checks the packaged Linux binary with no network, non-root UID, no Linux
-capabilities, a read-only root, and read-only input mounts. Apply your organization's
-software approval process to the binary and deployment configuration.
+CI checks file-based commands in the packaged Linux binary with no network,
+non-root UID, no Linux capabilities, a read-only root, and read-only input mounts.
+Apply your organization's software approval process to the binary and deployment
+configuration.
 
 ## Automation
 
