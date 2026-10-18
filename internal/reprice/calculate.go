@@ -90,6 +90,7 @@ type Calculator struct {
 	excluded          map[string]uint64
 	failures          *Calculator
 	failureTokens     [4]big.Int
+	routing           bool
 }
 
 func New(prices Prices, factors Factors, scenario Scenario, mapping WorkloadMap) (*Calculator, error) {
@@ -138,6 +139,7 @@ func New(prices Prices, factors Factors, scenario Scenario, mapping WorkloadMap)
 	for i := range c.moves {
 		m := &c.moves[i]
 		if m.move.Scope != nil {
+			c.routing = c.routing || m.move.Scope.Kind == "route" || m.move.Scope.Kind == "agent"
 			s, err := c.hashSelector(*m.move.Scope)
 			if err != nil {
 				c.Close()
@@ -148,6 +150,7 @@ func New(prices Prices, factors Factors, scenario Scenario, mapping WorkloadMap)
 		}
 	}
 	for _, m := range mapping.Mappings {
+		c.routing = c.routing || m.Selector.Kind == "route" || m.Selector.Kind == "agent"
 		s, err := c.hashSelector(m.Selector)
 		if err != nil {
 			c.Close()
@@ -163,6 +166,10 @@ func New(prices Prices, factors Factors, scenario Scenario, mapping WorkloadMap)
 }
 
 func (c *Calculator) Close() { clear(c.secret) }
+
+// UsesRouting selects the opt-in reader and stricter selected-deployment basis.
+func (c *Calculator) UsesRouting() bool { return c.routing }
+
 func (c *Calculator) hashSelector(s Selector) (hashedSelector, error) {
 	digest, err := attribution.Identity(c.secret, "litellm-spend/v1", s.Kind, s.Value)
 	if err != nil {
@@ -231,8 +238,13 @@ func (c *Calculator) Add(r Record) error {
 	unknownScope := false
 	sum := new(big.Rat)
 	identities := map[hashedSelector]bool{}
-	for _, s := range []Selector{{"key", r.Key}, {"team", r.Team}} {
-		if s.Value != "" {
+	values := map[string]string{"key": r.Key, "team": r.Team}
+	if c.routing {
+		values["route"], values["agent"] = r.Route, r.Agent
+	}
+	for kind, value := range values {
+		if strings.TrimSpace(value) != "" {
+			s := Selector{kind, value}
 			h, err := c.hashSelector(s)
 			if err != nil {
 				return err
@@ -242,7 +254,7 @@ func (c *Calculator) Add(r Record) error {
 	}
 	for i := range c.moves {
 		m := &c.moves[i]
-		if m.move.From == r.Model && m.scope != nil && (m.scope.kind == "key" && strings.TrimSpace(r.Key) == "" || m.scope.kind == "team" && strings.TrimSpace(r.Team) == "") {
+		if m.move.From == r.Model && m.scope != nil && strings.TrimSpace(values[m.scope.kind]) == "" {
 			unknownScope = true
 			indices = append(indices, i)
 			continue
@@ -260,6 +272,9 @@ func (c *Calculator) Add(r Record) error {
 		for h := range identities {
 			if mapped, ok := c.mapping[h]; ok {
 				if workload != "" && workload != mapped {
+					if c.routing {
+						return errors.New("workload mappings conflict for selected traffic")
+					}
 					return errors.New("key and team workload mappings conflict for selected traffic")
 				}
 				workload = mapped
@@ -275,14 +290,17 @@ func (c *Calculator) Add(r Record) error {
 	if issue == "" && (r.Input == nil || r.Output == nil || r.CacheRead == nil || r.CacheWrite == nil) {
 		issue = "missing_split"
 	}
-	if issue != "unpriced_reserved_bucket" && c.price(r.Model) == nil {
+	if c.routing && issue == "" && !r.ServedIdentityKnown {
+		issue = "unknown_served_identity"
+	}
+	if (!c.routing || issue == "") && issue != "unpriced_reserved_bucket" && c.price(r.Model) == nil {
 		issue = "unknown_model_price"
 	}
 	requestInput := r.Input
 	if r.InputMax != nil {
 		requestInput = r.InputMax
 	}
-	if p := c.price(r.Model); p != nil && requestInput != nil && p.InputTierMax > 0 && *requestInput > p.InputTierMax {
+	if p := c.price(r.Model); (!c.routing || issue == "") && p != nil && requestInput != nil && p.InputTierMax > 0 && *requestInput > p.InputTierMax {
 		issue = "outside_price_tier"
 	}
 	if r.Issue == "unsupported_call_type" {

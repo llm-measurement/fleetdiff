@@ -9,6 +9,10 @@
 \else
 \set usage_details true
 \endif
+\if :{?routing_details}
+\else
+\set routing_details false
+\endif
 BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SET LOCAL TIME ZONE 'UTC';
 SET LOCAL search_path = pg_catalog;
@@ -58,6 +62,18 @@ SELECT CASE WHEN :'usage_details'::boolean THEN $details$
 $details$ ELSE '' END AS detail_projection
 \gset
 
+-- Opt-in, pinned routing paths. Keep counts as text: malformed values must not
+-- trigger casts that echo private data. Missing/wrong-shaped paths stay NULL.
+SELECT CASE WHEN :'routing_details'::boolean THEN $routing$
+       , CASE WHEN jsonb_typeof(metadata->'original_model_group') = 'string'
+           THEN metadata->>'original_model_group' END AS original_model_group
+       , CASE WHEN jsonb_typeof(metadata->'attempted_fallbacks') IN ('number', 'string')
+           THEN metadata->>'attempted_fallbacks' END AS attempted_fallbacks
+       , CASE WHEN jsonb_typeof(metadata->'internal_call_origin') = 'string'
+           THEN metadata->>'internal_call_origin' END AS internal_call_origin
+$routing$ ELSE '' END AS routing_projection
+\gset
+
 -- Define the projection once, quoting bounds as SQL literals with format(%L).
 -- Pinned Prisma DateTime columns are timestamp(3) without time zone, stored UTC.
 -- Do not copy this interpretation to a differently configured database.
@@ -99,7 +115,7 @@ SELECT format($projection$
   FROM public."LiteLLM_SpendLogs"
   WHERE "startTime" >= (%L::timestamptz AT TIME ZONE 'UTC')
     AND "startTime" < (%L::timestamptz AT TIME ZONE 'UTC')
-$projection$, :'detail_projection', :'start_utc', :'end_utc') AS export_query
+$projection$, :'detail_projection' || :'routing_projection', :'start_utc', :'end_utc') AS export_query
 \gset
 
 -- Write one client-local file in one pass; JSONL replaces the default CSV.

@@ -1,0 +1,9 @@
+request_id,startTime,endTime,call_type,status,api_key,user,session_id,agent_id,model,model_id,model_group,prompt_tokens,completion_tokens,total_tokens,cache_read_input_tokens,cache_write_input_tokens,spend,original_model_group,attempted_fallbacks,internal_call_origin
+before-1,2026-10-01T12:00:00Z,2026-10-01T12:00:01Z,acompletion,success,key-a,ana,session-a,agent-a,claude-sonnet-5-5,deployment-a,coding-default,100,20,120,0,0,0.000600,coding-default,0,
+before-2,2026-10-01T12:01:00Z,2026-10-01T12:01:01Z,acompletion,success,key-a,ana,session-a,agent-a,claude-sonnet-5-5,deployment-a,coding-default,100,20,120,0,0,0.000600,coding-default,0,
+before-3,2026-10-01T12:02:00Z,2026-10-01T12:02:01Z,aresponses,success,key-b,ben,session-b,,gpt-6.1-sol,deployment-b,strategy-default,100,20,120,0,,0.000500,strategy-default,0,
+before-4,2026-10-01T12:03:00Z,2026-10-01T12:03:01Z,pass_through_endpoint,success,key-a,ana,session-a,,gpt-6.1-sol,deployment-classifier,coding-default,20,1,21,0,0,0.000050,coding-default,0,autorouter_classifier
+after-1,2026-10-02T12:00:00Z,2026-10-02T12:00:01Z,acompletion,success,key-a,ana,session-a,agent-a,claude-sonnet-5-5,deployment-a,coding-default,100,20,120,0,0,0.000600,coding-default,0,
+after-2,2026-10-02T12:01:00Z,2026-10-02T12:01:01Z,acompletion,success,key-a,ana,session-a,agent-a,gpt-6.1-sol,deployment-b,recovery-route,100,20,120,0,0,0.000500,coding-default,1,
+after-3,2026-10-02T12:02:00Z,2026-10-02T12:02:01Z,aresponses,success,key-b,ben,session-b,,gpt-6.1-sol,deployment-b,strategy-default,100,20,120,0,,0.000500,strategy-default,0,
+after-4,2026-10-02T12:03:00Z,2026-10-02T12:03:01Z,pass_through_endpoint,success,key-a,ana,session-a,,gpt-6.1-sol,deployment-classifier,coding-default,20,1,21,0,0,0.000050,coding-default,0,autorouter_classifier

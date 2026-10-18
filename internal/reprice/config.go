@@ -164,7 +164,7 @@ func validateScenario(s Scenario, m WorkloadMap) error {
 			return errors.New("move fractions must be decimals greater than zero and at most one")
 		}
 		if move.Scope != nil && !validSelector(*move.Scope) {
-			return errors.New("move scope needs kind key or team and a nonempty value of at most 8192 bytes")
+			return errors.New("move scope needs kind key, team, route or agent and a nonempty value of at most 8192 bytes")
 		}
 	}
 	if m.Version != 0 && m.Version != 1 || len(m.Mappings) > 1024 || len(m.Mappings) > 0 && m.Version != 1 {
@@ -173,7 +173,7 @@ func validateScenario(s Scenario, m WorkloadMap) error {
 	seen := map[Selector]bool{}
 	for _, item := range m.Mappings {
 		if !validSelector(item.Selector) || !slices.Contains(Workloads, item.Workload) || seen[item.Selector] {
-			return errors.New("invalid or duplicate workload mapping; use key/team selectors and qa, extraction or coding")
+			return errors.New("invalid or duplicate workload mapping; use key/team/route/agent selectors and qa, extraction or coding")
 		}
 		seen[item.Selector] = true
 	}
@@ -181,5 +181,5 @@ func validateScenario(s Scenario, m WorkloadMap) error {
 }
 
 func validSelector(s Selector) bool {
-	return (s.Kind == "key" || s.Kind == "team") && len(s.Value) <= 8192 && strings.TrimSpace(s.Value) != ""
+	return (s.Kind == "key" || s.Kind == "team" || s.Kind == "route" || s.Kind == "agent") && len(s.Value) <= 8192 && strings.TrimSpace(s.Value) != ""
 }
