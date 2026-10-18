@@ -11,6 +11,11 @@ updates:
   - package-ecosystem: gomod
     directory: /
     schedule: {interval: weekly}
+    # Deliberately preserve existing canonicalization and sketch identities.
+    # Upgrade these only through an explicitly reviewed identity migration.
+    ignore:
+      - dependency-name: github.com/llm-measurement/llm-sketchkit
+      - dependency-name: golang.org/x/text
     groups:
       go-dependencies:
         patterns: ["*"]
