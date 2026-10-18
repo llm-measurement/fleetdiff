@@ -84,7 +84,7 @@ does not bypass scope, key, accounting, replay, or structural checks.
 ## Trust And Effects
 
 File-based comparison reads local files and writes stdout/stderr, offline and
-without modifying inputs. The unreleased v0.12 candidate's explicit
+without modifying inputs. The explicit
 [native database modes](NATIVE_EXPORT.md) have a separate network and private-file
 write boundary; they do not change this summary comparison contract.
 Transfer inputs through authenticated channels and follow

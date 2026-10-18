@@ -25,6 +25,11 @@ archive is then checksum-verified and exercised on its native platform. Linux
 also runs the offline/non-root smoke test. Dependency inventory alone is not a
 vulnerability verdict; the source reachability scan is a separate check.
 
+Each of the four platform jobs also runs `go test ./internal/postgres -count=1`
+and `go test ./internal/cli -run '^TestProductionHasNoNetwork$' -count=1`.
+These check platform-specific atomic publication and the source network boundary;
+they are source tests, separate from the packaged-binary tests below.
+
 The native archive check also runs `TestReleaseBinaryTopK` against the unpacked
 executable. `TestReleaseBinaryInspect` checks stdin inspection, token accounting,
 label filtering, and opt-in name display. Together they check user/session attribution,
@@ -44,6 +49,8 @@ JSONL on each platform, including raw-identity suppression and quality counts.
 The Linux AMD64 archive also runs the pinned LiteLLM writer -> PostgreSQL ->
 read-only SQL -> packaged importer checks. This path uses synthetic data, no
 provider keys and no paid calls.
+The same job binds both `FLEETDIFF_BIN` and `FLEETDIFF_LINUX_BIN` to the unpacked
+archive executable, so the native-driver database tests exercise that artifact too.
 
 `TestReleaseBinarySessionBudget` checks the cap-only command, observed-span
 fallback, explicit periods and clipping in each native archive. The existing
@@ -52,7 +59,7 @@ sentinels with the packaged importer.
 
 `TestReleaseBinaryWhatIf` checks the simple and scenario commands against the
 checked text/JSON output, plus workload mappings, summary gaps and error privacy.
-Before packaging v0.11.0, reproduce its public numeric bundle offline:
+Before packaging v0.12.0, reproduce its public numeric bundle offline:
 
 ```sh
 python3 -B scripts/reproduce-model-mix.py --check
@@ -90,7 +97,7 @@ verify that every advertised version is downloadable. Do not replace immutable t
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-## After Publishing v0.11.0
+## After Publishing v0.12.0
 
 From an anonymous clone in a fresh directory outside any synced workspace:
 
@@ -99,7 +106,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
    recorded build revision match the approved commit.
 2. Run the README's verified installer into a new directory. Confirm the native
-   executable reports `v0.11.0`, then run the packaged-binary tests above.
+   executable reports `v0.12.0`, then run the packaged-binary tests above.
 3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
    [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
    It exercises the real pinned writer, a SELECT-only SQL export and the released
@@ -141,6 +148,12 @@ From an anonymous clone in a fresh directory outside any synced workspace:
     and catalog provider both equal the prefix. Repeat with mismatched and
     missing providers; those rows remain unknown. The packaged
     `TestReleaseBinaryStructuredModelPricing` covers scoped and unscoped pricing.
+12. Follow the [native export checks](../examples/litellm-spend/TESTING.md#native-export-checks)
+    with the installed binary. Compare native CSV/JSONL and daily output against
+    the v0.12.0 `psql` recipe on the same frozen database contents and options.
+    Exercise the README's database investigation, private cleanup and retained
+    exports. Record the exact executable and distinguish native-driver tests
+    from the older writer/psql tests; skipped database checks do not pass this gate.
 
 The release workflow tests every native platform before publication. The local
 outsider run proves the post-publication download and database path on its own

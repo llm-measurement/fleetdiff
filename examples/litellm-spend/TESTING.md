@@ -15,10 +15,10 @@ python3 -B -m unittest discover -s examples/litellm-spend -p 'test_docs.py' -v
 These check the README line budget, legacy anchors, linked documents and pinned
 usage table. They do not establish native export, TLS or database equivalence.
 
-## Native Export Candidate Checks
+## Native Export Checks
 
-The [native guide](../../docs/NATIVE_EXPORT.md) describes an **unreleased v0.12
-candidate**. Run the acceptance checks below on the exact candidate binary.
+The [native guide](../../docs/NATIVE_EXPORT.md) describes the v0.12.0 database
+path. Run the acceptance checks below on the exact binary being verified.
 
 | Gate | Required evidence |
 | --- | --- |
@@ -32,15 +32,22 @@ candidate**. Run the acceptance checks below on the exact candidate binary.
 | Bounds and cleanup | Row/byte/field limits, timeouts and handled cancellation remove staging without publishing a partial final directory; convenience cleanup and retained-export behavior remain correct |
 | Privacy and offline behavior | Sentinels absent from reports/errors; no raw driver diagnostics; local-file commands never connect even with database credentials set |
 | Convenience modes | Default UTC windows, explicit periods, automatic routing details, cleanup and retained exports; what-if model `--from` / `--to` remain distinct from `--period` |
-| Release readiness | Full race/vet checks, vulnerability and license review, dependency inventory, reproducible builds and an outsider following the candidate README from a fresh environment |
+| Release readiness | Full race/vet checks, vulnerability and license review, dependency inventory, reproducible builds and an outsider following the versioned README from a fresh environment |
 
-Reuse the cached immutable images below; native candidate validation requires no
+Reuse the cached immutable images below; native validation requires no
 new image or paid call. Existing writer/psql tests alone do not prove that the
-host binary connected through the native driver. Record the exact binary,
+supplied binary ran the native exporter. Record the exact binary,
 snapshot/fixture, image digests, option matrix and byte comparisons for that run.
 Tests requiring a local database connection must explicitly describe that
 boundary; the older `--network=none` writer harness description is not a claim
 that all native integration tests are network-free.
+
+For native database tests, also set `FLEETDIFF_LINUX_BIN` to a verified Linux
+executable matching Docker's architecture. The harness mounts it read-only and
+runs it inside the pinned database container. On Linux this can be the same
+executable as `FLEETDIFF_BIN`; on macOS use a separately verified Linux archive.
+The release workflow binds both variables to the unpacked Linux AMD64 binary.
+Unset `FLEETDIFF_LINUX_BIN` skips native database tests, not just optional detail.
 
 The dependency approval covers `pgx/v5 v5.11.0`, `pgpassfile v1.0.0` and
 `pgservicefile v0.0.0-20240606120523-5a60cdf6a761`, retaining `x/text v0.41.0`.
@@ -152,7 +159,7 @@ or deployment configuration.
   and Responses operation names are exercised. Unpinned operations are inventoried
   separately and make the selected-period comparison incomplete.
   Expected export membership comes from actual writer timestamps and the
-  half-open UTC bounds, not a fixed row count. The candidate recipe additionally
+  half-open UTC bounds, not a fixed row count. The v0.12.0 recipe additionally
   fixes row order for native/psql byte equivalence.
 - The real writer produces the usage detail metadata. SQL aliases
   are compared to each actual payload's pinned metadata paths, including native
@@ -178,7 +185,7 @@ or deployment configuration.
   CSV; setting `jsonl_file` must create only JSONL, with or without `csv_file`.
   These checks cover both default-detail and opt-out projections. Records match
   across both SQL formats and the locally assembled JSON array. Empty intervals
-  also produce valid files. The candidate fixture-only check requires the
+  also produce valid files. The native fixture-only check requires the
   deterministic SQL order and rejects JSON-array aggregation and multiple CSV
   `COPY` passes in the recipe.
 - Fixed-secret JSON reports match for all five groups, with and without

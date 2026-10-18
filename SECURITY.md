@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Security fixes target the latest patch in the `0.11.x` release line and `main`.
+Security fixes target the latest patch in the `0.12.x` release line and `main`.
 Use the newest patch and record its version and revision when running trials.
 Older patches and development snapshots do not receive routine backports.
 Dependencies and the Go toolchain are reviewed on an ongoing basis.
@@ -47,11 +47,11 @@ access; inspection also accepts stdin. Merely setting database credentials does
 not enable a connection. Initial builds may download dependencies, and the live
 example starts local Docker collectors and may download its pinned image.
 
-## Native Database Export (Unreleased v0.12 Candidate)
+## Native Database Export
 
 Only explicit `export litellm`, `investigate --litellm-db` and `what-if --litellm-db`
 connect to PostgreSQL. This adds a network boundary, not telemetry, update checks
-or provider calls. The released v0.11.0 binary does not include these modes.
+or provider calls.
 
 - Supply exactly one credential source: `FLEETDIFF_LITELLM_DATABASE_URL` or
   `--database-url-file` pointing to an owned regular mode-0600 file. Literal

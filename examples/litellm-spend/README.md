@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.11.0](../../README.md#2-install-v0100), then run this fixture
+Install [fleetdiff v0.12.0](../../README.md#1-install-v0120), then run this fixture
 from the repository root with the verified binary:
 
 ```sh
@@ -31,11 +31,10 @@ The per-model split is available for model-1; the quality counts point to rows
 to review in the local LiteLLM logs. Try the same 20 safe, synthetic records as
 [CSV](synthetic.csv), [JSON array](synthetic.json), or [JSONL](synthetic.jsonl).
 
-## Native Candidate: One Command
+## Native Export: One Command
 
-The **unreleased v0.12 candidate** can export and investigate directly. Use the
-[development-only build](../../docs/OPERATIONS.md#native-candidate-build-development-only),
-not the v0.11.0 installer. After administrator-approved read-only access and
+Version v0.12.0 can export and investigate directly. Use the
+[verified installer](../../README.md#1-install-v0120). After administrator-approved read-only access and
 [credential-file setup](../../docs/NATIVE_EXPORT.md#credentials):
 
 ```sh
@@ -53,7 +52,7 @@ identities; reports keep their existing aliasing rules.
 
 ## Export Request-Level Rows
 
-This manual path remains available with released v0.11.0 and for connection
+This manual path remains available for offline analysis and for connection
 setups outside the native contract, including client certificates and PostgreSQL
 services. Use [export.sql](export.sql) with `psql` and your existing read-only
 database access. Configure a PostgreSQL service named `litellm_readonly` using approved
@@ -71,10 +70,10 @@ psql 'service=litellm_readonly' -Xq -v ON_ERROR_STOP=1 \
   >"$export_dir/private-psql.out" 2>"$export_dir/private-psql.err"
 ```
 
-The candidate recipe writes **CSV only by default**, using one `COPY` pass in a
+The recipe writes **CSV only by default**, using one `COPY` pass in a
 **REPEATABLE READ, READ ONLY transaction**. It orders spend rows by `"startTime",
 request_id COLLATE "C"`; optional daily rows use `date COLLATE "C"`. This is an
-unreleased ordering change from the v0.11.0 recipe, enabling byte-for-byte parity
+ordering change from the v0.11.0 recipe, enabling byte-for-byte parity
 with native export for the same snapshot and options. The historical
 16-day interval leaves room for the importer's default two seven-day windows
 inside the file's edge days. Sparse logs may still need explicit periods;
@@ -111,7 +110,7 @@ To check for rows missing relative to LiteLLM's daily counters, use the optional
 
 The SQL recipe accepts `-v routing_details=true` on the same private-file export
 command; standalone native export uses `--routing-details`. Convenience database
-modes include these details automatically. Within the candidate recipe, omitted
+modes include these details automatically. Within this recipe, omitted
 or `false` leaves the default columns and bytes unchanged. This option is
 independent of `usage_details` and adds
 exactly three columns:
@@ -153,7 +152,7 @@ catalog provider both match the prefix; pricing uses the same rule. The routing
 guide describes the explicit local label option. Released v0.10.1 and v0.7.0
 readers ignore the added columns; they do not implement routing-audit features.
 See the per-column [compatibility checks](TESTING.md#routing-projection).
-For the **v0.11.0** routing audit and route/agent selectors, see the
+For the routing audit and route/agent selectors introduced in **v0.11.0**, see the
 [routing guide](../../docs/ROUTING.md).
 
 ### Usage Details (Default On)
@@ -318,7 +317,7 @@ the call types and asks for a supported request-level export.
   session ID alone within the supplied application/cache namespace. In either
   mode, session IDs may be generated trace IDs, not conversations.
 - Tied contributors and models follow their first appearance in the file.
-  The candidate's deterministic SQL ordering can therefore change aliases and
+  The v0.12.0 deterministic SQL ordering can therefore change aliases and
   tied report order relative to older unsorted exports, without changing totals.
   Concentration uses the full tracked candidate set before `--top` truncates
   display rows. Its denominator is the net recorded increase, so offsets from
@@ -350,7 +349,7 @@ the call types and asks for a supported request-level export.
 [session-budget.csv](session-budget.csv) is a newly authored, deterministic
 Apache-2.0 fixture with four sessions and no production data. The companion
 [license notice](session-budget.csv.license) keeps the CSV directly importable.
-Use fleetdiff v0.11.0 for the session-budget command:
+Use fleetdiff v0.12.0 for the session-budget command:
 
 ```sh
 fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \

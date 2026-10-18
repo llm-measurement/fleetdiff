@@ -5,11 +5,10 @@ fleetdiff exports a private read-only snapshot, analyzes it locally, and removes
 the temporary files unless you ask to keep them. No `psql` installation is needed
 for the native path.
 
-This is an **unreleased v0.12 candidate**. Build a reviewed candidate checkout
-using the [development setup](OPERATIONS.md#native-candidate-build-development-only).
-The released v0.11.0 installer does not include these commands; use the
+Install [fleetdiff v0.12.0](../README.md#1-install-v0120) with the verified
+installer; the examples below use that binary. The
 [manual SQL export](../examples/litellm-spend/README.md#export-request-level-rows)
-with that binary. The examples below run from the candidate checkout.
+remains available for connection setups outside the native contract.
 
 ## First Report
 
@@ -200,13 +199,13 @@ fail rather than guessing. All reads use one
 `BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY` transaction with UTC settings;
 fleetdiff issues no database writes or schema migrations.
 
-The candidate's shared SQL orders spend rows by `"startTime", request_id COLLATE
+The v0.12.0 shared SQL orders spend rows by `"startTime", request_id COLLATE
 "C"` and daily rows by `date COLLATE "C"`. For the same database snapshot, bounds,
-format and detail options, native and candidate `psql` exports must be
+format and detail options, native and v0.12.0 `psql` exports must be
 byte-for-byte identical. Sequential exports from a changing live database are
 not the same snapshot. This ordering is new relative to the v0.11.0 recipe:
 it can change bytes, first-seen aliases and tied report order, not recorded
-totals. Database sorting can also affect export time.
+totals or identity hashing. Database sorting can also affect export time.
 
 ## Limits And Failures
 
@@ -262,8 +261,8 @@ Keep exports private and review reports under your organization's sharing policy
 Use `umask 077` when redirecting reports; shell output permissions are separate
 from native export permissions.
 
-The candidate pins `pgx/v5 v5.11.0`, `pgpassfile v1.0.0` and
+Version v0.12.0 pins `pgx/v5 v5.11.0`, `pgpassfile v1.0.0` and
 `pgservicefile v0.0.0-20240606120523-5a60cdf6a761`; existing `x/text v0.41.0`
 normalization is retained. Dependency names do not imply passfile/service support.
-The [candidate verification checklist](../examples/litellm-spend/TESTING.md#native-export-candidate-checks)
+The [verification checklist](../examples/litellm-spend/TESTING.md#native-export-checks)
 lists the database, security and equivalence tests.

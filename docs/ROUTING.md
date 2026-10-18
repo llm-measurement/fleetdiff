@@ -1,6 +1,6 @@
 # Which Models Served Each Route?
 
-Available in v0.11.0: the optional routing audit compares the model distribution behind each
+Introduced in v0.11.0: the optional routing audit compares the model distribution behind each
 original LiteLLM route, with request, token and recorded-spend shares and explicit
 attribution coverage. Classifier overhead is counted separately.
 
@@ -44,7 +44,7 @@ requests. Recorded spend is the source's value, not a recomputed invoice.
 
 ## No Data Handy? Try The Sample
 
-From a v0.11.0 checkout, use the [verified binary](../README.md#2-install-v0100):
+From a v0.12.0 checkout, use the [verified binary](../README.md#1-install-v0120):
 
 ```sh
 ./fleetdiff-install/fleetdiff investigate --litellm-spend examples/routing/synthetic.csv \

@@ -2,15 +2,15 @@
 
 fleetdiff is one local binary. File-based commands read LiteLLM spend exports,
 summary files, OTLP captures or collector configurations and report offline,
-without administrator privileges. The **unreleased v0.12 candidate** also offers
+without administrator privileges. Version v0.12.0 also offers
 explicit native database export; that mode connects to PostgreSQL and writes
-private local exports before analysis. It is not in the v0.11.0 installer.
+private local exports before analysis.
 
 ## Install And Verify
 
 The initial supported targets are Linux and macOS on AMD64 and ARM64. Native
 Windows binaries are not provided. Download a binary from the
-[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.11.0).
+[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.12.0).
 Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
@@ -22,7 +22,7 @@ subshell stops on any download or verification failure:
 ```sh
 (
 set -eu
-version=v0.11.0
+version=v0.12.0
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
@@ -56,7 +56,7 @@ From a reviewed repository checkout, the same download and verification steps
 are available as a script (no Go compiler needed):
 
 ```sh
-sh scripts/install.sh v0.11.0 ./fleetdiff-install
+sh scripts/install.sh v0.12.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -64,14 +64,18 @@ To download and inspect the pinned installer before running it:
 
 ```sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/e75518e1b62ead77a6870cfeabd3ddae944a1e0a/scripts/install.sh \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/65990e302913fb960db3ba3a53cb4633bef63117/scripts/install.sh \
   --output fleetdiff-install.sh
 less fleetdiff-install.sh
-sh fleetdiff-install.sh v0.11.0 ./fleetdiff-install
+sh fleetdiff-install.sh v0.12.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
-The v0.11.0 binary includes [model-mix what-if repricing](WHAT_IF.md), the
+The immutable script pin is a reviewed installer; the explicit `v0.12.0`
+argument selects the release independently of that script's older default.
+
+The v0.12.0 binary includes [native LiteLLM export](NATIVE_EXPORT.md),
+[model-mix what-if repricing](WHAT_IF.md), the
 [LiteLLM spend importer](../examples/litellm-spend/README.md) and optional
 [daily row coverage](ROW_COVERAGE.md), alongside summary, trace and configuration
 commands.
@@ -119,7 +123,7 @@ Install a published version with a currently patched Go 1.26 or later toolchain:
 go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 ```
 
-Use `@v0.11.0` instead of `@latest` to pin that release. The binary is installed
+Use `@v0.12.0` instead of `@latest` to pin that release. The binary is installed
 under `GOBIN`, or `$(go env GOPATH)/bin` when unset; put that directory on `PATH`.
 This path uses Go module verification rather than the archive attestation above,
 and does not include unreleased checkout features.
@@ -140,7 +144,7 @@ Check `--version` on the binary you actually run:
 | Build | Version | Revision |
 |---|---|---|
 | Unstamped checkout build above | Go's embedded module/VCS version, or `dev` when unavailable | `unknown` |
-| Tagged `go install ...@v0.11.0` | `v0.11.0`, from Go's module metadata | `unknown` |
+| Tagged `go install ...@v0.12.0` | `v0.12.0`, from Go's module metadata | `unknown` |
 | Verified release archive | Stamped release version | Stamped source revision |
 
 A checkout may report a pseudo-version and `+dirty`, depending on the Go toolchain
@@ -157,22 +161,6 @@ connected build environment; use `GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off`
 only after verifying those cached dependencies there. Do not disable checksum
 verification for ordinary connected builds. An offline user normally needs only
 the reviewed binary, not Go, Git, Docker, or a compiler.
-
-### Native Candidate Build (Development Only)
-
-Use a reviewed candidate checkout and a new build directory, separate from a
-released installation. Stop if directory creation or the build fails:
-
-```sh
-mkdir ./fleetdiff-install &&
-go build -o ./fleetdiff-install/fleetdiff ./cmd/fleetdiff
-```
-
-This is development setup, not a verified release installation. The v0.11.0
-installer and tagged Go install above do not contain native export. Follow
-[Native LiteLLM Export](NATIVE_EXPORT.md) for administrator-approved credentials,
-read-only grants and a first report. Dependency downloads are build-time access,
-separate from the explicit runtime database connection.
 
 ## Native Database Runs
 

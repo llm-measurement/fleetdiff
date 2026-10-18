@@ -123,7 +123,7 @@ interval. Frequent-item bounds are deterministic for retained observed weight.
 ## Privacy
 
 The file-based `inspect` command makes no network requests, opens no receiver,
-and writes no files. The unreleased v0.12 candidate's explicit
+and writes no files. The explicit
 [native database modes](NATIVE_EXPORT.md) do not change inspection's offline
 behavior. Inspection holds decoded raw input transiently in memory to compute the report. A fresh
 cryptographic key is created for each run; aggregate state retains hashes and

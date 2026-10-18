@@ -2,11 +2,10 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## [Unreleased] - v0.12.0 Candidate
+## [0.12.0] - 2026-10-18
 
-See the [unreleased notes](docs/releases/v0.12.0.md) and
-[native export guide](docs/NATIVE_EXPORT.md). These features are not in the
-released v0.11.0 installer.
+See the [release notes](docs/releases/v0.12.0.md) and
+[native export guide](docs/NATIVE_EXPORT.md).
 
 - Add explicit native `export litellm` for private CSV/JSONL snapshots, optional
   daily counters and routing details, with the pinned LiteLLM v1.104.0 projection.
@@ -20,7 +19,7 @@ released v0.11.0 installer.
   atomically publish the complete directory without replacement. Keep the final
   destination absent until publication; crashes beforehand may leave sibling
   staging data, never a partial final directory.
-- Order candidate SQL exports deterministically by `"startTime", request_id
+- Order SQL exports deterministically by `"startTime", request_id
   COLLATE "C"` and daily `date COLLATE "C"` for native/psql byte equivalence.
   Compared with the earlier unsorted recipe, bytes and first-seen/tied report
   ordering may change; recorded totals and identity hashing are unchanged.
