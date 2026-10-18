@@ -35,7 +35,7 @@ umask 077
 export_dir="$HOME/litellm-export"
 mkdir "$export_dir"
 curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.10.1/examples/litellm-spend/export.sql \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.11.0/examples/litellm-spend/export.sql \
   --output "$export_dir/export.sql"
 psql 'service=litellm_readonly' -Xq -v ON_ERROR_STOP=1 \
   -v start_utc=2026-09-23T00:00:00Z -v end_utc=2026-10-09T00:00:00Z \
@@ -54,12 +54,12 @@ export directory private. Existing request-level JSON and JSONL work too.
 <a id="2-install-v090"></a>
 <a id="2-install-v0100"></a>
 
-### 2. Install v0.10.1
+### 2. Install v0.11.0
 
 Run this in Bash with `curl`, `gh`, `shasum` and `tar` available:
 
 ```sh
-bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/7773f212e4ae6e800f066b394e5507c0df8ada5f/scripts/install.sh | sh -s -- v0.10.1 ./fleetdiff-install'
+bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/7773f212e4ae6e800f066b394e5507c0df8ada5f/scripts/install.sh | sh -s -- v0.11.0 ./fleetdiff-install'
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -94,7 +94,7 @@ Download the synthetic spend file and use the installed binary:
 
 ```sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.10.1/examples/litellm-spend/synthetic.csv \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.11.0/examples/litellm-spend/synthetic.csv \
   --output synthetic.csv
 ./fleetdiff-install/fleetdiff investigate --litellm-spend synthetic.csv \
   --before-period 2026-10-07 --after-period 2026-10-08
@@ -128,14 +128,14 @@ The summary-file path also shows session concentration:
 ## Install
 
 The verified installer above selects the native binary for your machine.
-For manual downloads, use the [v0.10.1 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.10.1)
+For manual downloads, use the [v0.11.0 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.11.0)
 and [verification instructions](docs/OPERATIONS.md#install-and-verify).
 An administrator can verify and transfer artifacts through an approved internal mirror.
 
 With a security-patched Go 1.26 toolchain, install the same version from its module:
 
 ```sh
-go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.10.1
+go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.11.0
 ```
 
 The executable goes to `GOBIN`, or `$(go env GOPATH)/bin` when unset.
@@ -149,7 +149,7 @@ See [source builds and version reporting](docs/OPERATIONS.md#build-from-source).
 - Use request-level exports. The LiteLLM Usage dashboard's daily aggregates
   receive instructions for getting those rows. The reader accepts up to 10M rows
   and 16 GiB per file, with [per-record limits](examples/litellm-spend/README.md#data-and-limits).
-- Reports use local aliases or keyed hashes. Hashes are pseudonymous and linkable;
+- By default, private names use aliases or pseudonymous hashes; public catalog model IDs are readable.
   keep source files private and share reports under your organization's policy.
 - Rankings carry deterministic bounds; distinct counts are statistical estimates.
   A flagged contributor identifies something to investigate, rather than its cause.
@@ -168,7 +168,7 @@ See [source builds and version reporting](docs/OPERATIONS.md#build-from-source).
 - <a id="questions-it-answers"></a><a id="user-and-session-contributors"></a> [Questions and contributor rankings](docs/WORKFLOWS.md#questions-it-answers).
 - <a id="how-it-works"></a><a id="use-your-own-data"></a><a id="reading-the-results"></a> [How summary comparison works](docs/WORKFLOWS.md#how-it-works), [comparison contract](docs/COMPARISON.md) and [investigation contract](docs/INVESTIGATION.md).
 - <a id="built-to-be-checked"></a> [Operations](docs/OPERATIONS.md), [resource measurements](docs/BENCHMARKS.md) and [checks](docs/WORKFLOWS.md#built-to-be-checked).
-- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.10.1.md) and [release procedure](docs/RELEASING.md).
+- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.11.0.md) and [release procedure](docs/RELEASING.md).
 
 Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
 See [Contributing](CONTRIBUTING.md) for checks and signed, signed-off commits.

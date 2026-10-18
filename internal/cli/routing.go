@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/llm-measurement/fleetdiff/internal/spend"
@@ -32,6 +33,9 @@ func renderRouting(out io.Writer, r spend.Report) {
 		fmt.Fprintln(out)
 	}
 	fmt.Fprintln(out, "Routing audit: which models served each route?")
+	if a.ConfigurationLabelsIncluded {
+		fmt.Fprintln(out, "  Configuration labels included (--show-labels); review before sharing.")
+	}
 	fmt.Fprintln(out, "  Basis: gateway-selected model with a recorded deployment ID; provider snapshot not confirmed.")
 	fmt.Fprintln(out, "  Rows are spend-log records, not a reconstruction of physical attempts.")
 	renderRoutingMeasures(out, "Model-request rows", a.ModelRows.Before, a.ModelRows.After)
@@ -63,6 +67,9 @@ func renderRouting(out io.Writer, r spend.Report) {
 
 func routingLabel(id spend.RoutingIdentity) string {
 	label := id.Item
+	if id.Label != "" {
+		label += " " + strconv.QuoteToASCII(id.Label)
+	}
 	if id.Hash != "" {
 		label += " (" + id.Hash + ")"
 	}

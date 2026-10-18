@@ -49,7 +49,8 @@ Usage:
 PATH is one canonical summary JSON file or a directory of summary JSON files.
 Expected producers are the producer_id values configured by your summary collectors.
 Supply them from trusted inventory; they must observe disjoint requests.
-Names in the report are aliases; producer-N refers to the sorted expected list.
+Private names use aliases; producer-N refers to the sorted expected list.
+Spend model names print only on an exact match to the bundled public price catalog.
 
 Options:
   --before-window RFC3339     Select one processing-time window from the before input
@@ -66,6 +67,7 @@ Options:
   --group-by KIND            key (default), team, user, end-user or session
   --routing-audit            Show original-route distributions and attribution coverage
   --routing-by KIND          route (default) or route-agent; requires routing-audit
+  --show-labels              Include route/agent configuration labels; requires routing-audit
   --scope-route ID           Investigate one recorded original route (explicit periods)
   --scope-agent ID           Investigate one recorded agent (explicit periods)
   --period PERIOD            Single-period session review: UTC date or RFC3339 start/end
@@ -143,6 +145,7 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	counterWindow := flags.Duration("session-counter-window", time.Hour, "")
 	routingAudit := flags.Bool("routing-audit", false, "")
 	routingBy := flags.String("routing-by", "", "")
+	showLabels := flags.Bool("show-labels", false, "")
 	var scopeRoute, scopeAgent string
 	var routeSet, agentSet bool
 	flags.Func("scope-route", "", func(value string) error {
@@ -180,7 +183,7 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 	routingSet, routingBySet := false, false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
-		case "routing-audit", "routing-by", "scope-route", "scope-agent":
+		case "routing-audit", "routing-by", "scope-route", "scope-agent", "show-labels":
 			spendMode, routingSet = true, true
 			routingBySet = routingBySet || f.Name == "routing-by"
 		case "litellm-daily-spend":
@@ -217,6 +220,9 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			if routingBySet && (!*routingAudit || *routingBy != "route" && *routingBy != "route-agent") {
 				return fail(2, "routing-by must be route or route-agent and requires routing-audit")
 			}
+			if *showLabels && !*routingAudit {
+				return fail(2, "show-labels requires routing-audit")
+			}
 			if routeSet && agentSet || routeSet && (strings.TrimSpace(scopeRoute) == "" || len(scopeRoute) > spend.MaxFieldBytes) || agentSet && (strings.TrimSpace(scopeAgent) == "" || len(scopeAgent) > spend.MaxFieldBytes) {
 				return fail(2, "choose one nonempty route or agent scope of at most 8192 bytes")
 			}
@@ -236,6 +242,7 @@ func RunWithInput(args []string, in io.Reader, out, errout io.Writer) int {
 			BeforePeriod: *beforePeriod, AfterPeriod: *afterPeriod, GroupBy: *group,
 			SecretEnv: *secret, Top: *top, ShowHashes: *hashes, DailySpendPath: *dailySpendPath,
 			RoutingAudit: *routingAudit, RoutingBy: *routingBy, ScopeRoute: scopeRoute, ScopeAgent: scopeAgent,
+			ShowLabels: *showLabels,
 		}, out, errout)
 	}
 	for _, required := range []struct{ name, value string }{{"before", *before}, {"after", *after}, {"expected", *expected}} {

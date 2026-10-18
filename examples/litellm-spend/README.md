@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.10.1](../../README.md#2-install-v0100), then run this fixture
+Install [fleetdiff v0.11.0](../../README.md#2-install-v0100), then run this fixture
 from the repository root with the verified binary:
 
 ```sh
@@ -119,11 +119,14 @@ objects and call IDs are not added to this projection.
 
 The source export is private and may contain raw route/agent identities. Keep
 the restrictive directory, file permissions and private psql logs shown above;
-do not publish the export or print it to the terminal. Derived reports must use
-local aliases or keyed hashes, never raw identities. Released v0.10.1 and v0.7.0
+do not publish the export or print it to the terminal. Reports use aliases or
+keyed hashes by default, except exact bundled public model IDs. A qualified
+`provider/name` is recognized only when the row's `custom_llm_provider` and the
+catalog provider both match the prefix; pricing uses the same rule. The routing
+guide describes the explicit local label option. Released v0.10.1 and v0.7.0
 readers ignore the added columns; they do not implement routing-audit features.
 See the per-column [compatibility checks](TESTING.md#routing-projection).
-For the **UNRELEASED** routing audit and route/agent selectors, see the
+For the **v0.11.0** routing audit and route/agent selectors, see the
 [routing guide](../../docs/ROUTING.md).
 
 ### Usage Details (Default On)
@@ -279,8 +282,8 @@ the call types and asks for a supported request-level export.
   metadata is not accepted as proof of provenance. These paths are version-pinned.
 - Recorded spend is source accounting, not an invoice. Default-zero cost is
   ambiguous. No provider pricing, run rate, or forecast is added.
-- Output aliases hide raw identities, including models; displayed hashes are
-  linkable. Use a private secret for real exports, never the fixed test secret.
+- Output aliases hide private identities; exact bundled public model IDs are
+  readable. Displayed hashes are linkable. Use a private secret for real exports, never the fixed test secret.
   Sessions are scoped to keys in two-period comparisons. The
   [single-period session-budget review](../../docs/SESSION_BUDGET.md) groups by
   session ID alone within the supplied application/cache namespace. In either
@@ -310,7 +313,7 @@ the call types and asks for a supported request-level export.
 [session-budget.csv](session-budget.csv) is a newly authored, deterministic
 Apache-2.0 fixture with four sessions and no production data. The companion
 [license notice](session-budget.csv.license) keeps the CSV directly importable.
-Use fleetdiff v0.10.1 for the session-budget command:
+Use fleetdiff v0.11.0 for the session-budget command:
 
 ```sh
 fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \

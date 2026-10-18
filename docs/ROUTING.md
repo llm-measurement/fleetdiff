@@ -1,6 +1,6 @@
 # Which Models Served Each Route?
 
-UNRELEASED: the optional routing audit compares the model distribution behind each
+Available in v0.11.0: the optional routing audit compares the model distribution behind each
 original LiteLLM route, with request, token and recorded-spend shares and explicit
 attribution coverage. Classifier overhead is counted separately.
 
@@ -21,6 +21,7 @@ fleetdiff investigate --litellm-spend ./spend.csv \
 ```
 
 Add `--routing-by route-agent` to separate the known agents within each route.
+Add `--show-labels` for a local report with the recorded route and agent names.
 The usual `--group-by` still controls the existing contributor rankings; it does
 not change the routing table. `--format json` includes the same evidence as an
 additive `routing_audit` object. Default reports omit this object and section.
@@ -31,6 +32,7 @@ Example output from the synthetic file below:
 
 ```text
   Model-request rows: 3 -> 3 requests; 360 -> 360 recorded tokens; recorded USD 0.0017 -> 0.0016.
+    claude-sonnet-5-5: requests 2 -> 1; tokens 240 -> 120; recorded USD 0.0012 -> 0.0006.
       Cohort shares: requests 100% -> 50%; tokens 100% -> 50%; known recorded spend 100% -> 54.55%.
   Classifier routing overhead: 1 -> 1 rows; raw recorded total tokens 21 -> 21; recorded USD 0.00005 -> 0.00005.
 ```
@@ -42,12 +44,10 @@ requests. Recorded spend is the source's value, not a recomputed invoice.
 
 ## No Data Handy? Try The Sample
 
-This unreleased example requires Go at the version in `go.mod` and a checkout
-containing the routing feature. From the repository root:
+From a v0.11.0 checkout, use the [verified binary](../README.md#2-install-v0100):
 
 ```sh
-go build -o ./fleetdiff ./cmd/fleetdiff
-./fleetdiff investigate --litellm-spend examples/routing/synthetic.csv \
+./fleetdiff-install/fleetdiff investigate --litellm-spend examples/routing/synthetic.csv \
   --before-period 2026-10-01 --after-period 2026-10-02 --routing-audit
 ```
 
@@ -88,8 +88,21 @@ is never used to infer it. Summary files cannot supply route/agent intersections
 
 ## Read The Evidence
 
-Routes, agents and models are local aliases; `--show-hashes` adds keyed digests.
-Raw selectors and private routing labels never appear in reports or errors.
+Model IDs print when they exactly match the bundled public price catalog.
+`provider/name` also matches when the prefix equals the same row's
+`custom_llm_provider` and the exact catalog entry's provider. No aliases,
+whitespace or case variants are resolved. This is also the what-if pricing rule;
+other model and deployment names stay aliased, including under `--show-labels`.
+The same public-model rule applies to `investigate`'s model totals. A catalog
+match identifies a public name, not independent proof of the serving model.
+Routes and agents stay aliased by default; `--show-hashes` adds keyed digests.
+`--show-labels` adds their recorded labels beside the aliases (JSON: `label`),
+with terminal controls escaped in text. Reports made with it contain
+configuration labels: keep them local and review them before sharing.
+Unknown identities and groups with conflicting raw spellings remain aliased.
+Distinct source groups resolving to the same public model keep an alias suffix
+so they remain distinguishable; their accounting groups and hashes are not merged.
+Selector arguments are not echoed; errors never expose configuration labels.
 An absent route stays unknown, even if `model_group` names a recovery route.
 The original route comes only from `metadata.original_model_group`.
 

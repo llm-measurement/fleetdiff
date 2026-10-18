@@ -137,7 +137,17 @@ check_case routing-audit 0 investigate --litellm-spend /examples/routing/synthet
 check_report routing-audit '.routing_audit.model_rows.before.requests == 3 and
     .routing_audit.classifier_overhead.after.raw_usage.requests == 1 and
     .routing_audit.coverage.after.agent.missing_rows == 2 and
-    .routing_audit.provider_snapshot_confirmed == false'
+    .routing_audit.provider_snapshot_confirmed == false and
+    .routing_audit.cohorts[0].models[0].item == "claude-sonnet-5-5" and
+    (.routing_audit.cohorts[0].route | has("label") | not)'
+
+check_case routing-labels 0 investigate --litellm-spend /examples/routing/synthetic.csv \
+  --before-period 2026-10-01 --after-period 2026-10-02 --routing-audit \
+  --routing-by route-agent --show-labels --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report routing-labels '.routing_audit.configuration_labels_included == true and
+    .routing_audit.cohorts[0].route.label == "coding-default" and
+    .routing_audit.cohorts[0].agent.label == "agent-a" and
+    .routing_audit.cohorts[0].models[0].item == "claude-sonnet-5-5"'
 
 check_case routing-scope 0 investigate --litellm-spend /examples/routing/synthetic.csv \
   --before-period 2026-10-01 --after-period 2026-10-02 --routing-audit \
@@ -152,4 +162,4 @@ check_case what-if-routing 0 what-if --litellm-spend /examples/routing/synthetic
 check_report what-if-routing '.covered_observations == 2 and
     .excluded_observations.missing_split == 1 and
     .excluded_observations.unsupported_call_type == 1 and .moves[0].scoped == true'
-printf 'PASS restricted offline binary smoke: 13 cases (%s)\n' "$platform"
+printf 'PASS restricted offline binary smoke: 14 cases (%s)\n' "$platform"
