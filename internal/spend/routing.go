@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/llm-measurement/fleetdiff/internal/accounting"
+	"github.com/llm-measurement/fleetdiff/internal/reprice"
 )
 
 const (
@@ -73,6 +74,7 @@ type RoutingIdentity struct {
 	Item  string `json:"item"`
 	State string `json:"state"`
 	Hash  string `json:"hash,omitempty"`
+	Label string `json:"label,omitempty"`
 }
 
 type RoutingFallbacks struct {
@@ -146,17 +148,18 @@ type RoutingRemainder struct {
 }
 
 type RoutingAudit struct {
-	Schema                    string             `json:"schema"`
-	SourceContract            string             `json:"source_contract"`
-	IdentityBasis             string             `json:"identity_basis"`
-	ProviderSnapshotConfirmed bool               `json:"provider_snapshot_confirmed"`
-	GroupBy                   string             `json:"group_by"`
-	Coverage                  RoutingCoverage    `json:"coverage"`
-	ModelRows                 RoutingMeasures    `json:"model_rows"`
-	ClassifierOverhead        RoutingRawMeasures `json:"classifier_overhead"`
-	OtherRows                 RoutingRawMeasures `json:"other_rows"`
-	Cohorts                   []RoutingCohort    `json:"cohorts"`
-	DisplayRemainder          RoutingRemainder   `json:"display_remainder"`
+	Schema                      string             `json:"schema"`
+	SourceContract              string             `json:"source_contract"`
+	IdentityBasis               string             `json:"identity_basis"`
+	ProviderSnapshotConfirmed   bool               `json:"provider_snapshot_confirmed"`
+	GroupBy                     string             `json:"group_by"`
+	ConfigurationLabelsIncluded bool               `json:"configuration_labels_included,omitempty"`
+	Coverage                    RoutingCoverage    `json:"coverage"`
+	ModelRows                   RoutingMeasures    `json:"model_rows"`
+	ClassifierOverhead          RoutingRawMeasures `json:"classifier_overhead"`
+	OtherRows                   RoutingRawMeasures `json:"other_rows"`
+	Cohorts                     []RoutingCohort    `json:"cohorts"`
+	DisplayRemainder            RoutingRemainder   `json:"display_remainder"`
 }
 
 type routingFieldState uint8
@@ -430,16 +433,18 @@ type routingCohort struct {
 }
 
 type routingAccumulator struct {
-	coverage               RoutingCoverage
-	scope                  *ScopeCoverage
-	selection              *scopeSelection
-	audit                  bool
-	by                     string
-	totals                 routingPair
-	overhead, other        [2]routingRaw
-	routes, agents, models map[routingID]int
-	cohorts                map[routingCohortKey]*routingCohort
-	cells                  int
+	coverage                              RoutingCoverage
+	scope                                 *ScopeCoverage
+	selection                             *scopeSelection
+	audit                                 bool
+	by                                    string
+	totals                                routingPair
+	overhead, other                       [2]routingRaw
+	routes, agents, models                map[routingID]int
+	routeLabels, agentLabels, modelLabels map[routingID]string
+	showLabels                            bool
+	cohorts                               map[routingCohortKey]*routingCohort
+	cells                                 int
 }
 
 func newRoutingAccumulator(opts Options, selection *scopeSelection) *routingAccumulator {
@@ -453,6 +458,11 @@ func newRoutingAccumulator(opts Options, selection *scopeSelection) *routingAccu
 	if a.audit {
 		a.totals = newRoutingPair()
 		a.routes, a.models = map[routingID]int{}, map[routingID]int{}
+		a.modelLabels = map[routingID]string{}
+		a.showLabels = opts.ShowLabels
+		if a.showLabels {
+			a.routeLabels, a.agentLabels = map[routingID]string{}, map[routingID]string{}
+		}
 		if a.by == "route-agent" {
 			a.agents = map[routingID]int{}
 		}
@@ -527,6 +537,12 @@ func (a *routingAccumulator) add(row Row, side int, key []byte, obs accounting.O
 	if err := routingRegister(a.models, model, MaxRoutingModels); err != nil {
 		return err
 	}
+	publicModel := reprice.PublicModelID(row.Values["model"], row.Values["custom_llm_provider"])
+	routingRememberLabel(a.modelLabels, model, publicModel)
+	if a.showLabels {
+		routingRememberLabel(a.routeLabels, route, row.Values["original_model_group"])
+		routingRememberLabel(a.agentLabels, agent, row.Values["agent_id"])
+	}
 	id := routingCohortKey{route, agent}
 	c, exists := a.cohorts[id]
 	if !exists {
@@ -561,6 +577,19 @@ func routingLabel(id routingID, kind string, aliases map[routingID]int, hashes b
 		label.Hash = fmt.Sprintf("%x", id.hash)
 	}
 	return label
+}
+
+// Canonical-equivalent source spellings share accounting, not permission to
+// display one spelling as the identity of every row. Ambiguity stays aliased.
+func routingRememberLabel(labels map[routingID]string, id routingID, value string) {
+	if !id.known {
+		return
+	}
+	if prior, exists := labels[id]; exists && prior != value {
+		labels[id] = ""
+	} else {
+		labels[id] = value
+	}
 }
 
 func routingShare(n, d *big.Rat) *string {
@@ -604,13 +633,20 @@ func (a *routingAccumulator) result(top int, hashes bool) (*RoutingAudit, *Scope
 	if !a.audit {
 		return nil, a.scope, nil
 	}
+	publicCounts := map[string]int{}
+	for _, public := range a.modelLabels {
+		if public != "" {
+			publicCounts[public]++
+		}
+	}
 	r := &RoutingAudit{
 		Schema: "fleetdiff-litellm-routing-audit/v1", SourceContract: "litellm-1.104.0-spend-routing/v1",
 		IdentityBasis: "gateway-selected-deployment", GroupBy: a.by, Coverage: a.coverage,
-		ModelRows:          a.totals.result(),
-		ClassifierOverhead: RoutingRawMeasures{a.overhead[0].result(), a.overhead[1].result()},
-		OtherRows:          RoutingRawMeasures{a.other[0].result(), a.other[1].result()},
-		Cohorts:            []RoutingCohort{},
+		ConfigurationLabelsIncluded: a.showLabels,
+		ModelRows:                   a.totals.result(),
+		ClassifierOverhead:          RoutingRawMeasures{a.overhead[0].result(), a.overhead[1].result()},
+		OtherRows:                   RoutingRawMeasures{a.other[0].result(), a.other[1].result()},
+		Cohorts:                     []RoutingCohort{},
 	}
 	cohorts := make([]*routingCohort, 0, len(a.cohorts))
 	for _, c := range a.cohorts {
@@ -630,8 +666,10 @@ func (a *routingAccumulator) result(top int, hashes bool) (*RoutingAudit, *Scope
 			continue
 		}
 		cohort := RoutingCohort{Route: routingLabel(c.id.route, "route", a.routes, hashes), Before: c.totals[0].result(), After: c.totals[1].result(), Models: []RoutingModel{}}
+		cohort.Route.Label = a.routeLabels[c.id.route]
 		if a.by == "route-agent" {
 			agent := routingLabel(c.id.agent, "agent", a.agents, hashes)
+			agent.Label = a.agentLabels[c.id.agent]
 			cohort.Agent = &agent
 		}
 		models := make([]*routingCell, 0, len(c.models))
@@ -649,8 +687,16 @@ func (a *routingAccumulator) result(top int, hashes bool) (*RoutingAudit, *Scope
 				}
 				continue
 			}
+			label := routingLabel(m.id, "selected-model", a.models, hashes)
+			if public := a.modelLabels[m.id]; public != "" {
+				if publicCounts[public] > 1 {
+					label.Item = public + " [" + label.Item + "]"
+				} else {
+					label.Item = public
+				}
+			}
 			cohort.Models = append(cohort.Models, RoutingModel{
-				RoutingIdentity: routingLabel(m.id, "selected-model", a.models, hashes), Before: m.totals[0].result(), After: m.totals[1].result(),
+				RoutingIdentity: label, Before: m.totals[0].result(), After: m.totals[1].result(),
 				SharesBefore: routingShares(m.totals[0], c.totals[0]), SharesAfter: routingShares(m.totals[1], c.totals[1]),
 			})
 		}

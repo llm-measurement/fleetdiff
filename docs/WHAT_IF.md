@@ -3,7 +3,7 @@
 Re-price a period of recorded usage under a proposed model mix, with the price
 date, measured factors and covered observations shown beside the result.
 
-Available in **v0.10.1**. Install the [verified binary](../README.md#2-install-v0100)
+Available in **v0.11.0**. Install the [verified binary](../README.md#2-install-v0100)
 before running the commands below.
 
 ## Run it on your data
@@ -39,7 +39,7 @@ and [JSON](../examples/what-if/expected.json).
 
 ## No data handy? Try the sample
 
-From a v0.10.1 checkout, using the verified binary installed above:
+From a v0.11.0 checkout, using the verified binary installed above:
 
 ```sh
 ./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
@@ -85,6 +85,10 @@ copy with your applicable rates and date, then pass `--prices prices.json`.
 Every known source and target used in the report needs all four prices. Unknown
 model IDs or missing prices are refused for a move; other unpriced input rows
 are excluded and counted. The report labels overrides explicitly.
+LiteLLM rows may use `provider/name`: the prefix must exactly equal that row's
+`custom_llm_provider` and the exact catalog entry's provider. Use the public
+catalog ID for `--from` and `--to`. No case folding, trimming or alias lookup is
+performed; investigation labels use the same match.
 Omitted input-tier limits and cache-write durations retain the bundled values;
 an applicable replacement tier must be stated explicitly in the price file.
 

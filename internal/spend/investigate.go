@@ -19,6 +19,7 @@ import (
 	"github.com/llm-measurement/fleetdiff/internal/accounting"
 	"github.com/llm-measurement/fleetdiff/internal/attribution"
 	"github.com/llm-measurement/fleetdiff/internal/compare"
+	"github.com/llm-measurement/fleetdiff/internal/reprice"
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/frequentitems"
 	sketchhash "github.com/llm-measurement/llm-sketchkit/go/sketchkit/hash"
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/hllpp"
@@ -34,6 +35,7 @@ type Options struct {
 	RoutingBy                                     string
 	Top                                           int
 	ShowHashes                                    bool
+	ShowLabels                                    bool
 	Now                                           time.Time
 }
 
@@ -220,6 +222,7 @@ func Investigate(path string, opts Options) (Report, error) {
 	windows := [2]*aggregate{newAggregate(before, true), newAggregate(after, true)}
 	models := map[[32]byte][2]*aggregate{}
 	modelOrder := map[[32]byte]int{}
+	modelLabels := map[[32]byte]string{}
 	// Sort full HMAC digests after reading instead of retaining a hash table.
 	// This keeps duplicate detection exact at its existing 256-bit identity.
 	var seen requestDigests
@@ -316,7 +319,9 @@ func Investigate(path string, opts Options) (Report, error) {
 				w.window.AttributedTokens += weight
 			}
 		}
-		model, e := identity(key, "model", row.Values["model"])
+		rawModel := row.Values["model"]
+		publicModel := reprice.PublicModelID(rawModel, row.Values["custom_llm_provider"])
+		model, e := identity(key, "model", rawModel)
 		if e != nil {
 			return e
 		}
@@ -328,6 +333,10 @@ func Investigate(path string, opts Options) (Report, error) {
 			pair = [2]*aggregate{newAggregate(before, false), newAggregate(after, false)}
 			models[model] = pair
 			modelOrder[model] = row.Number
+			modelLabels[model] = publicModel
+		} else if modelLabels[model] != publicModel {
+			// Hash-equivalent raw variants permanently keep this group private.
+			modelLabels[model] = ""
 		}
 		return pair[side].add(row, a, q)
 	})
@@ -383,8 +392,21 @@ func Investigate(path string, opts Options) (Report, error) {
 		}
 		return modelOrder[a.hash] - modelOrder[b.hash]
 	})
+	publicCounts := map[string]int{}
+	for _, public := range modelLabels {
+		if public != "" {
+			publicCounts[public]++
+		}
+	}
 	for i, v := range ordered {
 		m := Model{Item: fmt.Sprintf("model-%d", i+1), Before: v.pair[0].result(), After: v.pair[1].result()}
+		if public := modelLabels[v.hash]; public != "" {
+			if publicCounts[public] > 1 {
+				m.Item = public + " [" + m.Item + "]"
+			} else {
+				m.Item = public
+			}
+		}
 		m.Volume = volume(m.Before, m.After)
 		if opts.ShowHashes {
 			m.Hash = fmt.Sprintf("%x", v.hash)

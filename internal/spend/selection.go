@@ -16,6 +16,9 @@ type scopeSelection struct {
 }
 
 func validateRoutingOptions(opts *Options) error {
+	if opts.ShowLabels && !opts.RoutingAudit {
+		return errors.New("show-labels requires routing-audit")
+	}
 	if opts.RoutingBy != "" && !opts.RoutingAudit {
 		return errors.New("routing-by requires routing-audit")
 	}

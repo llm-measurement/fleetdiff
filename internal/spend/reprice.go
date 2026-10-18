@@ -74,6 +74,9 @@ func readReprice(path, period string, visit func(reprice.Record) error, routing 
 		}
 		source.Rows++
 		r := reprice.Record{Model: row.Values["model"], Key: row.Values["api_key"], Team: row.Values["team_id"], Count: 1, Failed: row.Values["status"] == "failure"}
+		if public := reprice.PublicModelID(r.Model, row.Values["custom_llm_provider"]); public != "" {
+			r.Model = public
+		}
 		if routing {
 			r.Route, r.Agent = row.Values["original_model_group"], row.Values["agent_id"]
 			modelKnown := routingModelState(row, "model") == routingKnown

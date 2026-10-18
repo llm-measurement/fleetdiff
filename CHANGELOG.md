@@ -2,6 +2,21 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.11.0] - 2026-10-17
+
+See the [release notes](docs/releases/v0.11.0.md) for routing evidence and
+provider-qualified model pricing.
+
+- Compare the models serving each original LiteLLM route, with optional agent
+  grouping, attribution coverage and separate classifier overhead.
+- Select a route or agent for investigation, what-if moves and workload maps.
+  Keep the routing export and audit opt-in.
+- Display exact public catalog model IDs; keep private names aliased. Add
+  `--show-labels` for explicitly requested local route and agent labels.
+- Correct what-if exclusion of provider-qualified IDs such as
+  `openai/gpt-6.1-sol` when the row's provider and catalog provider both match.
+  Labels and pricing share this exact-match rule; totals and hashes are unchanged.
+
 ## [0.10.1] - 2026-10-17
 
 See the [release notes](docs/releases/v0.10.1.md) for failure-usage and agent
