@@ -16,14 +16,15 @@ import (
 )
 
 const installTestVersion = "v0.12.0"
-const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/65990e302913fb960db3ba3a53cb4633bef63117/scripts/install.sh"
+const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/6089061c931fa19fac876e40b3809fdea4792ab8/scripts/install.sh"
 
 func TestInstallDocumentationVersionPins(t *testing.T) {
 	parts := strings.Split(strings.TrimPrefix(installTestVersion, "v"), ".")
 	for path, want := range map[string][]string{
 		"../README.md": {"### 1. Install " + installTestVersion, "sh -s -- " + installTestVersion,
 			"cmd/fleetdiff@" + installTestVersion, "docs/releases/" + installTestVersion + ".md", installTestURL,
-			"`gh` need not be signed in"},
+			"`gh` need not be signed in", "https://llm-measurement.github.io/litellm-spend.html",
+			"https://llm-measurement.github.io/routing.html", "https://llm-measurement.github.io/row-coverage.html"},
 		"../SECURITY.md":                                 {"`" + strings.Join(parts[:2], ".") + ".x` release line"},
 		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion, installTestURL},
 		"../docs/RELEASING.md":                           {"## After Publishing " + installTestVersion},
@@ -64,7 +65,7 @@ func TestDocumentedReadmeInstall(t *testing.T) {
 		t.Run("failure="+failure, func(t *testing.T) {
 			root, env := installEnvironment(t, "Darwin", "arm64", "darwin_arm64", failure)
 			installer := filepath.Join(root, "reviewed-install.sh")
-			// The reviewed pin has an older default; the README must select its version explicitly.
+			// Select the release explicitly even if the installer's default changes.
 			writeTestFile(t, installer, strings.ReplaceAll(string(script), installTestVersion, "v0.11.0"), 0600)
 			env = append(env, "TEST_INSTALLER_URL="+installTestURL, "TEST_INSTALLER="+installer)
 			cmd := exec.Command("bash", "-c", block)
