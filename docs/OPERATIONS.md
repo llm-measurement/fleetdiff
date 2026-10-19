@@ -64,7 +64,7 @@ To download and inspect the pinned installer before running it:
 
 ```sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/65990e302913fb960db3ba3a53cb4633bef63117/scripts/install.sh \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/6089061c931fa19fac876e40b3809fdea4792ab8/scripts/install.sh \
   --output fleetdiff-install.sh
 less fleetdiff-install.sh
 sh fleetdiff-install.sh v0.12.0 ./fleetdiff-install

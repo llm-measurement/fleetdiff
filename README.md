@@ -11,6 +11,8 @@ the change.** File-based commands stay offline. The native LiteLLM
 path reads your database explicitly, then reports locally: no fleetdiff account,
 upload, collector or model API key is needed.
 
+Guides: [LiteLLM spend](https://llm-measurement.github.io/litellm-spend.html) | [Routing](https://llm-measurement.github.io/routing.html) | [Row coverage](https://llm-measurement.github.io/row-coverage.html).
+
 | | |
 | --- | --- |
 | Commands | `investigate`, `what-if`, `scan`, `compare`, `inspect`, `diagnose`, `export litellm` |
@@ -36,7 +38,7 @@ models and keys drove the change, and check the usage records you already retain
 Run this in Bash with `curl`, `gh`, `shasum` and `tar` available; `gh` need not be signed in:
 
 ```sh
-bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/65990e302913fb960db3ba3a53cb4633bef63117/scripts/install.sh | sh -s -- v0.12.0 ./fleetdiff-install'
+bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/6089061c931fa19fac876e40b3809fdea4792ab8/scripts/install.sh | sh -s -- v0.12.0 ./fleetdiff-install'
 ./fleetdiff-install/fleetdiff --version
 ```
 
