@@ -1,7 +1,7 @@
 {
   "schema": "fleetdiff-calibration-publication/v1",
   "sha256": {
-    ".github/workflows/ci.yml": "41b15ed949e951cfd799238db5ba3ade092e51ec20644aad7c68edfcf9424be2",
+    ".github/workflows/ci.yml": "723b5999f617f2bb203e162205fe39a0fbb772c0269f458226efb9f6f04fa97c",
     "docs/WHAT_IF.md": "29ca0eee0f40b968222e4dd4fc26670ffb0d02f0684b9b4b2b751668c3479449",
     "docs/WHAT_IF_CALIBRATION.md": "9e929d6793a8f243950896b7c4672b732e9579687e2ac40dfed9af38f44920da",
     "docs/calibration/LICENSES.md": "fce7715504d899724474f0519b77ab0ddc5fabe95278ddb437c200b2ed2fdd7d",
