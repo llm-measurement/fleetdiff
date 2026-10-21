@@ -16,7 +16,7 @@ go vet ./...
 Linux CI also compares the built CLI's exit status, stdout and stderr with Docker
 bridge networking and `--network none`. This uses the existing synthetic fixtures
 and a locally built `FROM scratch` image, run by its immutable image ID. With
-Go 1.26.9, Docker and jq available, reproduce it from the repository root:
+Go 1.26.10, Docker and jq available, reproduce it from the repository root:
 
 ```sh
 mkdir -p bin/offline
