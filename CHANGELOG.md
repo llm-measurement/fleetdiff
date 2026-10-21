@@ -2,6 +2,14 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [0.12.1] - Unreleased
+
+See the [release notes](docs/releases/v0.12.1.md).
+
+- Build with Go 1.26.10 for GO-2026-6809, covering TLS verification when system
+  trust stores have not been updated to distrust compromised intermediates.
+- Use Go 1.27.3 for the existing 1.27-line scheduled security checks.
+
 ## [0.12.0] - 2026-10-18
 
 See the [release notes](docs/releases/v0.12.0.md) and
