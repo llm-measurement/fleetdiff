@@ -23,12 +23,13 @@ func TestInstallDocumentationVersionPins(t *testing.T) {
 	for path, want := range map[string][]string{
 		"../README.md": {"### 1. Install " + installTestVersion, "sh -s -- " + installTestVersion,
 			"cmd/fleetdiff@" + installTestVersion, "docs/releases/" + installTestVersion + ".md", installTestURL,
+			`<a id="1-install-v0120"></a>`,
 			"`gh` need not be signed in", "https://llm-measurement.github.io/litellm-spend.html",
 			"https://llm-measurement.github.io/routing.html", "https://llm-measurement.github.io/row-coverage.html"},
 		"../SECURITY.md":                                 {"`" + strings.Join(parts[:2], ".") + ".x` release line"},
 		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion, installTestURL},
 		"../docs/RELEASING.md":                           {"## After Publishing " + installTestVersion},
-		"../docs/WHAT_IF.md":                             {"Available in **v0.12.0**", "../README.md#1-install-v" + strings.Join(parts, "")},
+		"../docs/WHAT_IF.md":                             {"Available in **v0.12.0**", "../README.md#1-install-v0120"},
 		"../docs/releases/" + installTestVersion + ".md": {"# fleetdiff " + installTestVersion},
 		"../examples/litellm-spend/README.md":            {"Install [fleetdiff " + installTestVersion + "]"},
 	} {

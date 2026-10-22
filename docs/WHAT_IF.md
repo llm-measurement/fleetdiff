@@ -3,7 +3,7 @@
 Re-price a period of recorded usage under a proposed model mix, with the price
 date, measured factors and covered observations shown beside the result.
 
-Available in **v0.12.0**. Install the [verified binary](../README.md#1-install-v0121)
+Available in **v0.12.0**. Install the [verified binary](../README.md#1-install-v0120)
 before running the commands below.
 
 ## Run it on your data
