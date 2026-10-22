@@ -15,8 +15,8 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.12.0"
-const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/6089061c931fa19fac876e40b3809fdea4792ab8/scripts/install.sh"
+const installTestVersion = "v0.12.1"
+const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/0d7db95c5bb3013f8c564c91fbb07b6235a2664e/scripts/install.sh"
 
 func TestInstallDocumentationVersionPins(t *testing.T) {
 	parts := strings.Split(strings.TrimPrefix(installTestVersion, "v"), ".")
@@ -28,8 +28,8 @@ func TestInstallDocumentationVersionPins(t *testing.T) {
 		"../SECURITY.md":                                 {"`" + strings.Join(parts[:2], ".") + ".x` release line"},
 		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion, installTestURL},
 		"../docs/RELEASING.md":                           {"## After Publishing " + installTestVersion},
-		"../docs/WHAT_IF.md":                             {"Available in **" + installTestVersion + "**"},
-		"../docs/releases/" + installTestVersion + ".md": {"# " + installTestVersion + " Release Notes"},
+		"../docs/WHAT_IF.md":                             {"Available in **v0.12.0**", "../README.md#1-install-v" + strings.Join(parts, "")},
+		"../docs/releases/" + installTestVersion + ".md": {"# fleetdiff " + installTestVersion},
 		"../examples/litellm-spend/README.md":            {"Install [fleetdiff " + installTestVersion + "]"},
 	} {
 		data, err := os.ReadFile(path)
