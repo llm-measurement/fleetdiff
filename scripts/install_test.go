@@ -85,6 +85,71 @@ func TestDocumentedReadmeInstall(t *testing.T) {
 	}
 }
 
+func TestDocumentedReadmeDatabase(t *testing.T) {
+	doc, err := os.ReadFile("../README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, section, ok := strings.Cut(string(doc), "### 2. Investigate your database\n")
+	if !ok {
+		t.Fatal("missing README database heading")
+	}
+	_, rest, ok := strings.Cut(section, "```sh\n")
+	if !ok {
+		t.Fatal("missing README database example")
+	}
+	block, _, ok := strings.Cut(rest, "\n```")
+	if !ok {
+		t.Fatal("unterminated README database example")
+	}
+	const want = "chmod 600 ~/.config/litellm-db-url\n" +
+		"./fleetdiff-install/fleetdiff investigate --litellm-db --database-url-file ~/.config/litellm-db-url --group-by key"
+	if block != want {
+		t.Fatal("README database example differs from the reviewed command")
+	}
+	for _, mode := range []os.FileMode{0600, 0644} {
+		t.Run(fmt.Sprintf("connection-mode=%o", mode), func(t *testing.T) {
+			root := t.TempDir()
+			home := filepath.Join(root, "home with spaces")
+			connection := filepath.Join(home, ".config", "litellm-db-url")
+			for _, dir := range []string{filepath.Dir(connection), filepath.Join(root, "fleetdiff-install")} {
+				if err := os.MkdirAll(dir, 0700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			const contents = "postgres://synthetic-reader@localhost/fixture?sslmode=verify-full\n"
+			writeTestFile(t, connection, contents, mode)
+			// Verify shell expansion and argument boundaries, not database behavior.
+			writeTestFile(t, filepath.Join(root, "fleetdiff-install", "fleetdiff"), `#!/bin/sh
+set -eu
+[ "$#" -eq 6 ]
+[ "$1" = investigate ]
+[ "$2" = --litellm-db ]
+[ "$3" = --database-url-file ]
+[ "$4" = "$HOME/.config/litellm-db-url" ]
+[ "$5" = --group-by ]
+[ "$6" = key ]
+printf '%s\n' documented-database-command
+`, 0700)
+			cmd := exec.Command("bash", "-e", "-o", "pipefail", "-c", block)
+			cmd.Dir = root
+			cmd.Env = []string{"HOME=" + home, "PATH=" + os.Getenv("PATH")}
+			output, err := cmd.CombinedOutput()
+			if err != nil || string(output) != "documented-database-command\n" {
+				t.Fatalf("README database example: %v\n%s", err, output)
+			}
+			info, err := os.Stat(connection)
+			if err != nil || info.Mode().Perm() != 0600 {
+				t.Fatalf("connection file must be owner-only after the example: %v", err)
+			}
+			data, err := os.ReadFile(connection)
+			if err != nil || string(data) != contents {
+				t.Fatal("database example changed the connection URL")
+			}
+		})
+	}
+}
+
 func TestInstallDefaultVersion(t *testing.T) {
 	root, env := installEnvironment(t, "Darwin", "arm64", "darwin_arm64", "")
 	script, err := filepath.Abs("install.sh")
