@@ -30,6 +30,8 @@ const MaxModels = 128
 type Options struct {
 	BeforePeriod, AfterPeriod, GroupBy, SecretEnv string
 	DailySpendPath                                string
+	ProviderCountsPath, ProviderModelMapPath      string
+	ProviderContractPath                          string
 	ScopeRoute, ScopeAgent                        string
 	RoutingAudit                                  bool
 	RoutingBy                                     string
@@ -171,6 +173,9 @@ func Investigate(path string, opts Options) (Report, error) {
 	if err := validateRoutingOptions(&opts); err != nil {
 		return Report{}, err
 	}
+	if opts.ProviderCountsPath != "" && (opts.ScopeRoute != "" || opts.ScopeAgent != "") {
+		return Report{}, errors.New("provider coverage requires an unscoped spend export")
+	}
 	if opts.Now.IsZero() {
 		opts.Now = time.Now().UTC()
 	}
@@ -219,6 +224,10 @@ func Investigate(path string, opts Options) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
+	provider, err := newProviderCoverage(opts, before, after)
+	if err != nil {
+		return Report{}, err
+	}
 	windows := [2]*aggregate{newAggregate(before, true), newAggregate(after, true)}
 	models := map[[32]byte][2]*aggregate{}
 	modelOrder := map[[32]byte]int{}
@@ -259,6 +268,9 @@ func Investigate(path string, opts Options) (Report, error) {
 			return nil
 		}
 		coverage.add(start)
+		if err := provider.add(row, start); err != nil {
+			return err
+		}
 		matched := routing.observe(row, side, key)
 		// Validate completed supported rows even if the new scope excludes them.
 		if !matched && supported {
@@ -352,12 +364,16 @@ func Investigate(path string, opts Options) (Report, error) {
 	}
 	r.Before, r.After = windows[0].result(), windows[1].result()
 	r.RowCoverage = coverage.result()
+	r.ProviderCoverage, err = provider.result(r.RowCoverage)
+	if err != nil {
+		return Report{}, err
+	}
 	r.RoutingAudit, r.ScopeCoverage, err = routing.result(opts.Top, opts.ShowHashes)
 	if err != nil {
 		return Report{}, err
 	}
 	if r.Before.Requests == 0 && r.After.Requests == 0 {
-		if r.RowCoverage != nil || routing != nil {
+		if r.RowCoverage != nil || r.ProviderCoverage != nil || routing != nil {
 			r.Incomplete = true
 			r.AnalysisGap = "no analyzable model requests in either selected period"
 			return r, nil

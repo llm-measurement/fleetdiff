@@ -77,6 +77,9 @@ Options:
   --routing-details          Include routing details in the database export
   --usage-details=false      Omit default-on cache and usage details from the export
   --litellm-daily-spend FILE  Compare row counts with the daily SQL-projection CSV
+  --provider-daily-counts FILE  Compare local provider daily aggregate counts
+  --provider-model-map FILE     Explicit source/target provider-model CSV
+  --provider-counts-contract FILE  UTC scope and primary counting-basis JSON
   --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
   --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
   --group-by KIND            key (default), team, user, end-user or session
@@ -164,6 +167,9 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 	hashes := flags.Bool("show-hashes", false, "")
 	spendPath := flags.String("litellm-spend", "", "")
 	dailySpendPath := flags.String("litellm-daily-spend", "", "")
+	providerCountsPath := flags.String("provider-daily-counts", "", "")
+	providerModelMapPath := flags.String("provider-model-map", "", "")
+	providerContractPath := flags.String("provider-counts-contract", "", "")
 	beforePeriod := flags.String("before-period", "", "")
 	afterPeriod := flags.String("after-period", "", "")
 	group := flags.String("group-by", "key", "")
@@ -214,6 +220,7 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
 	groupExplicit := false
 	emptyDailyOption := false
+	providerSet, emptyProviderOption := false, false
 	routingSet, routingBySet := false, false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
@@ -224,6 +231,9 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 		case "litellm-daily-spend":
 			spendMode = true
 			emptyDailyOption = f.Value.String() == ""
+		case "provider-daily-counts", "provider-model-map", "provider-counts-contract":
+			spendMode, providerSet = true, true
+			emptyProviderOption = emptyProviderOption || f.Value.String() == ""
 		case "period", "session-budget-usd":
 			spendMode, sessionMode = true, true
 			emptySessionOption = emptySessionOption || f.Value.String() == ""
@@ -242,6 +252,9 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 		}
 	})
 	if spendMode {
+		if providerSet && (emptyProviderOption || *providerCountsPath == "" || sessionMode || windowSet || routeSet || agentSet) {
+			return fail(2, "provider coverage needs a nonempty aggregate CSV and an unscoped two-period spend investigation")
+		}
 		if emptyDailyOption {
 			return fail(2, "litellm-daily-spend needs a daily SQL-projection CSV file")
 		}
@@ -320,7 +333,9 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			BeforePeriod: *beforePeriod, AfterPeriod: *afterPeriod, GroupBy: *group,
 			SecretEnv: *secret, Top: *top, ShowHashes: *hashes, DailySpendPath: *dailySpendPath,
 			RoutingAudit: *routingAudit, RoutingBy: *routingBy, ScopeRoute: scopeRoute, ScopeAgent: scopeAgent,
-			ShowLabels: *showLabels,
+			ShowLabels:         *showLabels,
+			ProviderCountsPath: *providerCountsPath, ProviderModelMapPath: *providerModelMapPath,
+			ProviderContractPath: *providerContractPath,
 		}, out, errout)
 	}
 	for _, required := range []struct{ name, value string }{{"before", *before}, {"after", *after}, {"expected", *expected}} {
