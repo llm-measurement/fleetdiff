@@ -96,6 +96,14 @@ func recordCallType(r *Report, index map[string]int, row Row, side int) error {
 // avoids an exact identity map growing with every user; its digest checks that
 // aliases and totals describe the same file contents.
 func orderCandidates(path string, r *Report, key, expected []byte, selection *scopeSelection, routing bool) error {
+	read := Read
+	if routing {
+		read = ReadRouting
+	}
+	return orderCandidatesRead(path, r, key, expected, selection, read)
+}
+
+func orderCandidatesRead(path string, r *Report, key, expected []byte, selection *scopeSelection, read func(string, func(Row) error) error) error {
 	groups := []*compare.Concentration{&r.Rankings}
 	if r.Cache.Rankings != nil {
 		groups = append(groups, r.Cache.Rankings)
@@ -115,10 +123,6 @@ func orderCandidates(path string, r *Report, key, expected []byte, selection *sc
 	}
 	digest := sha256.New()
 	enc := json.NewEncoder(digest)
-	read := Read
-	if routing {
-		read = ReadRouting
-	}
 	err := read(path, func(row Row) error {
 		if err := enc.Encode(row.Values); err != nil {
 			return err

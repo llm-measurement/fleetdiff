@@ -1,0 +1,448 @@
+{
+  "cache": {
+    "before": {
+      "requests": 5,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 120,
+        "share_of_recorded_input": 0.3
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 40,
+        "share_of_recorded_input": 0.1
+      },
+      "uncached_input_tokens": 280,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "after": {
+      "requests": 5,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 120,
+        "share_of_recorded_input": 0.3
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 40,
+        "share_of_recorded_input": 0.1
+      },
+      "uncached_input_tokens": 280,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "uncached_growth_rankings": {
+      "name": "uncached_user",
+      "weight_unit": "attributed-recorded-uncached-input-tokens",
+      "before_weight": 280,
+      "after_weight": 280,
+      "before_max_error": 0,
+      "after_max_error": 0,
+      "candidate_count": 2,
+      "untracked_delta_bound": {
+        "lower": 0,
+        "upper": 0
+      },
+      "tracked_movers": []
+    }
+  },
+  "comparison_incomplete": false,
+  "call_types": [
+    {
+      "call_type": "completion",
+      "analyzed": true,
+      "before": {
+        "cache_read_detail_recorded_requests": 4,
+        "cache_write_detail_recorded_requests": 4,
+        "requests": 5,
+        "invalid_usage": 0,
+        "missing_usage": 1,
+        "prompt_tokens": 400,
+        "completion_tokens": 120,
+        "total_tokens": 520
+      },
+      "after": {
+        "cache_read_detail_recorded_requests": 4,
+        "cache_write_detail_recorded_requests": 4,
+        "requests": 5,
+        "invalid_usage": 0,
+        "missing_usage": 1,
+        "prompt_tokens": 400,
+        "completion_tokens": 120,
+        "total_tokens": 520
+      }
+    }
+  ],
+  "schema": "fleetdiff-langfuse-spend/v1",
+  "token_accounting": "genai-default-accounting/v1+usage-provenance/v1",
+  "source_contract": "langfuse-observations-v2/disjoint-usage-v1",
+  "group_by": "user_id",
+  "hashing": "ephemeral",
+  "input_rows": 28,
+  "out_of_scope_rows": 18,
+  "outside_period_rows": 0,
+  "before": {
+    "cache": {
+      "requests": 5,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 120,
+        "share_of_recorded_input": 0.3
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 40,
+        "share_of_recorded_input": 0.1
+      },
+      "uncached_input_tokens": 280,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "period": {
+      "start": "2026-10-10T12:00:00Z",
+      "end_exclusive": "2026-10-11T12:00:00Z"
+    },
+    "logged_model_requests": 5,
+    "recorded_tokens": 520,
+    "counters": {
+      "gen_ai_sketch_cache_read_input_tokens_total": 120,
+      "gen_ai_sketch_cache_write_input_tokens_total": 40,
+      "gen_ai_sketch_input_tokens_total": 400,
+      "gen_ai_sketch_missing_token_usage_total": 1,
+      "gen_ai_sketch_output_tokens_total": 120,
+      "gen_ai_sketch_reasoning_output_tokens_total": 15,
+      "gen_ai_sketch_requests_total": 5,
+      "gen_ai_sketch_total_tokens_total": 520
+    },
+    "quality": {
+      "missing_token_fields": 1,
+      "invalid_usage": 0,
+      "component_total_mismatch": 0,
+      "missing_total_field": 1,
+      "zero_only_origin_unknown": 0,
+      "failed_records": 0,
+      "unknown_status": 5,
+      "unclear_usage_records": 5,
+      "missing_group_identity": 0,
+      "missing_recorded_spend": 0,
+      "invalid_recorded_spend": 0,
+      "zero_spend_origin_unknown": 4
+    },
+    "recorded_spend_usd": "0.0003",
+    "attributed_tokens": 520,
+    "distinct_groups_estimate": 2.0000076294333358,
+    "distinct_nominal_rse": 0.008125
+  },
+  "after": {
+    "cache": {
+      "requests": 5,
+      "read": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 120,
+        "share_of_recorded_input": 0.3
+      },
+      "write": {
+        "coverage_known": true,
+        "reported_requests": 4,
+        "covered_requests": 4,
+        "missing_detail_requests": 1,
+        "invalid_detail_or_input_requests": 0,
+        "zero_origin_unknown_requests": 0,
+        "covered_input_tokens": 400,
+        "tokens": 40,
+        "share_of_recorded_input": 0.1
+      },
+      "uncached_input_tokens": 280,
+      "read_covered_requests_without_group_identity": 0
+    },
+    "period": {
+      "start": "2026-10-17T12:00:00Z",
+      "end_exclusive": "2026-10-18T12:00:00Z"
+    },
+    "logged_model_requests": 5,
+    "recorded_tokens": 520,
+    "counters": {
+      "gen_ai_sketch_cache_read_input_tokens_total": 120,
+      "gen_ai_sketch_cache_write_input_tokens_total": 40,
+      "gen_ai_sketch_input_tokens_total": 400,
+      "gen_ai_sketch_missing_token_usage_total": 1,
+      "gen_ai_sketch_output_tokens_total": 120,
+      "gen_ai_sketch_reasoning_output_tokens_total": 15,
+      "gen_ai_sketch_requests_total": 5,
+      "gen_ai_sketch_total_tokens_total": 520
+    },
+    "quality": {
+      "missing_token_fields": 1,
+      "invalid_usage": 0,
+      "component_total_mismatch": 0,
+      "missing_total_field": 1,
+      "zero_only_origin_unknown": 0,
+      "failed_records": 0,
+      "unknown_status": 5,
+      "unclear_usage_records": 5,
+      "missing_group_identity": 0,
+      "missing_recorded_spend": 0,
+      "invalid_recorded_spend": 0,
+      "zero_spend_origin_unknown": 4
+    },
+    "recorded_spend_usd": "0.0003",
+    "attributed_tokens": 520,
+    "distinct_groups_estimate": 2.0000076294333358,
+    "distinct_nominal_rse": 0.008125
+  },
+  "models": [
+    {
+      "item": "model-1",
+      "before": {
+        "cache": {
+          "requests": 5,
+          "read": {
+            "coverage_known": true,
+            "reported_requests": 4,
+            "covered_requests": 4,
+            "missing_detail_requests": 1,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": 400,
+            "tokens": 120,
+            "share_of_recorded_input": 0.3
+          },
+          "write": {
+            "coverage_known": true,
+            "reported_requests": 4,
+            "covered_requests": 4,
+            "missing_detail_requests": 1,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": 400,
+            "tokens": 40,
+            "share_of_recorded_input": 0.1
+          },
+          "uncached_input_tokens": 280,
+          "read_covered_requests_without_group_identity": 0
+        },
+        "period": {
+          "start": "2026-10-10T12:00:00Z",
+          "end_exclusive": "2026-10-11T12:00:00Z"
+        },
+        "logged_model_requests": 5,
+        "recorded_tokens": 520,
+        "counters": {
+          "gen_ai_sketch_cache_read_input_tokens_total": 120,
+          "gen_ai_sketch_cache_write_input_tokens_total": 40,
+          "gen_ai_sketch_input_tokens_total": 400,
+          "gen_ai_sketch_missing_token_usage_total": 1,
+          "gen_ai_sketch_output_tokens_total": 120,
+          "gen_ai_sketch_reasoning_output_tokens_total": 15,
+          "gen_ai_sketch_requests_total": 5,
+          "gen_ai_sketch_total_tokens_total": 520
+        },
+        "quality": {
+          "missing_token_fields": 1,
+          "invalid_usage": 0,
+          "component_total_mismatch": 0,
+          "missing_total_field": 1,
+          "zero_only_origin_unknown": 0,
+          "failed_records": 0,
+          "unknown_status": 5,
+          "unclear_usage_records": 5,
+          "missing_group_identity": 0,
+          "missing_recorded_spend": 0,
+          "invalid_recorded_spend": 0,
+          "zero_spend_origin_unknown": 4
+        },
+        "recorded_spend_usd": "0.0003"
+      },
+      "after": {
+        "cache": {
+          "requests": 5,
+          "read": {
+            "coverage_known": true,
+            "reported_requests": 4,
+            "covered_requests": 4,
+            "missing_detail_requests": 1,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": 400,
+            "tokens": 120,
+            "share_of_recorded_input": 0.3
+          },
+          "write": {
+            "coverage_known": true,
+            "reported_requests": 4,
+            "covered_requests": 4,
+            "missing_detail_requests": 1,
+            "invalid_detail_or_input_requests": 0,
+            "zero_origin_unknown_requests": 0,
+            "covered_input_tokens": 400,
+            "tokens": 40,
+            "share_of_recorded_input": 0.1
+          },
+          "uncached_input_tokens": 280,
+          "read_covered_requests_without_group_identity": 0
+        },
+        "period": {
+          "start": "2026-10-17T12:00:00Z",
+          "end_exclusive": "2026-10-18T12:00:00Z"
+        },
+        "logged_model_requests": 5,
+        "recorded_tokens": 520,
+        "counters": {
+          "gen_ai_sketch_cache_read_input_tokens_total": 120,
+          "gen_ai_sketch_cache_write_input_tokens_total": 40,
+          "gen_ai_sketch_input_tokens_total": 400,
+          "gen_ai_sketch_missing_token_usage_total": 1,
+          "gen_ai_sketch_output_tokens_total": 120,
+          "gen_ai_sketch_reasoning_output_tokens_total": 15,
+          "gen_ai_sketch_requests_total": 5,
+          "gen_ai_sketch_total_tokens_total": 520
+        },
+        "quality": {
+          "missing_token_fields": 1,
+          "invalid_usage": 0,
+          "component_total_mismatch": 0,
+          "missing_total_field": 1,
+          "zero_only_origin_unknown": 0,
+          "failed_records": 0,
+          "unknown_status": 5,
+          "unclear_usage_records": 5,
+          "missing_group_identity": 0,
+          "missing_recorded_spend": 0,
+          "invalid_recorded_spend": 0,
+          "zero_spend_origin_unknown": 4
+        },
+        "recorded_spend_usd": "0.0003"
+      }
+    }
+  ],
+  "rankings": {
+    "name": "top_user",
+    "weight_unit": "attributed-recorded-tokens",
+    "before_weight": 520,
+    "after_weight": 520,
+    "before_max_error": 0,
+    "after_max_error": 0,
+    "candidate_count": 2,
+    "untracked_delta_bound": {
+      "lower": 0,
+      "upper": 0
+    },
+    "tracked_movers": [
+      {
+        "item": "user_id-1",
+        "before": {
+          "lower": 380,
+          "upper": 380
+        },
+        "after": {
+          "lower": 380,
+          "upper": 380
+        },
+        "delta": {
+          "lower": 0,
+          "upper": 0
+        },
+        "direction": "unchanged"
+      },
+      {
+        "item": "user_id-2",
+        "before": {
+          "lower": 140,
+          "upper": 140
+        },
+        "after": {
+          "lower": 140,
+          "upper": 140
+        },
+        "delta": {
+          "lower": 0,
+          "upper": 0
+        },
+        "direction": "unchanged"
+      }
+    ]
+  },
+  "zero_filled": "cannot determine from this export",
+  "provider_origin": "not established by Langfuse observations",
+  "notes": [
+    "Only GENERATION observations are analyzed as model calls; other observation types are counted separately.",
+    "Periods are half-open UTC intervals selected by observation start_time. Duplicate IDs are scoped to project_id.",
+    "Native input, cache-read and cache-creation are disjoint; inclusive input is their sum. Inclusive output includes disjoint reasoning.",
+    "Recorded cost (Langfuse) is the exact sum of usable total_cost values, not an invoice. Zero cost with usage has unknown origin.",
+    "Manifest coverage validates the supplied local copy, not upstream ingestion or hidden provider retries. Missing/partial files are not zero usage.",
+    "Raw user, session and custom labels are suppressed with local keyed aliases. Status is unknown; status_message is never decoded."
+  ],
+  "langfuse_coverage": {
+    "manifests": 2,
+    "projects": 1,
+    "listed_files": 2,
+    "verified_files": 2,
+    "missing_files": 0,
+    "partial_files": 0,
+    "unmanifested_files": 0,
+    "physical_observation_rows": 28,
+    "unique_observations": 28,
+    "duplicates_removed": 0,
+    "other_observation_types": {
+      "AGENT": 2,
+      "CHAIN": 2,
+      "EMBEDDING": 2,
+      "EVALUATOR": 2,
+      "EVENT": 2,
+      "GUARDRAIL": 2,
+      "RETRIEVER": 2,
+      "SPAN": 2,
+      "TOOL": 2
+    },
+    "generation_observations": 10,
+    "unmapped_category_occurrences": 2,
+    "missing_usage_rows": 2,
+    "partial_usage_rows": 2,
+    "invalid_usage_rows": 0,
+    "usage_with_zero_recorded_cost_rows": 6,
+    "manifest_schedule_gaps": 0,
+    "project_periods_not_fully_manifested": 0,
+    "incomplete": false
+  },
+  "totals_scope": "observed GENERATION rows from verified local files; upstream completeness is not established"
+}

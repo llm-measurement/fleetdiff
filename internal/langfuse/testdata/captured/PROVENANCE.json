@@ -1,0 +1,324 @@
+{
+  "capture_seal_sha256": "0c6973c2eb4874153553c099c45abb5e1010866e122275835ed2701a70a2a0a3",
+  "evidence": {
+    "ACCOUNTING_PROJECTIONS.json": {
+      "bytes": 110423,
+      "sha256": "e88051e137dd3a9ac1f6e55e4c8d17be3d508ce355fd47b66432ebd2c2f5dc8e"
+    },
+    "CAPTURE_PATHS.json": {
+      "bytes": 9366,
+      "sha256": "2495f3709e3261e8fec5304e8c8564e69107f6a18bbddcd3c6a0b51ea940c84d"
+    },
+    "GROUPING_CHECKS.json": {
+      "bytes": 1789,
+      "sha256": "47709c755d30ec8c0ae527b20556d6046415f4a0710a06f92cd643bae1ceaa5e"
+    },
+    "IMAGE_PINS.json": {
+      "bytes": 5670,
+      "sha256": "24255659c8995b2442226d19194ed8240af6973685daba88f9842411b82cb198"
+    },
+    "REPORT.md": {
+      "bytes": 4744,
+      "sha256": "ec3a2437b0d9e40ec481f32e74abb886b7c6dcf21977decffa847e2eeb08dc2c"
+    },
+    "SOURCE_ADDITIONS.json": {
+      "bytes": 3022,
+      "sha256": "09b82ee568581b6200300ea5c3bac3e00bc7fda8854a721e7a944a47d8b19c3d"
+    },
+    "SOURCE_INVENTORY.json": {
+      "bytes": 2803,
+      "sha256": "8661727443a16fa6ca303148b153b363f30afeff7470907dcd184b07c71439b7"
+    },
+    "run.py": {
+      "bytes": 9631,
+      "sha256": "a8edc5d8c89f19e2ab290f03092d60902308bedcd70cfe48bebe4049964e10af"
+    },
+    "verify.py": {
+      "bytes": 2506,
+      "sha256": "a8601f1627d0ed943bfcc08b4c37b40a674b15d3917493182b27b08b71808202"
+    }
+  },
+  "fixture_files": {
+    "goldens.json": {
+      "bytes": 20868,
+      "sha256": "ee1bd6eb3326b579fee8ca68a9954bb955ae23b6ea684c4fa50ac92058a36eec"
+    },
+    "manifests/csv-gzip/2026-10-17T12-00-00.json": {
+      "bytes": 977,
+      "sha256": "1791d5b24278ac621497b6faf4143803ae340bf2df8aaf979be84ca3c2e42db3"
+    },
+    "manifests/csv-gzip/2026-10-22T12-47-11.json": {
+      "bytes": 977,
+      "sha256": "b6791720f8d1af6338bd057b69e4a748dfb4acde7c797a428bc06457a15d37cf"
+    },
+    "manifests/csv-plain/2026-10-17T12-00-00.json": {
+      "bytes": 986,
+      "sha256": "5fefb4bea4fe09321ec03a5924312b5b6e1a38588114a957365000d450594df3"
+    },
+    "manifests/csv-plain/2026-10-22T12-47-07.json": {
+      "bytes": 986,
+      "sha256": "c55668afd127591aeeeb73d7cf2fe9448e847ec024117bf59da6e4b0d7ae02f8"
+    },
+    "manifests/json-gzip/2026-10-17T12-00-00.json": {
+      "bytes": 985,
+      "sha256": "ec37d042c7e1f972d6c32ae1297efd8790dad42660b57606d00dc7fbc3606400"
+    },
+    "manifests/json-gzip/2026-10-22T12-47-13.json": {
+      "bytes": 985,
+      "sha256": "7efc604f71d802c09f5ead432b235412a250e710e23416dc8492e70de238734d"
+    },
+    "manifests/json-plain/2026-10-17T12-00-00.json": {
+      "bytes": 1011,
+      "sha256": "42a434aa6a9885f202f2d8d66d489b7003edafebb30805a756c6b2b31b92dc06"
+    },
+    "manifests/json-plain/2026-10-22T12-47-09.json": {
+      "bytes": 1011,
+      "sha256": "fdaea730ed857f4ddb3b0b194e72151239825a288ff90f0febc7baeebc780f92"
+    },
+    "manifests/jsonl-gzip/2026-10-17T12-00-00.json": {
+      "bytes": 993,
+      "sha256": "ad275c8954351be5898d0631410ee409c24380c6b17b191dcf627d1f689136e1"
+    },
+    "manifests/jsonl-gzip/2026-10-22T12-47-10.json": {
+      "bytes": 993,
+      "sha256": "51996023dc858608d26870b27c6c719d0a0fc0a632312bd4d5c5e236732ee78b"
+    },
+    "manifests/jsonl-plain-confirmed/2026-10-17T12-00-00.json": {
+      "bytes": 1047,
+      "sha256": "ee1d1c1886886967695b2a2c831142f8d0dc43b7145fb488af1a635feec4ba25"
+    },
+    "manifests/jsonl-plain-confirmed/2026-10-22T12-47-06.json": {
+      "bytes": 1047,
+      "sha256": "037fb3698a333818c1e7aa5c032b7fbcb9e9a966d256adfddcdfbe6142b1b0ea"
+    },
+    "period-2026-10-10.jsonl": {
+      "bytes": 2843,
+      "sha256": "ffc975446639dbd6751dd6d10b2bee11524c2592915fd0cb6ac5f736c1bb7bec"
+    },
+    "period-2026-10-17.jsonl": {
+      "bytes": 2843,
+      "sha256": "8c52377a28686ed6226248529771043bcda5437a3a1fd6476541d848e890d83f"
+    }
+  },
+  "images": {
+    "clickhouse": {
+      "arm64_manifest": {
+        "digest": "sha256:0d643ec0036ceb52ae65e5d8465e155ad6069d771f33a79a9e71dc4334e029e6",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "platform": {
+          "architecture": "arm64",
+          "os": "linux"
+        },
+        "size": 2374
+      },
+      "compressed_layer_bytes": 228578842,
+      "index_digest": "sha256:8a790dd3468db22b1d4e7b18a176f378ff5ff6053b9c48dd4ea1fa71a24c5ba6",
+      "reference": "docker.io/clickhouse/clickhouse-server@sha256:8a790dd3468db22b1d4e7b18a176f378ff5ff6053b9c48dd4ea1fa71a24c5ba6",
+      "source_reference": "docker.io/clickhouse/clickhouse-server:25.12"
+    },
+    "minio": {
+      "arm64_manifest": {
+        "artifactType": "application/vnd.oci.image.config.v1+json",
+        "digest": "sha256:11bd77b93e5cb7da98535678d3bb4785e4f6e718194fcae742414958f4b563bb",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "platform": {
+          "architecture": "arm64",
+          "os": "linux"
+        },
+        "size": 2491
+      },
+      "compressed_layer_bytes": 58345335,
+      "index_digest": "sha256:ad134b2dd572ae0d989d6807c3e45516cc75a34883a8021db2ff04be5d1d496a",
+      "reference": "cgr.dev/chainguard/minio@sha256:ad134b2dd572ae0d989d6807c3e45516cc75a34883a8021db2ff04be5d1d496a",
+      "source": "Pinned from the MinIO repository in the official Langfuse Compose file"
+    },
+    "postgres": {
+      "arm64_manifest": {
+        "annotations": {
+          "com.docker.official-images.bashbrew.arch": "arm64v8",
+          "org.opencontainers.image.base.digest": "sha256:c8f0beb24beca8d20b134642aa45df1d5d2fd3ce5ce1437325becbb1d457bc7c",
+          "org.opencontainers.image.base.name": "debian:trixie-slim",
+          "org.opencontainers.image.created": "2025-11-04T01:28:06Z",
+          "org.opencontainers.image.revision": "5ec89312491bdaa2c42377a65ec0af2ecb774480",
+          "org.opencontainers.image.source": "https://github.com/docker-library/postgres.git#5ec89312491bdaa2c42377a65ec0af2ecb774480:17/trixie",
+          "org.opencontainers.image.url": "https://hub.docker.com/_/postgres",
+          "org.opencontainers.image.version": "17.6"
+        },
+        "digest": "sha256:ac74e8c63c516b1f81fbaaede0663981399f80e42369431136b2455557f8547b",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "platform": {
+          "architecture": "arm64",
+          "os": "linux",
+          "variant": "v8"
+        },
+        "size": 3629
+      },
+      "compressed_layer_bytes": 159746516,
+      "index_digest": "sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929",
+      "reference": "docker.io/postgres@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929",
+      "source_reference": "docker.io/postgres:17.6"
+    },
+    "redis": {
+      "arm64_manifest": {
+        "annotations": {
+          "com.docker.official-images.bashbrew.arch": "arm64v8",
+          "org.opencontainers.image.base.digest": "sha256:611ff4b679d5e1c4689505782f8ad2e60cda1f075f47311f7ca63f9ea5030276",
+          "org.opencontainers.image.base.name": "debian:bookworm-slim",
+          "org.opencontainers.image.created": "2025-09-30T00:11:39Z",
+          "org.opencontainers.image.revision": "732a2608af90db97efa8ddd993fcbb63f5d2883b",
+          "org.opencontainers.image.source": "https://github.com/redis/docker-library-redis.git#732a2608af90db97efa8ddd993fcbb63f5d2883b:7.4/debian",
+          "org.opencontainers.image.url": "https://hub.docker.com/_/redis",
+          "org.opencontainers.image.version": "7.4.5"
+        },
+        "digest": "sha256:a453e4f3589f65cf289ba418b4f31e53826b4c11d82c01cb0968634b581f1a63",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "platform": {
+          "architecture": "arm64",
+          "os": "linux",
+          "variant": "v8"
+        },
+        "size": 2485
+      },
+      "compressed_layer_bytes": 44815841,
+      "index_digest": "sha256:90e7a336d044f1abc9e9dbc05d65566850896d11453bbd1dd0fb7e5059f0e8fb",
+      "reference": "docker.io/redis@sha256:90e7a336d044f1abc9e9dbc05d65566850896d11453bbd1dd0fb7e5059f0e8fb",
+      "source_reference": "docker.io/redis:7.4.5"
+    },
+    "web": {
+      "arm64_manifest": {
+        "digest": "sha256:4e591ba322b2c94dd91f0af1830c1111b0c690cd563712f0bbe027f41d93cbcf",
+        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "platform": {
+          "architecture": "arm64",
+          "os": "linux"
+        },
+        "size": 3648
+      },
+      "compressed_layer_bytes": 301914629,
+      "index_digest": "sha256:8e2b58b5086bfc955452a12c72eb2306bf3cb2ec59de8115454514c4c8e36e33",
+      "reference": "docker.langfuse.com/langfuse/langfuse@sha256:8e2b58b5086bfc955452a12c72eb2306bf3cb2ec59de8115454514c4c8e36e33",
+      "source_reference": "docker.langfuse.com/langfuse/langfuse:4.67.0"
+    },
+    "worker": {
+      "arm64_manifest": {
+        "digest": "sha256:b1b1578df23eec716250fc636e37fbc3617254a2133cde14ebbecdc6f2d65cc0",
+        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "platform": {
+          "architecture": "arm64",
+          "os": "linux"
+        },
+        "size": 1685
+      },
+      "compressed_layer_bytes": 370600985,
+      "index_digest": "sha256:a0ec08090953ad8d710565a23cda1b24e84dc889c9122e88df2c5b8ada4cfe1f",
+      "reference": "docker.langfuse.com/langfuse/langfuse-worker@sha256:a0ec08090953ad8d710565a23cda1b24e84dc889c9122e88df2c5b8ada4cfe1f",
+      "source_reference": "docker.langfuse.com/langfuse/langfuse-worker:4.67.0"
+    }
+  },
+  "license_record": {
+    "bytes": 3814,
+    "sha256": "5f5698a12e0e3b433ac0b525920c7e98d926476c06d2190e47086d4011947320"
+  },
+  "license_scope": "Synthetic traffic projections are contributed with fleetdiff fixtures; no Langfuse implementation copied. Producer core MIT; enterprise directories separately licensed. Stack licenses recorded in README; no new upstream license-file download or audit.",
+  "native_capture_files": 139,
+  "observation_fields": [
+    "id",
+    "project_id",
+    "type",
+    "start_time",
+    "usage_details",
+    "total_cost"
+  ],
+  "producer_sources": {
+    "docker-compose.yml": {
+      "bytes": 12710,
+      "sha256": "cbadc35c66f78297aa758a9cfd7f2d1e36ba7146c60985c77bff448d023a29f2",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/docker-compose.yml"
+    },
+    "fern/apis/server/definition/blob-storage-integrations.yml": {
+      "bytes": 11591,
+      "sha256": "0a82c0be1a9e50cd03bc0d20d26f67798b6c1e4066e82fa9459272a9554ce438",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/fern/apis/server/definition/blob-storage-integrations.yml"
+    },
+    "packages/shared/src/server/otel/ObservationTypeMapper.ts": {
+      "bytes": 17223,
+      "sha256": "848d52b557d7df5a20d5756fa165a8827b5cb2289391d692b526a59b653eb003",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/packages/shared/src/server/otel/ObservationTypeMapper.ts"
+    },
+    "packages/shared/src/server/otel/OtelIngestionProcessor.ts": {
+      "bytes": 141648,
+      "sha256": "c42779e6c2ce78c86573e58e1eb7dcbe454b796789bb53e2812684872207efdd",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/packages/shared/src/server/otel/OtelIngestionProcessor.ts"
+    },
+    "packages/shared/src/server/otel/attributes.ts": {
+      "bytes": 3512,
+      "sha256": "cba1cc04873b3abb79836c873973393e2fcebac5ba4a58a16fb4e980d5d10d14",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/packages/shared/src/server/otel/attributes.ts"
+    },
+    "packages/shared/src/server/services/blobStorageEndpointValidation.ts": {
+      "bytes": 6499,
+      "sha256": "3f1fdc3adc86f9dc6c96cc02c4cf6ebb018d0cfdc7530b5b3071ccc5ad3e74db",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/packages/shared/src/server/services/blobStorageEndpointValidation.ts"
+    },
+    "web/src/features/blobstorage-integration/authorizeBlobStorageRequest.ts": {
+      "bytes": 1018,
+      "sha256": "8ec68e3e0efea2adce052e501d8f60a281e0311d756610b56c5b8b6a325d4ae5",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/web/src/features/blobstorage-integration/authorizeBlobStorageRequest.ts"
+    },
+    "web/src/features/blobstorage-integration/blobstorage-integration-router.ts": {
+      "bytes": 17092,
+      "sha256": "4eb3a074c91224e7888d5a17890d7ed24586aa3b6f81becf93b96b9d9050456c",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/web/src/features/blobstorage-integration/blobstorage-integration-router.ts"
+    },
+    "web/src/features/blobstorage-integration/service.ts": {
+      "bytes": 11783,
+      "sha256": "9e5d5cfcc3c01b1a1ae98614e512bcdab19f24a300cda64507159ea3a6237eaa",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/web/src/features/blobstorage-integration/service.ts"
+    },
+    "web/src/features/public-api/types/blob-storage-integrations.ts": {
+      "bytes": 6648,
+      "sha256": "a837b291960ccf65998321a081463878d91c0b654b81f448adb5c8dce3536011",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/web/src/features/public-api/types/blob-storage-integrations.ts"
+    },
+    "web/src/pages/api/public/integrations/blob-storage/index.ts": {
+      "bytes": 6954,
+      "sha256": "d727a944cd62033b03386908da47ab66f3989e8d1b49a1087825a85dd1453ae4",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/web/src/pages/api/public/integrations/blob-storage/index.ts"
+    },
+    "web/src/server/api/root.ts": {
+      "bytes": 8272,
+      "sha256": "597dba10f8d0354962c40236a74b1b28e2c8ccaee016968283b59fdcfab56342",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/web/src/server/api/root.ts"
+    },
+    "worker/src/__tests__/blobStorageIntegrationProcessing.test.ts": {
+      "bytes": 112677,
+      "sha256": "5d2fd2324da00068601ebcb38843a63a481187ceddb3237536a527c77f8a3e0d",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/worker/src/__tests__/blobStorageIntegrationProcessing.test.ts"
+    },
+    "worker/src/features/blobstorage/handleBlobStorageIntegrationProjectJob.ts": {
+      "bytes": 71434,
+      "sha256": "245ec4ac3667505693cbb5303ee665b8f27387c57305c8e32347303ae018f156",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/worker/src/features/blobstorage/handleBlobStorageIntegrationProjectJob.ts"
+    },
+    "worker/src/features/blobstorage/handleBlobStorageIntegrationSchedule.ts": {
+      "bytes": 2891,
+      "sha256": "f393436090a4b81ae77f6e4dec996695311fa4c818a1c444d7d3fb24adbd0d56",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/worker/src/features/blobstorage/handleBlobStorageIntegrationSchedule.ts"
+    },
+    "worker/src/features/blobstorage/manifest.ts": {
+      "bytes": 2274,
+      "sha256": "49a01373ec287f2fbdfda93a74082896e9c8fb01a29f6a51f6cd6d58eff61e8d",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/worker/src/features/blobstorage/manifest.ts"
+    },
+    "worker/src/queues/blobStorageIntegrationQueue.ts": {
+      "bytes": 1427,
+      "sha256": "bb5a2ca784675dfc7183cae42b55f36afdfeb25bf2b2a3a62617f8d8b443c36b",
+      "url": "https://raw.githubusercontent.com/langfuse/langfuse/21931f2c29ed7d02c106de290e00b67df9049e75/worker/src/queues/blobStorageIntegrationQueue.ts"
+    }
+  },
+  "reproduction": "Reuse exact six cached image digests only after separate execution approval; sealed run.py/verify.py hashes identify existing capture procedure. This parser increment requires no services. Public tests re-encode safe projections; private overlay runner qualifies native objects through unmodified manifests.",
+  "schema": "langfuse-safe-projection-goldens-v1",
+  "source_commit": "21931f2c29ed7d02c106de290e00b67df9049e75",
+  "traffic": "synthetic; exported by real Langfuse 4.67.0; no provider calls",
+  "transformation": "Select six accounting fields from sealed ACCOUNTING_PROJECTIONS; partition by native half-open window; sort by synthetic observation ID. Native manifest bytes unchanged. Test format encodings are sanitized transformations, not raw exports."
+}

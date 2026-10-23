@@ -1,0 +1,43 @@
+Langfuse GENERATION observations; recorded cost (Langfuse), not an invoice.
+Local coverage: 2 manifests, 2/2 files verified; 0 missing, 0 partial, 0 unmanifested.
+Observations: 28 physical, 28 unique, 0 duplicate copies removed; 10 GENERATION.
+Usage coverage: 2 missing, 2 partial, 0 invalid; 2 unmapped category occurrences; 6 usage rows with zero recorded cost.
+Recorded tokens were unchanged (520 -> 520).
+Logged model requests: 5 -> 5.
+Before: Sat 2026-10-10 12:00:00 UTC to Sun 2026-10-11 12:00:00 UTC (end exclusive).
+After: Sat 2026-10-17 12:00:00 UTC to Sun 2026-10-18 12:00:00 UTC (end exclusive).
+
+What changed?
+  model-1: 520 -> 520 recorded tokens; 5 -> 5 requests.
+    Cache-read share of recorded input: 30% -> 30%.
+      Cache reads: 120 of 400 input tokens -> 120 of 400 (before: 4 of 5 requests report cache detail; after: 4 of 5).
+      Excluded: missing detail 1 -> 1 requests.
+    Cache-write share of recorded input: 10% -> 10%.
+      Cache writes: 40 of 400 input tokens -> 40 of 400 (before: 4 of 5 requests report cache detail; after: 4 of 5).
+      Excluded: missing detail 1 -> 1 requests.
+
+Who drove the change?
+  user_id-1: 380 -> 380 tokens; change +0.
+  user_id-2: 140 -> 140 tokens; change +0.
+  Attributed tokens: 520 -> 520.
+
+Whose uncached input grew?
+  Ranked by recorded uncached-input growth on read-covered requests; volume and workload mix can also change it.
+  No tracked candidates with possible uncached-input growth.
+  Cache-read coverage: before: 4 of 5 requests report cache detail; after: 4 of 5.
+      Excluded: missing detail 1 -> 1 requests.
+
+How complete is the export?
+  Records needing usage review (categories may overlap): 5 -> 5.
+  Missing token fields: 1 -> 1.
+  Total field absent: 1 -> 1.
+  Unknown status: 5 -> 5.
+  Zero-filled: cannot determine from this export. Provider origin: not established by Langfuse observations.
+  Recorded cost (Langfuse, analyzed GENERATION observations): 0.0003 -> 0.0003.
+  Zero-cost origin unknown: 4 -> 4.
+  No other usage problems found.
+  Rows read: 28; unsupported rows: 18.
+  Whole-period per-request split needs clearer usage; recorded totals remain shown.
+  model-1 per-request split needs clearer usage on 5 before / 5 after records.
+
+Next: review the leading contributors and flagged records in your local Langfuse export.

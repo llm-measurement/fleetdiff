@@ -164,6 +164,19 @@ func groupIdentity(row Row, group string, key []byte) ([32]byte, bool, error) {
 // Investigate reads request-level rows locally. It never exports collector
 // envelopes: a logged request is a different observation unit from a provider send.
 func Investigate(path string, opts Options) (Report, error) {
+	return investigate(path, opts, nil)
+}
+
+// InvestigateRows composes an offline source with the existing investigation.
+// The reader must replay the same completed snapshot on every pass.
+func InvestigateRows(read func(func(Row) error) error, opts Options) (Report, error) {
+	if read == nil || opts.DailySpendPath != "" || opts.RoutingAudit || opts.RoutingBy != "" || opts.ScopeRoute != "" || opts.ScopeAgent != "" || opts.ShowLabels || opts.ProviderCountsPath != "" || opts.ProviderModelMapPath != "" || opts.ProviderContractPath != "" {
+		return Report{}, errors.New("row sources do not support SQL coverage, provider counts or routing options")
+	}
+	return investigate("", opts, func(_ string, visit func(Row) error) error { return read(visit) })
+}
+
+func investigate(path string, opts Options, source func(string, func(Row) error) error) (Report, error) {
 	if opts.GroupBy == "" {
 		opts.GroupBy = "key"
 	}
@@ -193,6 +206,9 @@ func Investigate(path string, opts Options) (Report, error) {
 	read := Read
 	if routing != nil {
 		read = ReadRouting
+	}
+	if source != nil {
+		read = source
 	}
 	var earliest, latest time.Time
 	firstDigest := sha256.New()
@@ -373,7 +389,7 @@ func Investigate(path string, opts Options) (Report, error) {
 		return Report{}, err
 	}
 	if r.Before.Requests == 0 && r.After.Requests == 0 {
-		if r.RowCoverage != nil || r.ProviderCoverage != nil || routing != nil {
+		if r.RowCoverage != nil || r.ProviderCoverage != nil || routing != nil || source != nil {
 			r.Incomplete = true
 			r.AnalysisGap = "no analyzable model requests in either selected period"
 			return r, nil
@@ -444,7 +460,7 @@ func Investigate(path string, opts Options) (Report, error) {
 	if r.Before.Cache.Read.Covered == nil || r.After.Cache.Read.Covered == nil || *r.Before.Cache.Read.Covered == 0 || *r.After.Cache.Read.Covered == 0 {
 		r.Cache.Rankings = nil
 	}
-	if err := orderCandidates(path, &r, key, secondDigest.Sum(nil), selection, routing != nil); err != nil {
+	if err := orderCandidatesRead(path, &r, key, secondDigest.Sum(nil), selection, read); err != nil {
 		return Report{}, err
 	}
 	if !r.Incomplete {
