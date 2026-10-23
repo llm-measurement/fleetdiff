@@ -25,6 +25,7 @@ func renderProviderCoverage(out io.Writer, coverage *spend.ProviderCoverage) {
 	if c := coverage.Contract; c != nil {
 		fmt.Fprintf(out, "  Primary count basis: %s; scope matches: account=%s, project/workspace=%s, regions=%s, gateway=%s, operation=%s.\n", c.CountBasis, c.Population.Account, c.Population.Project, c.Population.Regions, c.Population.Gateway, c.Population.Operation)
 		fmt.Fprintf(out, "  Counting units matched: %t; token units matched: %t; pagination complete: %t.\n", c.CountingUnitsMatch, c.TokenUnitsMatch, c.PaginationComplete)
+		fmt.Fprintf(out, "  Settlement margin: %s seconds from day end to provider retrieval; retrieved at %s.\n", spendNumber(c.SettlementMarginSeconds), c.Retrieved.UTC().Format("2006-01-02T15:04:05.999999999Z"))
 	} else {
 		fmt.Fprintln(out, "  Population and counting units unverified; differences are arithmetic comparisons only.")
 	}
@@ -34,7 +35,7 @@ func renderProviderCoverage(out io.Writer, coverage *spend.ProviderCoverage) {
 		if d.UnmappedLoggedRows != 0 {
 			fmt.Fprintf(out, "    Unmapped logged rows: %s; model comparison incomplete.\n", spendNumber(d.UnmappedLoggedRows))
 		}
-		if d.LiteLLMTablesAgreeProviderDiffers {
+		if d.LiteLLMTablesAgreeProviderDiffers && d.PopulationStatus == "matched" && coverage.Contract != nil && coverage.Contract.CountingUnitsMatch {
 			fmt.Fprintln(out, "    Both LiteLLM tables agree with each other but differ from the provider count.")
 		}
 		for _, m := range d.Models {

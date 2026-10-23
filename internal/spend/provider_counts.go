@@ -49,15 +49,16 @@ type ProviderPopulation struct {
 }
 
 type ProviderCountContract struct {
-	Schema             string             `json:"schema"`
-	Start              time.Time          `json:"start_utc"`
-	End                time.Time          `json:"end_exclusive_utc"`
-	Retrieved          time.Time          `json:"retrieved_at_utc"`
-	PaginationComplete bool               `json:"pagination_complete"`
-	Population         ProviderPopulation `json:"population"`
-	CountBasis         string             `json:"count_basis"`
-	CountingUnitsMatch bool               `json:"counting_units_match"`
-	TokenUnitsMatch    bool               `json:"token_units_match"`
+	Schema                  string             `json:"schema"`
+	Start                   time.Time          `json:"start_utc"`
+	End                     time.Time          `json:"end_exclusive_utc"`
+	Retrieved               time.Time          `json:"retrieved_at_utc"`
+	PaginationComplete      bool               `json:"pagination_complete"`
+	Population              ProviderPopulation `json:"population"`
+	CountBasis              string             `json:"count_basis"`
+	CountingUnitsMatch      bool               `json:"counting_units_match"`
+	TokenUnitsMatch         bool               `json:"token_units_match"`
+	SettlementMarginSeconds uint64             `json:"settlement_margin_seconds,omitempty"`
 }
 
 type ProviderCoverage struct {
@@ -74,7 +75,7 @@ type ProviderCoverageDay struct {
 	UnmappedLoggedRows                uint64                  `json:"unmapped_logged_rows"`
 	LiteLLMDailyRequests              *uint64                 `json:"litellm_daily_requests"`
 	ProviderRequests                  *uint64                 `json:"provider_requests"`
-	LiteLLMTablesAgreeProviderDiffers bool                    `json:"litellm_tables_agree_provider_differs"`
+	LiteLLMTablesAgreeProviderDiffers bool                    `json:"litellm_tables_agree_provider_differs,omitempty"`
 	Models                            []ProviderCoverageModel `json:"models"`
 }
 
@@ -116,6 +117,7 @@ func providerCSV(path string, required, optional []string, visit func(map[string
 	if err != nil {
 		return err
 	}
+	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	scanner.Buffer(make([]byte, maxProviderLine+2), maxProviderLine+2)
 	var header []string
@@ -199,11 +201,21 @@ func readProviderContract(path string, now time.Time) (*ProviderCountContract, e
 		return nil, errProviderContract
 	}
 	fields, ok := value.(map[string]any)
-	if !ok || len(fields) != 9 {
+	if !ok || len(fields) < 9 || len(fields) > 10 {
 		return nil, errProviderContract
 	}
 	for _, name := range []string{"schema", "start_utc", "end_exclusive_utc", "retrieved_at_utc", "pagination_complete", "population", "count_basis", "counting_units_match", "token_units_match"} {
 		if _, present := fields[name]; !present {
+			return nil, errProviderContract
+		}
+	}
+	if len(fields) == 10 {
+		number, ok := fields["settlement_margin_seconds"].(json.Number)
+		if !ok {
+			return nil, errProviderContract
+		}
+		seconds, err := strconv.ParseUint(string(number), 10, 64)
+		if err != nil || seconds > uint64((1<<63-1)/int64(time.Second)) {
 			return nil, errProviderContract
 		}
 	}
@@ -452,6 +464,9 @@ func (b *providerBuilder) dayStatus(day time.Time) string {
 			if end.After(b.now.UTC().Truncate(24 * time.Hour)) {
 				return "unsettled_day"
 			}
+			if c := b.contract; c != nil && end.Add(time.Duration(c.SettlementMarginSeconds)*time.Second).After(c.Retrieved) {
+				return "unsettled_day"
+			}
 			return "complete_day"
 		}
 	}
@@ -565,7 +580,7 @@ func (b *providerBuilder) result(daily *RowCoverage) (*ProviderCoverage, error) 
 				}
 			}
 		}
-		d.LiteLLMTablesAgreeProviderDiffers = d.Status == "complete_day" && d.PopulationStatus != "population_mismatch" && d.PopulationStatus != "provider_export_incomplete" && d.LiteLLMDailyRequests != nil && d.LoggedRows == *d.LiteLLMDailyRequests && d.ProviderRequests != nil && *d.ProviderRequests != d.LoggedRows
+		d.LiteLLMTablesAgreeProviderDiffers = d.Status == "complete_day" && d.PopulationStatus == "matched" && b.contract.CountingUnitsMatch && d.LiteLLMDailyRequests != nil && d.LoggedRows == *d.LiteLLMDailyRequests && d.ProviderRequests != nil && *d.ProviderRequests != d.LoggedRows
 	}
 	slices.SortFunc(r.Days, func(a, b ProviderCoverageDay) int { return strings.Compare(a.Date, b.Date) })
 	return r, nil

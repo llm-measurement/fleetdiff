@@ -266,6 +266,128 @@ func TestProviderPopulationAndCountBasis(t *testing.T) {
 	}
 }
 
+func TestProviderThreeWayWarningRequiresMatchedScopeAndUnits(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		contract bool
+		change   func(*ProviderCountContract)
+		want     bool
+	}{
+		{"no_contract", false, nil, false},
+		{"matched", true, nil, true},
+		{"units_unverified", true, func(c *ProviderCountContract) { c.CountingUnitsMatch = false }, false},
+		{"account_unverified", true, func(c *ProviderCountContract) { c.Population.Account = "unverified" }, false},
+		{"project_unverified", true, func(c *ProviderCountContract) { c.Population.Project = "unverified" }, false},
+		{"regions_unverified", true, func(c *ProviderCountContract) { c.Population.Regions = "unverified" }, false},
+		{"gateway_unverified", true, func(c *ProviderCountContract) { c.Population.Gateway = "unverified" }, false},
+		{"operation_unverified", true, func(c *ProviderCountContract) { c.Population.Operation = "unverified" }, false},
+		{"mismatch", true, func(c *ProviderCountContract) { c.Population.Account = "mismatch" }, false},
+		{"incomplete", true, func(c *ProviderCountContract) { c.PaginationComplete = false }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := providerOptions(t, providerHeader+"2026-09-01,openai,gpt-6-luna,2\n")
+			opts.DailySpendPath = readerWrite(t, ".csv", dailyHeader+"2026-09-01,1,1,0\n")
+			if tc.contract {
+				opts.ProviderContractPath = providerContract(t, tc.change)
+			}
+			r, err := Investigate(writeRows(t, []map[string]string{qualifiedSample("one", "2026-09-01", "openai", "openai/gpt-6-luna")}), opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			d := r.ProviderCoverage.Days[0]
+			if d.LiteLLMTablesAgreeProviderDiffers != tc.want {
+				t.Fatal("three-way warning ignored scope or counting units", d)
+			}
+			b, err := json.Marshal(d)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(b), `"litellm_tables_agree_provider_differs"`) != tc.want {
+				t.Fatal("JSON emitted an unqualified three-way warning")
+			}
+		})
+	}
+}
+
+func TestProviderSettlementMarginUsesRetrievalTime(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		retrieved time.Time
+		margin    uint64
+		want      string
+	}{
+		{"inside_margin", time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC), 86400, "unsettled_day"},
+		{"just_inside_margin", time.Date(2026, 9, 3, 23, 59, 59, 999999999, time.UTC), 86400, "unsettled_day"},
+		{"elapsed_margin", time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC), 86400, "complete_day"},
+		{"beyond_margin", time.Date(2026, 9, 4, 0, 0, 1, 0, time.UTC), 86400, "complete_day"},
+		{"zero_margin", time.Date(2026, 9, 3, 0, 0, 0, 0, time.UTC), 0, "complete_day"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := providerOptions(t, "date_utc,provider,provider_model,requests,input_tokens,output_tokens\n2026-09-02,openai,gpt-6-luna,2,20,4\n")
+			opts.DailySpendPath = readerWrite(t, ".csv", dailyHeader+"2026-09-02,1,1,0\n")
+			opts.ProviderContractPath = providerContract(t, func(c *ProviderCountContract) { c.Retrieved = tc.retrieved; c.SettlementMarginSeconds = tc.margin })
+			// Analysis much later cannot settle a snapshot retrieved too early.
+			opts.Now = time.Date(2026, 10, 23, 12, 0, 0, 0, time.UTC)
+			r, err := Investigate(writeRows(t, []map[string]string{qualifiedSample("one", "2026-09-02", "openai", "openai/gpt-6-luna")}), opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			d := r.ProviderCoverage.Days[1]
+			m := d.Models[0]
+			if d.Status != tc.want {
+				t.Fatal("settlement used analysis time instead of retrieval time", d)
+			}
+			if tc.want == "unsettled_day" && (m.Status != "unsettled_day" || m.Comparable || m.RequestDifference != nil || m.InputDifference != nil || m.OutputDifference != nil || d.LiteLLMTablesAgreeProviderDiffers) {
+				t.Fatal("unsettled snapshot retained a comparison", d)
+			}
+			if tc.want == "complete_day" && (!m.Comparable || m.RequestDifference == nil || *m.RequestDifference != 1 || !d.LiteLLMTablesAgreeProviderDiffers) {
+				t.Fatal("elapsed settlement margin withheld a valid comparison", d)
+			}
+			if d.LoggedRows != 1 || d.ProviderRequests == nil || *d.ProviderRequests != 2 || m.ProviderInputTokens == nil || *m.ProviderInputTokens != 20 {
+				t.Fatal("settlement changed recorded observations")
+			}
+		})
+	}
+}
+
+func TestProviderCSVBOMHeaders(t *testing.T) {
+	for _, header := range []string{providerHeader, "\xef\xbb\xbf" + providerHeader, "\xef\xbb\xbf\"date_utc\",provider,provider_model,requests\r\n"} {
+		opts := providerOptions(t, header+"2026-09-01,openai,gpt-6-luna,1\n")
+		opts.ProviderModelMapPath = readerWrite(t, ".csv", "\xef\xbb\xbf"+providerMapHeader+"azure,PRIVATE_ALIAS,openai,gpt-6-luna\n")
+		r, err := Investigate(writeRows(t, []map[string]string{qualifiedSample("one", "2026-09-01", "azure", "PRIVATE_ALIAS")}), opts)
+		if err != nil {
+			t.Fatal("UTF-8 BOM header rejected", err)
+		}
+		if r.ProviderCoverage.Days[0].Models[0].LoggedRows != 1 || r.ProviderCoverage.Days[0].UnmappedLoggedRows != 0 {
+			t.Fatal("BOM changed header or mapping")
+		}
+	}
+	for _, body := range []string{"\xef\xbb\xbfdate_utc,provider,provider_model,requests,PRIVATE_SENTINEL\n", "\xef\xbb\xbfdate_utc,provider,provider_model,requests,requests\n", "\xef\xbb\xbf\xef\xbb\xbf" + providerHeader} {
+		if _, err := newProviderCoverage(providerOptions(t, body)); err == nil || strings.Contains(err.Error(), "PRIVATE") {
+			t.Fatal("BOM bypassed strict header validation or leaked a header")
+		}
+	}
+}
+
+func TestProviderSettlementMarginValidation(t *testing.T) {
+	data, err := os.ReadFile(providerContract(t, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, value := range []string{"-1", "1.5", "1e3", `"PRIVATE_SENTINEL"`, "null", "true", "9223372037", "18446744073709551615"} {
+		body := strings.Replace(string(data), "{", `{"settlement_margin_seconds":`+value+`,`, 1)
+		if _, err := readProviderContract(readerWrite(t, ".json", body), time.Date(2026, 10, 23, 0, 0, 0, 0, time.UTC)); err == nil || strings.Contains(err.Error(), "PRIVATE") {
+			t.Fatal("invalid settlement duration accepted or leaked")
+		}
+	}
+	for _, value := range []string{"0", "86400", "9223372036"} {
+		body := strings.Replace(string(data), "{", `{"settlement_margin_seconds":`+value+`,`, 1)
+		if _, err := readProviderContract(readerWrite(t, ".json", body), time.Date(2026, 10, 23, 0, 0, 0, 0, time.UTC)); err != nil {
+			t.Fatal("valid bounded settlement duration rejected", err)
+		}
+	}
+}
+
 func TestProviderCSVRejectsUnsafeOrInvalidInputs(t *testing.T) {
 	for _, body := range []string{
 		"", "date_utc,provider,provider_model,requests,PRIVATE_SENTINEL\n", "date_utc,provider,provider_model,requests,requests\n",
