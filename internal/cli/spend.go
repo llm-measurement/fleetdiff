@@ -42,6 +42,7 @@ func runSpend(path, format string, opts spend.Options, out, errout io.Writer) in
 }
 
 func renderSpend(out io.Writer, r spend.Report) {
+	renderProviderCoverage(out, r.ProviderCoverage)
 	renderRowCoverage(out, r.RowCoverage)
 	if r.AnalysisGap != "" {
 		fmt.Fprintln(out, "No analyzable model requests in either selected period; usage changes cannot be compared.")

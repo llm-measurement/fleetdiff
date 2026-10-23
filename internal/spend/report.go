@@ -72,6 +72,8 @@ type Report struct {
 	Notes          []string              `json:"notes"`
 	RoutingAudit   *RoutingAudit         `json:"routing_audit,omitempty"`
 	ScopeCoverage  *ScopeCoverage        `json:"scope_coverage,omitempty"`
+
+	ProviderCoverage *ProviderCoverage `json:"provider_coverage,omitempty"`
 }
 
 type CallType struct {
