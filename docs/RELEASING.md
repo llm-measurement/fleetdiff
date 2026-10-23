@@ -97,7 +97,7 @@ verify that every advertised version is downloadable. Do not replace immutable t
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-## After Publishing v0.12.0
+## After Publishing v0.12.1
 
 From an anonymous clone in a fresh directory outside any synced workspace:
 
@@ -106,7 +106,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
    recorded build revision match the approved commit.
 2. Run the README's verified installer into a new directory. Confirm the native
-   executable reports `v0.12.0`, then run the packaged-binary tests above.
+   executable reports `v0.12.1`, then run the packaged-binary tests above.
 3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
    [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
    It exercises the real pinned writer, a SELECT-only SQL export and the released
