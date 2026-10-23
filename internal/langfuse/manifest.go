@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"path"
 	"strconv"
 	"strings"
@@ -138,16 +139,22 @@ func manifestTime(v any) (time.Time, error) {
 }
 
 func count(v any, max int64) (int64, error) {
+	if max < 0 {
+		return 0, ErrInvalid
+	}
 	n, ok := v.(json.Number)
 	if !ok {
 		return 0, ErrInvalid
 	}
 	i, err := strconv.ParseUint(string(n), 10, 64)
-	if errors.Is(err, strconv.ErrRange) || err == nil && i > uint64(max) {
+	if errors.Is(err, strconv.ErrRange) {
 		return 0, ErrFileLimit
 	}
 	if err != nil {
 		return 0, ErrInvalid
+	}
+	if i > math.MaxInt64 || i > uint64(max) {
+		return 0, ErrFileLimit
 	}
 	return int64(i), nil
 }

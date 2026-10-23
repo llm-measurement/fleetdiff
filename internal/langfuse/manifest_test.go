@@ -7,9 +7,34 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"math"
 	"strings"
 	"testing"
 )
+
+func TestCountCheckedConversion(t *testing.T) {
+	for _, tc := range []struct {
+		name, value string
+		max, want   int64
+		err         error
+	}{
+		{"negative_limit", "0", -1, 0, ErrInvalid},
+		{"max_int64", "9223372036854775807", math.MaxInt64, math.MaxInt64, nil},
+		{"above_int64", "9223372036854775808", math.MaxInt64, 0, ErrFileLimit},
+		{"above_uint64", "18446744073709551616", math.MaxInt64, 0, ErrFileLimit},
+		{"negative_one", "-1", math.MaxInt64, 0, ErrInvalid},
+		{"negative_zero", "-0", math.MaxInt64, 0, ErrInvalid},
+		{"above_limit", "1", 0, 0, ErrFileLimit},
+		{"zero", "0", 0, 0, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := count(json.Number(tc.value), tc.max)
+			if got != tc.want || !errors.Is(err, tc.err) {
+				t.Fatalf("count(%q, %d) = %d, %v; want %d, %v", tc.value, tc.max, got, err, tc.want, tc.err)
+			}
+		})
+	}
+}
 
 func syntheticManifest(t *testing.T, kind string, compressed bool) map[string]any {
 	t.Helper()
