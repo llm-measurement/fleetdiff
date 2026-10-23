@@ -8,6 +8,12 @@ updates:
     groups:
       capture-dependencies:
         patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /docs/media
+    schedule: {interval: weekly}
+    groups:
+      media-dependencies:
+        patterns: ["*"]
   - package-ecosystem: gomod
     directory: /
     schedule: {interval: weekly}
