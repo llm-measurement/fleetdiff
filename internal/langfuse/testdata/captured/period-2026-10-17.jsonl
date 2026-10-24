@@ -1,0 +1,14 @@
+{"id":"070ecaa5f6a0f455","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:07.000000","total_cost":0,"type":"EVALUATOR","usage_details":{}}
+{"id":"252f045a2d9f0188","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:03.000000","total_cost":0,"type":"AGENT","usage_details":{}}
+{"id":"336ac29993d7acce","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:00.000000","total_cost":0,"type":"SPAN","usage_details":{}}
+{"id":"3b22c214623a3edb","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:02.000000","total_cost":0,"type":"EVENT","usage_details":{}}
+{"id":"536c1fd962d4c2cd","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:11.000000","total_cost":0,"type":"GENERATION","usage_details":{"experimental_extra":7,"input":60,"input_cache_creation":10,"input_cached_tokens":30,"output":35,"output_reasoning_tokens":5,"total":140}}
+{"id":"66ac8631a128827d","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:01.000000","total_cost":0,"type":"GENERATION","usage_details":{"input":60,"input_cache_creation":10,"input_cached_tokens":30,"output":35,"output_reasoning_tokens":5,"total":140}}
+{"id":"6c4f29b0d849d4a7","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:10.000000","total_cost":0.0003,"type":"GENERATION","usage_details":{"input":60,"input_cache_creation":10,"input_cached_tokens":30,"output":35,"output_reasoning_tokens":5,"total":140}}
+{"id":"762c8667fa381b96","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:08.000000","total_cost":0,"type":"EMBEDDING","usage_details":{"input":60,"input_cache_creation":10,"input_cached_tokens":30,"output":35,"output_reasoning_tokens":5,"total":140}}
+{"id":"82a275292b6f59e7","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:09.000000","total_cost":0,"type":"GUARDRAIL","usage_details":{}}
+{"id":"863d4f977c45a931","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:12.000000","total_cost":0,"type":"GENERATION","usage_details":{}}
+{"id":"a2b0b45f7d4c494f","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:13.000000","total_cost":0,"type":"GENERATION","usage_details":{"input":60,"input_cache_creation":10,"input_cached_tokens":30,"output":0,"output_reasoning_tokens":0,"total":100}}
+{"id":"bd7516ac1d1dd3f4","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:05.000000","total_cost":0,"type":"CHAIN","usage_details":{}}
+{"id":"c815c532e0281005","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:06.000000","total_cost":0,"type":"RETRIEVER","usage_details":{}}
+{"id":"f2559ecd8c503b48","project_id":"synthetic-capture-project","start_time":"2026-10-17 12:00:04.000000","total_cost":0,"type":"TOOL","usage_details":{}}

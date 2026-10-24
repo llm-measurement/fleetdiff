@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "projectId": "synthetic-capture-project",
+  "exportSource": "EVENTS",
+  "window": {
+    "minTimestamp": "2026-10-10T12:00:00.000Z",
+    "maxTimestamp": "2026-10-17T12:00:00.000Z"
+  },
+  "maxTimestamp": "2026-10-17T12:00:00.000Z",
+  "createdAt": "2026-10-22T13:07:10.653Z",
+  "tables": [
+    "scores",
+    "observations_v2"
+  ],
+  "files": [
+    {
+      "key": "captures/jsonl-gzip/synthetic-capture-project/scores/2026-10-17T12-00-00.jsonl.gz",
+      "table": "scores",
+      "fileType": "JSONL",
+      "format": "jsonl-gzip",
+      "compressed": true,
+      "contentType": "application/gzip",
+      "sizeBytes": 20,
+      "rowCount": 0
+    },
+    {
+      "key": "captures/jsonl-gzip/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.jsonl.gz",
+      "table": "observations_v2",
+      "fileType": "JSONL",
+      "format": "jsonl-gzip",
+      "compressed": true,
+      "contentType": "application/gzip",
+      "sizeBytes": 1290,
+      "rowCount": 14
+    }
+  ]
+}

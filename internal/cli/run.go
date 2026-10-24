@@ -166,6 +166,8 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 	partial := flags.Bool("allow-partial", false, "")
 	hashes := flags.Bool("show-hashes", false, "")
 	spendPath := flags.String("litellm-spend", "", "")
+	langfusePath := flags.String("langfuse-export", "", "")
+	langfuseTag := flags.String("langfuse-tag", "", "")
 	dailySpendPath := flags.String("litellm-daily-spend", "", "")
 	providerCountsPath := flags.String("provider-daily-counts", "", "")
 	providerModelMapPath := flags.String("provider-model-map", "", "")
@@ -241,7 +243,7 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			spendMode, windowSet = true, true
 		case "group-by":
 			spendMode, groupExplicit = true, true
-		case "litellm-spend", "before-period", "after-period", "hash-secret-env":
+		case "litellm-spend", "langfuse-export", "langfuse-tag", "before-period", "after-period", "hash-secret-env":
 			spendMode = true
 		case "format", "top", "show-hashes":
 		default:
@@ -252,6 +254,21 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 		}
 	})
 	if spendMode {
+		langfuseSet := false
+		flags.Visit(func(f *flag.Flag) {
+			if f.Name == "langfuse-export" || f.Name == "langfuse-tag" {
+				langfuseSet = true
+			}
+		})
+		if langfuseSet {
+			if args[0] != "investigate" || *langfusePath == "" || *spendPath != "" || database.enabled || *dailySpendPath != "" || emptyDailyOption || incompatible || sessionMode || windowSet || routingSet || providerSet || flags.NArg() != 0 {
+				return fail(2, "use investigate --langfuse-export DIR with two-period options only; do not combine sources, SQL coverage, provider counts, routing or session-budget options")
+			}
+			if !groupExplicit {
+				*group = "user_id"
+			}
+			return runLangfuse(*langfusePath, *group, *langfuseTag, *format, spend.Options{BeforePeriod: *beforePeriod, AfterPeriod: *afterPeriod, SecretEnv: *secret, Top: *top, ShowHashes: *hashes}, out, errout)
+		}
 		if providerSet && (emptyProviderOption || *providerCountsPath == "" || sessionMode || windowSet || routeSet || agentSet) {
 			return fail(2, "provider coverage needs a nonempty aggregate CSV and an unscoped two-period spend investigation")
 		}

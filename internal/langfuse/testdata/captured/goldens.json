@@ -1,0 +1,628 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/jsonl-plain-confirmed/2026-10-17T12-00-00.json",
+      "manifest_sha256": "ee1d1c1886886967695b2a2c831142f8d0dc43b7145fb488af1a635feec4ba25",
+      "name": "jsonl-plain-confirmed/period-2026-10-10",
+      "observation_key": "captures/jsonl-plain-confirmed/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.jsonl",
+      "projection": "period-2026-10-10.jsonl",
+      "raw_bytes": 12436,
+      "raw_sha256": "0590dad9967ccfe48e59f2a9876ef0df7783942f4713faec26d572937e73cf9d"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/jsonl-plain-confirmed/2026-10-22T12-47-06.json",
+      "manifest_sha256": "037fb3698a333818c1e7aa5c032b7fbcb9e9a966d256adfddcdfbe6142b1b0ea",
+      "name": "jsonl-plain-confirmed/period-2026-10-17",
+      "observation_key": "captures/jsonl-plain-confirmed/synthetic-capture-project/observations_v2/2026-10-22T12-47-06.jsonl",
+      "projection": "period-2026-10-17.jsonl",
+      "raw_bytes": 12446,
+      "raw_sha256": "c9b82722a603dc0819ccc82cbefa63c0a300f995b56eb18fa8152e2062dbd2df"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/csv-plain/2026-10-17T12-00-00.json",
+      "manifest_sha256": "5fefb4bea4fe09321ec03a5924312b5b6e1a38588114a957365000d450594df3",
+      "name": "csv-plain/period-2026-10-10",
+      "observation_key": "captures/csv-plain/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.csv",
+      "projection": "period-2026-10-10.jsonl",
+      "raw_bytes": 6407,
+      "raw_sha256": "e65c11e98cb53abee056522c0f97662b71007cb429944a6a5161ddf07c7f070b"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/csv-plain/2026-10-22T12-47-07.json",
+      "manifest_sha256": "c55668afd127591aeeeb73d7cf2fe9448e847ec024117bf59da6e4b0d7ae02f8",
+      "name": "csv-plain/period-2026-10-17",
+      "observation_key": "captures/csv-plain/synthetic-capture-project/observations_v2/2026-10-22T12-47-07.csv",
+      "projection": "period-2026-10-17.jsonl",
+      "raw_bytes": 6417,
+      "raw_sha256": "945ad1619bd77145d8847c0f42847f00a2db6e2b501bbdec215991a19a0dc894"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/json-plain/2026-10-17T12-00-00.json",
+      "manifest_sha256": "42a434aa6a9885f202f2d8d66d489b7003edafebb30805a756c6b2b31b92dc06",
+      "name": "json-plain/period-2026-10-10",
+      "observation_key": "captures/json-plain/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.json",
+      "projection": "period-2026-10-10.jsonl",
+      "raw_bytes": 12437,
+      "raw_sha256": "cd9e077685275c19676693cdd04a4754c7af89887d3c59c29f8c03f9e4a8f738"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/json-plain/2026-10-22T12-47-09.json",
+      "manifest_sha256": "fdaea730ed857f4ddb3b0b194e72151239825a288ff90f0febc7baeebc780f92",
+      "name": "json-plain/period-2026-10-17",
+      "observation_key": "captures/json-plain/synthetic-capture-project/observations_v2/2026-10-22T12-47-09.json",
+      "projection": "period-2026-10-17.jsonl",
+      "raw_bytes": 12447,
+      "raw_sha256": "062281392f315caf9f63527955f44c9d8348845251d45212d96e6b05466aadb4"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/jsonl-gzip/2026-10-17T12-00-00.json",
+      "manifest_sha256": "ad275c8954351be5898d0631410ee409c24380c6b17b191dcf627d1f689136e1",
+      "name": "jsonl-gzip/period-2026-10-10",
+      "observation_key": "captures/jsonl-gzip/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.jsonl.gz",
+      "projection": "period-2026-10-10.jsonl",
+      "raw_bytes": 1290,
+      "raw_sha256": "2acf87e8c1e801554f6508cdc7b8b3aa13eb0a8a3ee972c701e1d97fd36ee2a5"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/jsonl-gzip/2026-10-22T12-47-10.json",
+      "manifest_sha256": "51996023dc858608d26870b27c6c719d0a0fc0a632312bd4d5c5e236732ee78b",
+      "name": "jsonl-gzip/period-2026-10-17",
+      "observation_key": "captures/jsonl-gzip/synthetic-capture-project/observations_v2/2026-10-22T12-47-10.jsonl.gz",
+      "projection": "period-2026-10-17.jsonl",
+      "raw_bytes": 1291,
+      "raw_sha256": "3ff2ed2984ea63b7c49672ed6c116e210f388e11ef360d58cda02a627ee71404"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/csv-gzip/2026-10-17T12-00-00.json",
+      "manifest_sha256": "1791d5b24278ac621497b6faf4143803ae340bf2df8aaf979be84ca3c2e42db3",
+      "name": "csv-gzip/period-2026-10-10",
+      "observation_key": "captures/csv-gzip/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.csv.gz",
+      "projection": "period-2026-10-10.jsonl",
+      "raw_bytes": 1226,
+      "raw_sha256": "016e72bd63ae263a334028d6db134dad112bd73ebb3dd0f091e54dad6c782229"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/csv-gzip/2026-10-22T12-47-11.json",
+      "manifest_sha256": "b6791720f8d1af6338bd057b69e4a748dfb4acde7c797a428bc06457a15d37cf",
+      "name": "csv-gzip/period-2026-10-17",
+      "observation_key": "captures/csv-gzip/synthetic-capture-project/observations_v2/2026-10-22T12-47-11.csv.gz",
+      "projection": "period-2026-10-17.jsonl",
+      "raw_bytes": 1232,
+      "raw_sha256": "d9b5771008b3195d127935d108c2e00b5a965fba7e3ac385879b8b513d269523"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/json-gzip/2026-10-17T12-00-00.json",
+      "manifest_sha256": "ec37d042c7e1f972d6c32ae1297efd8790dad42660b57606d00dc7fbc3606400",
+      "name": "json-gzip/period-2026-10-10",
+      "observation_key": "captures/json-gzip/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.json.gz",
+      "projection": "period-2026-10-10.jsonl",
+      "raw_bytes": 1290,
+      "raw_sha256": "d5291e0196c8add75fb04065eea146f969b856622446b5fb51bc1087b8bf25ef"
+    },
+    {
+      "expected": {
+        "declared_total_mismatch_rows": 0,
+        "generation_rows": 5,
+        "invalid_recorded_cost_rows": 0,
+        "invalid_usage_rows": 0,
+        "known_inclusive_input": 400,
+        "known_inclusive_input_rows": 4,
+        "known_inclusive_output": 120,
+        "known_inclusive_output_rows": 4,
+        "missing_recorded_cost_rows": 0,
+        "missing_usage_rows": 1,
+        "other_rows": 9,
+        "other_types": {
+          "AGENT": 1,
+          "CHAIN": 1,
+          "EMBEDDING": 1,
+          "EVALUATOR": 1,
+          "EVENT": 1,
+          "GUARDRAIL": 1,
+          "RETRIEVER": 1,
+          "SPAN": 1,
+          "TOOL": 1
+        },
+        "partial_usage_rows": 1,
+        "physical_rows": 14,
+        "recorded_cost_langfuse": "0.0003",
+        "reported_component_rows": {
+          "cache_read": 4,
+          "cache_write": 4,
+          "input": 4,
+          "output": 4,
+          "reasoning": 4
+        },
+        "reported_disjoint_components": {
+          "cache_read": 120,
+          "cache_write": 40,
+          "input": 240,
+          "output": 105,
+          "reasoning": 15
+        },
+        "unmapped_category_occurrences": 1,
+        "usage_with_zero_recorded_cost_rows": 3
+      },
+      "manifest": "manifests/json-gzip/2026-10-22T12-47-13.json",
+      "manifest_sha256": "7efc604f71d802c09f5ead432b235412a250e710e23416dc8492e70de238734d",
+      "name": "json-gzip/period-2026-10-17",
+      "observation_key": "captures/json-gzip/synthetic-capture-project/observations_v2/2026-10-22T12-47-13.json.gz",
+      "projection": "period-2026-10-17.jsonl",
+      "raw_bytes": 1290,
+      "raw_sha256": "cc2c5488a4e9df1574304244d1418662d1b283d794abd30a6b5d79ea3b75622d"
+    }
+  ]
+}

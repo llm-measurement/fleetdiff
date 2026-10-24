@@ -1,0 +1,26 @@
+{
+  "kind": "selective safe projections, not native export byte copies",
+  "capture": "synthetic native r3, 2026-10-23",
+  "seal_sha256": "80ace59badf56837d3cf430551a4d8399b4d71b86003da5966165b660447154e",
+  "schema_report_sha256": "74b1e0ed07ece35af8969771b67d0e8fa33d97e4f001b40dd639b87355684b84",
+  "transformation": "The selective lexer retains only approved accounting and grouping spans. Forbidden values are never decoded. Unmapped category names and values are replaced by one synthetic numeric category per affected row. Native stored byte sizes do not apply to these transformed bodies. Unit-test manifests and CSV/JSON/gzip encodings are constructed from these projections with their actual transformed sizes.",
+  "native_evidence": "TestSealedNativeCapture separately verifies all 145 sealed payload hashes and reads all six actual native formats plus 12 actual manifests. This private opt-in check does not use the transformed fixture sizes as native evidence.",
+  "files": [
+    {
+      "projection": "2026-10-17T12-00-00.jsonl",
+      "projection_sha256": "1a99ca9d2588724f3762b7a07e639d5cc78316c98977c6d54d13c5462452cded",
+      "native_key": "captures/jsonl-plain-confirmed/synthetic-capture-project/observations_v2/2026-10-17T12-00-00.jsonl",
+      "native_bytes": 12436,
+      "native_sha256": "0590dad9967ccfe48e59f2a9876ef0df7783942f4713faec26d572937e73cf9d",
+      "physical_rows": 14
+    },
+    {
+      "projection": "2026-10-23T13-19-25.jsonl",
+      "projection_sha256": "8b6f1618a42692d1e4f9bf50a68a8396468226f94d09729b0263432471a485c0",
+      "native_key": "captures/jsonl-plain-confirmed/synthetic-capture-project/observations_v2/2026-10-23T13-19-25.jsonl",
+      "native_bytes": 12446,
+      "native_sha256": "c9b82722a603dc0819ccc82cbefa63c0a300f995b56eb18fa8152e2062dbd2df",
+      "physical_rows": 14
+    }
+  ]
+}
