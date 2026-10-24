@@ -20,7 +20,7 @@ mcp slices fields weights dedup summary_export hllpp frequent_items bloom algo s
 llm_operations enabled tool_errors request_id_from name keys from_resource_attributes
 from_attributes canonicalization domain field weight directory producer_id scope_id key_id
 interval fallback_when_missing timeout send_batch_size send_batch_max_size check_interval
-limit_mib spike_limit_mib verbosity telemetry logs level`)
+limit_mib spike_limit_mib limit_percentage spike_limit_percentage verbosity telemetry logs level`)
 
 func schemaPaths(root *yaml.Node) map[*yaml.Node]string {
 	paths := make(map[*yaml.Node]string)

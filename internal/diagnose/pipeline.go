@@ -52,19 +52,35 @@ func (c *checker) configuration(n *yaml.Node) {
 					}
 				}
 			case group == "processors" && kind == "memory_limiter":
-				p := c.object(config, "check_interval", "limit_mib", "spike_limit_mib")
+				p := c.object(config, "check_interval", "limit_mib", "spike_limit_mib", "limit_percentage", "spike_limit_percentage")
 				c.duration(p["check_interval"], time.Millisecond, time.Hour)
 				c.integer(p["limit_mib"], 1, 1<<30)
 				c.integer(p["spike_limit_mib"], 0, 1<<30)
-				if p["limit_mib"] == nil {
-					c.add("unsupported_mapping", "unsupported", config)
-				}
-				if a, b := p["limit_mib"], p["spike_limit_mib"]; a != nil && b != nil {
-					av, _ := strconv.ParseInt(a.Value, 10, 64)
-					bv, _ := strconv.ParseInt(b.Value, 10, 64)
-					if bv >= av {
-						c.add("unsupported_mapping", "unsupported", config)
+				c.integer(p["limit_percentage"], 0, 100)
+				c.integer(p["spike_limit_percentage"], 0, 100)
+				integerValue := func(n *yaml.Node) int64 {
+					if n == nil {
+						return 0
 					}
+					v, _ := strconv.ParseInt(n.Value, 10, 64)
+					return v
+				}
+				limitMiB := integerValue(p["limit_mib"])
+				limitPercentage := integerValue(p["limit_percentage"])
+				if limitMiB == 0 && limitPercentage == 0 {
+					limit := config
+					if p["limit_percentage"] != nil {
+						limit = p["limit_percentage"]
+					} else if p["limit_mib"] != nil {
+						limit = p["limit_mib"]
+					}
+					c.add("unsupported_mapping", "unsupported", limit)
+				}
+				if spikeMiB := p["spike_limit_mib"]; spikeMiB != nil && limitMiB > 0 && integerValue(spikeMiB) >= limitMiB {
+					c.add("unsupported_mapping", "unsupported", spikeMiB)
+				}
+				if spikePercentage := p["spike_limit_percentage"]; spikePercentage != nil && limitPercentage > 0 && integerValue(spikePercentage) >= limitPercentage {
+					c.add("unsupported_mapping", "unsupported", spikePercentage)
 				}
 			case group == "exporters" && kind == "prometheus":
 				p := c.object(config, "endpoint", "translation_strategy")
