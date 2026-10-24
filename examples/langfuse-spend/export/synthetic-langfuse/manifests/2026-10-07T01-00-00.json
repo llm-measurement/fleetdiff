@@ -15,7 +15,7 @@
       "format": "jsonl-raw",
       "compressed": false,
       "contentType": "application/x-ndjson; charset=utf-8",
-      "sizeBytes": 1322,
+      "sizeBytes": 1394,
       "rowCount": 4
     }
   ]

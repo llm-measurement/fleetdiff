@@ -199,6 +199,25 @@ func renderSpend(out io.Writer, r spend.Report) {
 		}
 	}
 	a, b := r.Before.Quality, r.After.Quality
+	var levels []string
+	for _, level := range []string{"DEFAULT", "DEBUG", "WARNING", "ERROR", "unknown"} {
+		if a.ObservationLevels[level] != 0 || b.ObservationLevels[level] != 0 {
+			levels = append(levels, fmt.Sprintf("%s %s -> %s", level, spendNumber(a.ObservationLevels[level]), spendNumber(b.ObservationLevels[level])))
+		}
+	}
+	if len(levels) != 0 {
+		fmt.Fprintln(out, "  Observation levels: "+strings.Join(levels, "; ")+".")
+	}
+	errorBefore, errorAfter := spend.FailureTokens{}, spend.FailureTokens{}
+	if r.Before.ErrorObservationTokens != nil {
+		errorBefore = *r.Before.ErrorObservationTokens
+	}
+	if r.After.ErrorObservationTokens != nil {
+		errorAfter = *r.After.ErrorObservationTokens
+	}
+	if errorBefore.Total != 0 || errorAfter.Total != 0 {
+		fmt.Fprintf(out, "  Tokens recorded on ERROR observations: %s -> %s (input %s -> %s; output %s -> %s); included in totals, provider completion and billing finality unknown.\n", spendNumber(errorBefore.Total), spendNumber(errorAfter.Total), spendNumber(errorBefore.Input), spendNumber(errorAfter.Input), spendNumber(errorBefore.Output), spendNumber(errorAfter.Output))
+	}
 	for _, v := range []struct {
 		label string
 		a, b  uint64

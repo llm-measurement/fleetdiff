@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/langfuse"
+	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
 func TestLangfuseLevelCLIReviewPrivacyAndSubsets(t *testing.T) {
@@ -52,6 +53,7 @@ func testLangfuseLevel(t *testing.T, binary string) {
 				}
 				var body strings.Builder
 				for i, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+					line = strings.Replace(line, `"level":"DEFAULT",`, "", 1)
 					level := []string{"DEFAULT", "DEBUG", "WARNING"}[i%3]
 					if mode == "error-and-invalid" && i == 0 {
 						level = "ERROR"
@@ -114,11 +116,22 @@ func testLangfuseLevel(t *testing.T, binary string) {
 					t.Fatal("severity or payload sentinel leaked")
 				}
 				if format == "text" {
+					completeness := strings.Index(out.String(), "How complete is the export?")
+					levels := strings.Index(out.String(), "  Observation levels:")
+					if completeness < 0 || levels < completeness || strings.Count(out.String(), "Observation levels:") != 1 || strings.Contains(out.String(), "Observation level DEFAULT:") || strings.Contains(out.String(), "unknown 0 -> 0") || strings.Contains(out.String(), "ERROR 0 -> 0") {
+						t.Fatal("level summary is not compact, nonzero-only and in completeness section")
+					}
 					if !strings.Contains(out.String(), "provider call status is unknown") || mode == "error-and-invalid" && !strings.Contains(out.String(), "Tokens recorded on ERROR observations:") {
 						t.Fatal("severity/status or error-subset wording absent")
 					}
 					if mode == "known-non-error" && strings.Contains(out.String(), "Records needing usage review") {
 						t.Fatal("non-error severity caused usage-review noise")
+					}
+					if mode == "known-non-error" && strings.Contains(out.String(), "Tokens recorded on ERROR observations:") {
+						t.Fatal("zero ERROR-token line should be omitted")
+					}
+					if !strings.Contains(out.String(), "Call status unknown (Langfuse doesn't record it): 4 -> 6.") {
+						t.Fatal("short call-status wording absent")
 					}
 					continue
 				}
@@ -138,5 +151,13 @@ func testLangfuseLevel(t *testing.T, binary string) {
 				}
 			}
 		})
+	}
+}
+
+func TestZeroErrorTokenLineOmitted(t *testing.T) {
+	var out bytes.Buffer
+	renderSpend(&out, spend.Report{Before: spend.Window{ErrorObservationTokens: &spend.FailureTokens{Finality: "unknown"}}})
+	if strings.Contains(out.String(), "Tokens recorded on ERROR observations:") {
+		t.Fatal("non-nil zero token subset produced an ERROR-token line")
 	}
 }

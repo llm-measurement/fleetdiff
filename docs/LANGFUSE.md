@@ -59,32 +59,9 @@ Who drove the increase?
 
 The v0.13.0 binary does not read a success or status field from Langfuse
 observations: it reports unknown status and lists those records for usage review.
-Recorded token and cost totals are still shown. The included fixture omits
-`level`, so its records also remain in the review queue with the next-release
-behavior below.
-
-## Observation severity (unreleased)
-
-The next release reads only the exact, case-sensitive `level` enum: `DEFAULT`,
-`DEBUG`, `WARNING` and `ERROR`. Non-error severity does not prove a successful
-provider call or complete billing. Call status remains unknown for all Langfuse
-observations, and per-request volume splits remain unavailable.
-
-`DEFAULT`, `DEBUG` and `WARNING` do not by themselves add a usage-review flag;
-missing/invalid usage and other accounting checks still apply. `ERROR` observations
-remain in the review queue and have a separate recorded-token subset, included
-in the unchanged overall token and cost totals. These are observation errors,
-not confirmed failed provider calls. JSON reports add `quality.observation_levels`,
-`quality.error_observations` and `error_observation_tokens` on period/model windows;
-`unknown_status` continues to count unknown call status, not severity.
-
-Missing, null, empty, non-string, unrecognized or incorrectly cased levels are
-counted as `unknown` and require review. No aliases, trimming or coercion are
-applied. Only known enum strings (or the fixed `unknown` label) are retained;
-arbitrary level text and all `status_message` values are discarded. Different
-known levels, or known versus unknown, conflict for a duplicate observation ID;
-equivalent JSON escaping is normalized. Different invalid values all project to
-the same unknown level, not to successful status.
+Recorded token and cost totals are still shown. The fixture's `level` field is
+ignored by v0.13.0; non-error severity is not proof of provider success or complete
+billing.
 
 ## Grouping and accounting
 

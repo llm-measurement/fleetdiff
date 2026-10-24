@@ -11,7 +11,7 @@ Notable user-visible changes are recorded here, newest first.
 - Extend JSON/JSONL/CSV and gzip privacy checks without reading `status_message`
   or observation payloads. This does not change the published v0.13.0 artifacts.
 
-## [0.13.0] - Unreleased
+## [0.13.0] - 2026-10-24
 
 See the [release notes](docs/releases/v0.13.0.md).
 

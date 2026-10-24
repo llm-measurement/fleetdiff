@@ -40,7 +40,8 @@ func checkLangfuseExample(t *testing.T, format string, output []byte) {
 			r.Before.Requests != 4 || r.After.Requests != 6 || r.Before.Tokens != 8000 || r.After.Tokens != 16000 ||
 			r.Before.RecordedSpend != "0.008" || r.After.RecordedSpend != "0.016" ||
 			r.Before.Quality.UnknownStatus != 4 || r.After.Quality.UnknownStatus != 6 ||
-			r.Before.Quality.Unclear != 4 || r.After.Quality.Unclear != 6 ||
+			r.Before.Quality.Unclear != 0 || r.After.Quality.Unclear != 0 ||
+			r.Before.Quality.ObservationLevels["DEFAULT"] != 4 || r.After.Quality.ObservationLevels["DEFAULT"] != 6 ||
 			r.Increase == nil || r.Increase.Count != 1 || r.Increase.Share.Lower != 1 {
 			t.Fatal("public example totals, contributor or manifest coverage differ")
 		}
@@ -49,10 +50,14 @@ func checkLangfuseExample(t *testing.T, format string, output []byte) {
 			"trace_name-1: 4,000 -> 12,000 tokens; change +8,000.",
 			"trace_name-2: 4,000 -> 4,000 tokens; change +0.",
 			"1 leading tracked trace_name accounts for 100% of the net recorded increase.",
-			"Unknown call status (not itself a usage-review flag when level is DEFAULT/DEBUG/WARNING): 4 -> 6."} {
+			"Call status unknown (Langfuse doesn't record it): 4 -> 6.",
+			"Observation levels: DEFAULT 4 -> 6."} {
 			if !strings.Contains(string(output), want) {
 				t.Fatalf("example missing %q", want)
 			}
+		}
+		if strings.Contains(string(output), "Records needing usage review") || strings.Contains(string(output), "Tokens recorded on ERROR observations") {
+			t.Fatal("clean DEFAULT example contains review or ERROR-token noise")
 		}
 	}
 }
@@ -62,9 +67,12 @@ func TestLangfuseGuideStatusContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "Non-error severity does not prove a successful provider call or complete billing."
+	want := "non-error severity is not proof of provider success or complete billing."
 	if !strings.Contains(strings.Join(strings.Fields(string(doc)), " "), want) {
 		t.Fatal("Langfuse severity must not imply provider success or billing completeness")
+	}
+	if strings.Contains(string(doc), "## Observation severity") || strings.Contains(string(doc), "(unreleased)") {
+		t.Fatal("deferred next-release section must not ship on main yet")
 	}
 }
 

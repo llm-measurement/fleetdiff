@@ -173,7 +173,7 @@ func TestDirectoryCoverageFailures(t *testing.T) {
 
 func TestNormalizedDuplicateProjection(t *testing.T) {
 	var ids [][32]byte
-	var fingerprints [][32]byte
+	var fingerprints []projectionFingerprint
 	for _, body := range []string{rowJSON("id", "project", "2026-10-10"), strings.ReplaceAll(rowJSON("id", "project", "2026-10-10"), `"total_cost":0.01`, `"total_cost":1e-2`)} {
 		err := readJSON(strings.NewReader(body), false, func(p projection) error {
 			_, id, fingerprint, err := mappedRow(p, "user_id", "")

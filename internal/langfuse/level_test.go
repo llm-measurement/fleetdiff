@@ -69,7 +69,7 @@ func TestLevelEnumSixFormatsAndPrivacy(t *testing.T) {
 		row = strings.TrimSuffix(row, "}") + `,"input":"PRIVATE_INPUT","output":{"x":"PRIVATE_OUTPUT"},"metadata":["PRIVATE_METADATA"],"tool_calls":"PRIVATE_TOOLS","status_message":"PRIVATE_STATUS"}` + "\n"
 		rows = append(rows, row)
 	}
-	var fingerprints [][32]byte
+	var fingerprints []projectionFingerprint
 	for _, kind := range []string{"JSON", "JSONL", "CSV"} {
 		for _, zip := range []bool{false, true} {
 			for _, chunk := range []int{1, 7, 31} {
@@ -182,7 +182,7 @@ func TestLevelDedupAndConflict(t *testing.T) {
 				if err != nil || r.Coverage.Duplicates != 1 || r.Before.Quality.ErrorObservations != 1 {
 					t.Fatal("equivalent enum not deduplicated", err)
 				}
-			} else if err == nil || strings.Contains(err.Error(), "PRIVATE_") || r.Before.Requests != 0 {
+			} else if err == nil || !strings.Contains(err.Error(), "field: level") || strings.Contains(err.Error(), "PRIVATE_") || r.Before.Requests != 0 {
 				t.Fatal("conflict accepted, leaked or returned partial report")
 			}
 		})
@@ -200,5 +200,38 @@ func TestMalformedLevelDoesNotReleasePrefix(t *testing.T) {
 		if err == nil || r.PhysicalRows != 0 || strings.Contains(err.Error(), "PRIVATE_") {
 			t.Fatal("malformed level released aggregate prefix or private diagnostics")
 		}
+	}
+}
+
+func TestDuplicateConflictNamesFieldWithoutValues(t *testing.T) {
+	for _, tc := range []struct{ field, before, after string }{
+		{"type", `"type":"GENERATION"`, `"type":"SPAN"`},
+		{"start_time", "12:00:00.000000", "12:00:00.000001"},
+		{"end_time", "12:00:01.000000", "12:00:02.000000"},
+		{"total_cost", `"total_cost":0.01`, `"total_cost":0.02`},
+		{"usage_details", `"input":60`, `"input":61`},
+		{"provided_model_name", "PRIVATE_MODEL", "PRIVATE_MODEL_OTHER"},
+		{"user_id", "PRIVATE_USER", "PRIVATE_USER_OTHER"},
+		{"session_id", "PRIVATE_SESSION", "PRIVATE_SESSION_OTHER"},
+		{"environment", "PRIVATE_ENV", "PRIVATE_ENV_OTHER"},
+		{"release", "PRIVATE_RELEASE", "PRIVATE_RELEASE_OTHER"},
+		{"trace_name", "PRIVATE_TRACE", "PRIVATE_TRACE_OTHER"},
+		{"prompt_name", "PRIVATE_PROMPT", "PRIVATE_PROMPT_OTHER"},
+		{"tags", "PRIVATE_TAG", "PRIVATE_TAG_OTHER"},
+	} {
+		t.Run(tc.field, func(t *testing.T) {
+			root := t.TempDir()
+			before := rowJSON("one", "project", "2026-10-10")
+			after := strings.Replace(before, tc.before, tc.after, 1)
+			if before == after {
+				t.Fatal("conflict fixture did not change")
+			}
+			addRun(t, root, "project", "one", "2026-10-10T00:00:00Z", "2026-10-18T00:00:00Z", before, 1)
+			addRun(t, root, "project", "two", "2026-10-10T00:00:00Z", "2026-10-18T00:00:00Z", after, 1)
+			r, err := Investigate(root, "user_id", "", options())
+			if err == nil || !strings.Contains(err.Error(), "field: "+tc.field) || strings.Contains(err.Error(), "PRIVATE_") || r.Before.Requests != 0 {
+				t.Fatal("conflict field absent, values leaked or partial report returned", err)
+			}
+		})
 	}
 }

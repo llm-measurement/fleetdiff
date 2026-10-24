@@ -28,6 +28,11 @@ const maxDirectoryBytes = 256 << 20
 const maxProjectionBytes = 64 << 20
 const maxDirectoryFiles = 4096
 
+var duplicateFields = [...]string{"level", "type", "start_time", "end_time", "total_cost", "usage_details", "provided_model_name", "user_id", "session_id", "environment", "release", "trace_name", "prompt_name", "tags", "accounting/grouping"}
+
+// Fixed field hashes name a conflict without retaining or printing its values.
+type projectionFingerprint [len(duplicateFields)][sha256.Size]byte
+
 type Coverage struct {
 	Manifests         int               `json:"manifests"`
 	Projects          int               `json:"projects"`
@@ -218,7 +223,7 @@ func loadDirectory(dir, group, tag string) (snapshot, error) {
 	}
 	out.coverage.Manifests = len(runs)
 	listed := map[string]bool{}
-	seen := map[[32]byte][32]byte{}
+	seen := map[[32]byte]projectionFingerprint{}
 	cost := new(big.Rat)
 	projectionBytes := 0
 	for _, run := range runs {
@@ -285,7 +290,11 @@ func loadDirectory(dir, group, tag string) (snapshot, error) {
 				}
 				if prior, ok := seen[id]; ok {
 					if prior != fingerprint {
-						return out, errors.New("conflicting duplicate Langfuse observation projection")
+						for i, field := range duplicateFields {
+							if prior[i] != fingerprint[i] {
+								return out, errors.New("conflicting duplicate Langfuse observation field: " + field)
+							}
+						}
 					}
 					out.coverage.Duplicates++
 					continue
@@ -372,16 +381,16 @@ func nativeTime(s string) (time.Time, error) {
 
 func framed(parts ...string) string { b, _ := json.Marshal(parts); return string(b) }
 
-func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, error) {
+func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, projectionFingerprint, error) {
 	row := spend.Row{Values: map[string]string{}, ObservationLevel: observationLevel(p.level)}
 	v := row.Values
 	project, e := text(p.fields["project_id"])
 	if e != nil {
-		return row, [32]byte{}, [32]byte{}, e
+		return row, [32]byte{}, projectionFingerprint{}, e
 	}
 	id, e := text(p.fields["id"])
 	if e != nil {
-		return row, [32]byte{}, [32]byte{}, e
+		return row, [32]byte{}, projectionFingerprint{}, e
 	}
 	digest := sha256.Sum256([]byte(framed(project, id)))
 	v["request_id"] = hex.EncodeToString(digest[:])
@@ -389,14 +398,14 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, 
 		if s, err := text(p.fields[native]); err == nil {
 			t, err := nativeTime(s)
 			if err != nil {
-				return row, digest, [32]byte{}, err
+				return row, digest, projectionFingerprint{}, err
 			}
 			v[column] = t.Format(time.RFC3339Nano)
 		}
 	}
 	kind, err := text(p.fields["type"])
 	if err != nil {
-		return row, digest, [32]byte{}, err
+		return row, digest, projectionFingerprint{}, err
 	}
 	v["call_type"] = "langfuse_other"
 	if kind == "GENERATION" {
@@ -420,7 +429,7 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, 
 				if ok {
 					sum, err = accounting.AddBounded(sum, n)
 					if err != nil {
-						return row, digest, [32]byte{}, ErrAccountingLimit
+						return row, digest, projectionFingerprint{}, ErrAccountingLimit
 					}
 				}
 			}
@@ -456,7 +465,7 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, 
 			var tags []string
 			raw := p.fields["tags"]
 			if len(raw) > 0 && string(raw) != "null" && json.Unmarshal(raw, &tags) != nil {
-				return row, digest, [32]byte{}, ErrInvalid
+				return row, digest, projectionFingerprint{}, ErrInvalid
 			}
 			if slices.Contains(tags, tag) {
 				label = tag
@@ -468,7 +477,7 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, 
 		}
 	}
 	// Compare normalized approved fields, not encoding-specific raw JSON/CSV.
-	canonical := map[string]any{"values": v, "kind": kind, "level": row.ObservationLevel, "unknown": p.unknown, "bad_usage": p.badUsage}
+	canonical := map[string]any{"accounting/grouping": v, "type": kind, "level": row.ObservationLevel, "start_time": v["startTime"], "end_time": v["endTime"], "total_cost": v["spend"]}
 	for _, name := range []string{"user_id", "session_id", "provided_model_name", "environment", "release", "trace_name", "prompt_name"} {
 		s, _ := text(p.fields[name])
 		canonical[name] = s
@@ -482,11 +491,11 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, 
 			usage[name] = "invalid"
 		}
 	}
-	canonical["usage"] = usage
+	canonical["usage_details"] = map[string]any{"components": usage, "unknown": p.unknown, "bad_usage": p.badUsage}
 	var tags []string
 	if raw := p.fields["tags"]; len(raw) > 0 && string(raw) != "null" {
 		if json.Unmarshal(raw, &tags) != nil {
-			return row, digest, [32]byte{}, ErrInvalid
+			return row, digest, projectionFingerprint{}, ErrInvalid
 		}
 	}
 	slices.Sort(tags)
@@ -495,8 +504,12 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, 
 		tags = []string{}
 	}
 	canonical["tags"] = tags
-	data, _ := json.Marshal(canonical)
-	return row, digest, sha256.Sum256(data), nil
+	var fingerprint projectionFingerprint
+	for i, field := range duplicateFields {
+		data, _ := json.Marshal(canonical[field])
+		fingerprint[i] = sha256.Sum256(data)
+	}
+	return row, digest, fingerprint, nil
 }
 
 func covered(windows []spend.Period, p spend.Period) bool {
