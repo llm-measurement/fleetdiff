@@ -46,6 +46,7 @@ func runLangfuse(dir, group, tag, format string, opts spend.Options, out, errout
 		text = strings.ReplaceAll(text, "Comparison incomplete: some selected call types are not analyzed.", "Comparison incomplete: the supplied local export does not fully cover the selected periods.")
 		text = strings.ReplaceAll(text, "gateway-recorded", "Langfuse-recorded")
 		text = strings.ReplaceAll(text, "your local LiteLLM logs", "your local Langfuse export")
+		text = strings.ReplaceAll(text, "Unknown status", "Call status unknown (Langfuse doesn't record it)")
 		if c.Incomplete {
 			text = strings.ReplaceAll(text, "Whole-period per-request split unavailable while selected call types remain unanalyzed.", "Whole-period per-request split unavailable while local export coverage is incomplete.")
 			text = strings.ReplaceAll(text, "Next: review unsupported call types in your local Langfuse export; analyze those rows before drawing a whole-export token-change conclusion.", "Next: restore missing or partial files and manifests before drawing a whole-period conclusion; observed totals above remain partial.")

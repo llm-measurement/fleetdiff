@@ -74,11 +74,20 @@ func (a *aggregate) add(row Row, obs accounting.Observation, q Quality) error {
 		return err
 	}
 	a.window.Tokens = total
-	if q.Failed != 0 && obs.Metrics[accounting.Prefix+"total_tokens_total"] != 0 {
-		if a.window.FailureTokens == nil {
-			a.window.FailureTokens = &FailureTokens{Finality: "unknown"}
+	for _, subset := range []struct {
+		count uint64
+		dst   **FailureTokens
+	}{
+		{q.Failed, &a.window.FailureTokens},
+		{q.ErrorObservations, &a.window.ErrorObservationTokens},
+	} {
+		if subset.count == 0 || obs.Metrics[accounting.Prefix+"total_tokens_total"] == 0 {
+			continue
 		}
-		f := a.window.FailureTokens
+		if *subset.dst == nil {
+			*subset.dst = &FailureTokens{Finality: "unknown"}
+		}
+		f := *subset.dst
 		for _, field := range []struct {
 			dst   *uint64
 			value uint64
@@ -121,7 +130,7 @@ func (a *aggregate) result() Window {
 }
 
 func volume(a, b Window) *compare.VolumeChange {
-	if a.Quality.Unclear != 0 || b.Quality.Unclear != 0 {
+	if a.Quality.Unclear != 0 || b.Quality.Unclear != 0 || a.Quality.UnknownStatus != 0 || b.Quality.UnknownStatus != 0 {
 		return nil
 	}
 	return compare.Decompose(a.Tokens, b.Tokens, a.Requests, b.Requests)
@@ -226,7 +235,7 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 			if latest.IsZero() || t.After(latest) {
 				latest = t
 			}
-			return enc.Encode(row.Values)
+			return enc.Encode(row.replayProjection())
 		})
 		if err != nil {
 			return Report{}, err
@@ -257,7 +266,7 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 	enc := json.NewEncoder(secondDigest)
 	err = read(path, func(row Row) error {
 		r.Rows++
-		if e := enc.Encode(row.Values); e != nil {
+		if e := enc.Encode(row.replayProjection()); e != nil {
 			return e
 		}
 		if row.Values["request_id"] == "" {

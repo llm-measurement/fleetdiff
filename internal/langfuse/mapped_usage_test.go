@@ -13,10 +13,11 @@ import (
 	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
 
-func mappedCapturedVariant(t *testing.T, details map[string]any) (spend.Row, [32]byte, [32]byte, error) {
+func mappedCapturedVariant(t *testing.T, details map[string]any) (spend.Row, [32]byte, projectionFingerprint, error) {
 	t.Helper()
 	var row spend.Row
-	var id, fingerprint [32]byte
+	var id [32]byte
+	var fingerprint projectionFingerprint
 	var mappedErr error
 	err := readJSON(bytes.NewReader(capturedUsageVariant(t, details)), false, func(p projection) error {
 		row, id, fingerprint, mappedErr = mappedRow(p, "user_id", "")

@@ -124,7 +124,7 @@ func orderCandidatesRead(path string, r *Report, key, expected []byte, selection
 	digest := sha256.New()
 	enc := json.NewEncoder(digest)
 	err := read(path, func(row Row) error {
-		if err := enc.Encode(row.Values); err != nil {
+		if err := enc.Encode(row.replayProjection()); err != nil {
 			return err
 		}
 		start, err := timestamp(row.Values["startTime"])

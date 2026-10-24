@@ -199,6 +199,25 @@ func renderSpend(out io.Writer, r spend.Report) {
 		}
 	}
 	a, b := r.Before.Quality, r.After.Quality
+	var levels []string
+	for _, level := range []string{"DEFAULT", "DEBUG", "WARNING", "ERROR", "unknown"} {
+		if a.ObservationLevels[level] != 0 || b.ObservationLevels[level] != 0 {
+			levels = append(levels, fmt.Sprintf("%s %s -> %s", level, spendNumber(a.ObservationLevels[level]), spendNumber(b.ObservationLevels[level])))
+		}
+	}
+	if len(levels) != 0 {
+		fmt.Fprintln(out, "  Observation levels: "+strings.Join(levels, "; ")+".")
+	}
+	errorBefore, errorAfter := spend.FailureTokens{}, spend.FailureTokens{}
+	if r.Before.ErrorObservationTokens != nil {
+		errorBefore = *r.Before.ErrorObservationTokens
+	}
+	if r.After.ErrorObservationTokens != nil {
+		errorAfter = *r.After.ErrorObservationTokens
+	}
+	if errorBefore.Total != 0 || errorAfter.Total != 0 {
+		fmt.Fprintf(out, "  Tokens recorded on ERROR observations: %s -> %s (input %s -> %s; output %s -> %s); included in totals, provider completion and billing finality unknown.\n", spendNumber(errorBefore.Total), spendNumber(errorAfter.Total), spendNumber(errorBefore.Input), spendNumber(errorAfter.Input), spendNumber(errorBefore.Output), spendNumber(errorAfter.Output))
+	}
 	for _, v := range []struct {
 		label string
 		a, b  uint64
@@ -255,6 +274,8 @@ func renderSpend(out io.Writer, r spend.Report) {
 	fmt.Fprintln(out, ".")
 	if r.Incomplete {
 		fmt.Fprintln(out, "  Whole-period per-request split unavailable while selected call types remain unanalyzed.")
+	} else if a.ObservationLevels != nil || b.ObservationLevels != nil {
+		fmt.Fprintln(out, "  Whole-period per-request split unavailable while provider call status is unknown; observation severity does not establish success.")
 	} else if r.Volume == nil {
 		fmt.Fprintln(out, "  Whole-period per-request split needs clearer usage; recorded totals remain shown.")
 	}
@@ -264,6 +285,8 @@ func renderSpend(out io.Writer, r spend.Report) {
 		}
 		if m.Before.Requests == 0 || m.After.Requests == 0 {
 			fmt.Fprintf(out, "  %s per-request split needs analyzed requests in both periods.\n", m.Item)
+		} else if m.Before.Quality.ObservationLevels != nil || m.After.Quality.ObservationLevels != nil {
+			fmt.Fprintf(out, "  %s per-request split unavailable while provider call status is unknown.\n", m.Item)
 		} else {
 			fmt.Fprintf(out, "  %s per-request split needs clearer usage on %s before / %s after records.\n", m.Item, spendNumber(m.Before.Quality.Unclear), spendNumber(m.After.Quality.Unclear))
 		}

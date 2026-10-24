@@ -156,6 +156,9 @@
       "zero_only_origin_unknown": 0,
       "failed_records": 0,
       "unknown_status": 5,
+      "observation_levels": {
+        "unknown": 5
+      },
       "unclear_usage_records": 5,
       "missing_group_identity": 0,
       "missing_recorded_spend": 0,
@@ -219,6 +222,9 @@
       "zero_only_origin_unknown": 0,
       "failed_records": 0,
       "unknown_status": 5,
+      "observation_levels": {
+        "unknown": 5
+      },
       "unclear_usage_records": 5,
       "missing_group_identity": 0,
       "missing_recorded_spend": 0,
@@ -285,6 +291,9 @@
           "zero_only_origin_unknown": 0,
           "failed_records": 0,
           "unknown_status": 5,
+          "observation_levels": {
+            "unknown": 5
+          },
           "unclear_usage_records": 5,
           "missing_group_identity": 0,
           "missing_recorded_spend": 0,
@@ -345,6 +354,9 @@
           "zero_only_origin_unknown": 0,
           "failed_records": 0,
           "unknown_status": 5,
+          "observation_levels": {
+            "unknown": 5
+          },
           "unclear_usage_records": 5,
           "missing_group_identity": 0,
           "missing_recorded_spend": 0,
@@ -410,7 +422,8 @@
     "Native input, cache-read and cache-creation are disjoint; inclusive input is their sum. Inclusive output includes disjoint reasoning.",
     "Recorded cost (Langfuse) is the exact sum of usable total_cost values, not an invoice. Zero cost with usage has unknown origin.",
     "Manifest coverage validates the supplied local copy, not upstream ingestion or hidden provider retries. Missing/partial files are not zero usage.",
-    "Raw user, session and custom labels are suppressed with local keyed aliases. Status is unknown; status_message is never decoded."
+    "Raw user, session and custom labels are suppressed with local keyed aliases. Status is unknown; status_message is never decoded.",
+    "Level is an observation severity enum, not provider success or billing finality. DEFAULT/DEBUG/WARNING alone do not require usage review; ERROR and missing/invalid levels do. Other usage checks still apply. Per-request splits remain unavailable while call status is unknown."
   ],
   "langfuse_coverage": {
     "manifests": 2,

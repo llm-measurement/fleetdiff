@@ -57,9 +57,11 @@ Who drove the increase?
   1 leading tracked trace_name accounts for 100% of the net recorded increase.
 ```
 
-This version doesn't read a success or status field from Langfuse observations,
-so the report marks status as unknown and lists those records for usage review.
-Recorded token and cost totals are still shown.
+The v0.13.0 binary does not read a success or status field from Langfuse
+observations: it reports unknown status and lists those records for usage review.
+Recorded token and cost totals are still shown. The fixture's `level` field is
+ignored by v0.13.0; non-error severity is not proof of provider success or complete
+billing.
 
 ## Grouping and accounting
 

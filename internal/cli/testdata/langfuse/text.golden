@@ -28,16 +28,17 @@ Whose uncached input grew?
       Excluded: missing detail 1 -> 1 requests.
 
 How complete is the export?
+  Observation levels: unknown 5 -> 5.
   Records needing usage review (categories may overlap): 5 -> 5.
   Missing token fields: 1 -> 1.
   Total field absent: 1 -> 1.
-  Unknown status: 5 -> 5.
+  Call status unknown (Langfuse doesn't record it): 5 -> 5.
   Zero-filled: cannot determine from this export. Provider origin: not established by Langfuse observations.
   Recorded cost (Langfuse, analyzed GENERATION observations): 0.0003 -> 0.0003.
   Zero-cost origin unknown: 4 -> 4.
   No other usage problems found.
   Rows read: 28; unsupported rows: 18.
-  Whole-period per-request split needs clearer usage; recorded totals remain shown.
-  model-1 per-request split needs clearer usage on 5 before / 5 after records.
+  Whole-period per-request split unavailable while provider call status is unknown; observation severity does not establish success.
+  model-1 per-request split unavailable while provider call status is unknown.
 
 Next: review the leading contributors and flagged records in your local Langfuse export.

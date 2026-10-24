@@ -5,6 +5,7 @@ package langfuse
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"io"
 	"unicode/utf8"
@@ -292,9 +293,36 @@ var rowKeys = map[string]bool{
 
 type projection struct {
 	fields   map[string][]byte
+	level    string
 	usage    map[string][]byte
 	unknown  uint64
 	badUsage bool
+}
+
+func observationLevel(s string) string {
+	switch s {
+	case "DEFAULT", "DEBUG", "WARNING", "ERROR":
+		return s
+	default:
+		return "unknown"
+	}
+}
+
+// Seven ASCII characters, even when all are JSON-escaped, fit in 44 bytes.
+// Decode only that bounded lookahead; scan the full value without retaining it.
+func (l *lexer) level() (string, error) {
+	if l.space() != nil {
+		return "unknown", ErrInvalid
+	}
+	level := "unknown"
+	if l.peek() == '"' {
+		raw, _ := l.r.Peek(44)
+		var s string
+		if json.NewDecoder(bytes.NewReader(raw)).Decode(&s) == nil {
+			level = observationLevel(s)
+		}
+	}
+	return level, l.value(nil, 1)
 }
 
 func (l *lexer) usage(p *projection) error {
@@ -379,7 +407,13 @@ func (l *lexer) object() (projection, error) {
 		if l.space() != nil || l.expect(':', nil) != nil {
 			return p, ErrInvalid
 		}
-		if key == "usage_details" {
+		if key == "level" {
+			var err error
+			p.level, err = l.level()
+			if err != nil {
+				return p, err
+			}
+		} else if key == "usage_details" {
 			err = l.usage(&p)
 		} else if rowKeys[key] {
 			var raw []byte
