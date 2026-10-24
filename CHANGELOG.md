@@ -2,7 +2,18 @@
 
 Notable user-visible changes are recorded here, newest first.
 
-## [0.12.1] - Unreleased
+## [0.13.0] - Unreleased
+
+See the [release notes](docs/releases/v0.13.0.md).
+
+- Compare completed local Langfuse exports, their contributors and manifest
+  coverage, with project-scoped deduplication and disjoint usage accounting.
+- Add optional local provider request counts for LiteLLM, qualified by population,
+  counting units and settlement at retrieval time.
+- Include intervening v0.12.1 documentation/security notes and documentation-media
+  dependency monitoring. No new Go module dependencies.
+
+## [0.12.1] - 2026-10-22
 
 See the [release notes](docs/releases/v0.12.1.md).
 

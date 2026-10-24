@@ -67,7 +67,7 @@ class DocumentationTests(unittest.TestCase):
 
     def test_native_release_promotion(self):
         readme = (ROOT / "README.md").read_text()
-        self.assertLess(readme.index("### 1. Install v0.12.1"),
+        self.assertLess(readme.index("### 1. Install v0.13.0"),
                         readme.index("investigate --litellm-db"))
         self.assertIn("Manual Alternative: Export With psql", readme)
         self.assertNotIn("go build", readme)
