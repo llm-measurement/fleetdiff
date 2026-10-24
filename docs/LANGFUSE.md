@@ -57,9 +57,9 @@ Who drove the increase?
   1 leading tracked trace_name accounts for 100% of the net recorded increase.
 ```
 
-The complete report also flags unknown status in this minimal fixture. Recorded
-totals remain available; a successful-call or per-request explanation needs the
-additional fields reported by the coverage checks.
+This version doesn't read a success or status field from Langfuse observations,
+so the report marks status as unknown and lists those records for usage review.
+Recorded token and cost totals are still shown.
 
 ## Grouping and accounting
 

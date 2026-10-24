@@ -39,6 +39,8 @@ func checkLangfuseExample(t *testing.T, format string, output []byte) {
 		if r.Incomplete || r.Coverage.Incomplete || r.Coverage.UniqueRows != 10 ||
 			r.Before.Requests != 4 || r.After.Requests != 6 || r.Before.Tokens != 8000 || r.After.Tokens != 16000 ||
 			r.Before.RecordedSpend != "0.008" || r.After.RecordedSpend != "0.016" ||
+			r.Before.Quality.UnknownStatus != 4 || r.After.Quality.UnknownStatus != 6 ||
+			r.Before.Quality.Unclear != 4 || r.After.Quality.Unclear != 6 ||
 			r.Increase == nil || r.Increase.Count != 1 || r.Increase.Share.Lower != 1 {
 			t.Fatal("public example totals, contributor or manifest coverage differ")
 		}
@@ -52,6 +54,17 @@ func checkLangfuseExample(t *testing.T, format string, output []byte) {
 				t.Fatalf("example missing %q", want)
 			}
 		}
+	}
+}
+
+func TestLangfuseGuideStatusContract(t *testing.T) {
+	doc, err := os.ReadFile("../../docs/LANGFUSE.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "This version doesn't read a success or status field from Langfuse observations, so the report marks status as unknown and lists those records for usage review. Recorded token and cost totals are still shown."
+	if !strings.Contains(strings.Join(strings.Fields(string(doc)), " "), want) {
+		t.Fatal("Langfuse status limitation must describe this version, not only the example")
 	}
 }
 
