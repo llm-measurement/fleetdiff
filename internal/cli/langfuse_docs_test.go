@@ -90,4 +90,24 @@ func TestReleaseBinaryLangfuseExample(t *testing.T) {
 			checkLangfuseExample(t, format, out)
 		})
 	}
+	t.Run("installer-with-separate-checkout", func(t *testing.T) {
+		dir := t.TempDir()
+		example := filepath.Join(dir, "fleetdiff", "examples", "langfuse-spend", "export")
+		if err := os.CopyFS(example, os.DirFS("../../examples/langfuse-spend/export")); err != nil {
+			t.Fatal(err)
+		}
+		args := langfuseExampleArgs("text")
+		args[2] = "fleetdiff/examples/langfuse-spend/export"
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, binary, args...)
+		cmd.Dir = dir
+		var diagnostic bytes.Buffer
+		cmd.Stderr = &diagnostic
+		out, err := cmd.Output()
+		if err != nil || diagnostic.Len() != 0 {
+			t.Fatalf("installer with checkout example failed: %v %s", err, diagnostic.String())
+		}
+		checkLangfuseExample(t, "text", out)
+	})
 }

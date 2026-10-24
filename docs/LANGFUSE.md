@@ -21,12 +21,19 @@ It reads local files only, not Langfuse services or provider APIs.
 
 ## Try the synthetic example
 
-Install using the [README](../README.md#1-install-v0130). From a checkout of that
-version, compare the [included synthetic export](../examples/langfuse-spend/README.md):
+Install using the [README](../README.md#1-install-v0130), then get the example
+files (the installer does not include a source checkout):
+
+```sh
+git clone --depth 1 --branch v0.13.0 https://github.com/llm-measurement/fleetdiff
+```
+
+From the directory containing `fleetdiff-install` and this checkout, compare
+the [included synthetic export](../examples/langfuse-spend/README.md):
 
 ```sh
 ./fleetdiff-install/fleetdiff investigate \
-  --langfuse-export examples/langfuse-spend/export \
+  --langfuse-export fleetdiff/examples/langfuse-spend/export \
   --before-period 2026-10-07T00:00:00Z/2026-10-07T01:00:00Z \
   --after-period 2026-10-08T00:00:00Z/2026-10-08T01:00:00Z \
   --group-by trace_name

@@ -2,7 +2,7 @@
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/llm-measurement/fleetdiff/badge)](https://scorecard.dev/viewer/?uri=github.com/llm-measurement/fleetdiff)
 
-fleetdiff reads your LiteLLM database or export to show what changed in spend, who drove it, which models served each route, and where spend-log rows are missing.
+fleetdiff reads LiteLLM databases and exports or Langfuse exports to show what changed in recorded spend and who drove it, with routing and missing-row checks for LiteLLM.
 
 - [Your LiteLLM database](#using-litellm)
 - [An existing export](#an-existing-export)
