@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "projectId": "synthetic-langfuse",
+  "exportSource": "EVENTS",
+  "window": {
+    "minTimestamp": "2026-10-08T00:00:00.000Z",
+    "maxTimestamp": "2026-10-09T00:00:00.000Z"
+  },
+  "maxTimestamp": "2026-10-09T00:00:00.000Z",
+  "files": [
+    {
+      "key": "synthetic-langfuse/observations_v2/2026-10-08T00-00-00.jsonl",
+      "table": "observations_v2",
+      "fileType": "JSONL",
+      "format": "jsonl-raw",
+      "compressed": false,
+      "contentType": "application/x-ndjson; charset=utf-8",
+      "sizeBytes": 1984,
+      "rowCount": 6
+    }
+  ]
+}
