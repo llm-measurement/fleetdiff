@@ -2,6 +2,15 @@
 
 Notable user-visible changes are recorded here, newest first.
 
+## [Unreleased]
+
+- Read only Langfuse's bounded `level` enum, show ERROR observation token
+  subsets and avoid severity-only usage-review flags for DEFAULT/DEBUG/WARNING.
+  Provider call status and billing finality remain unknown; missing/invalid
+  levels still require review. Token/cost totals and LiteLLM behavior are unchanged.
+- Extend JSON/JSONL/CSV and gzip privacy checks without reading `status_message`
+  or observation payloads. This does not change the published v0.13.0 artifacts.
+
 ## [0.13.0] - Unreleased
 
 See the [release notes](docs/releases/v0.13.0.md).

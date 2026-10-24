@@ -37,6 +37,19 @@ const (
 type Row struct {
 	Values map[string]string
 	Number int
+	// Set only by observation adapters, never by SQL/CSV status projections.
+	// Severity does not establish provider completion or billing finality.
+	ObservationLevel string
+}
+
+func (r Row) replayProjection() any {
+	if r.ObservationLevel == "" {
+		return r.Values
+	}
+	return struct {
+		Values           map[string]string
+		ObservationLevel string
+	}{r.Values, r.ObservationLevel}
 }
 
 var requiredColumns = [...]string{

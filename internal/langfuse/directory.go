@@ -299,6 +299,7 @@ func loadDirectory(dir, group, tag string) (snapshot, error) {
 				for k, v := range row.Values {
 					projectionBytes += len(k) + len(v)
 				}
+				projectionBytes += len(row.ObservationLevel)
 				if projectionBytes > maxProjectionBytes {
 					return out, ErrInvalid
 				}
@@ -372,7 +373,7 @@ func nativeTime(s string) (time.Time, error) {
 func framed(parts ...string) string { b, _ := json.Marshal(parts); return string(b) }
 
 func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, error) {
-	row := spend.Row{Values: map[string]string{}}
+	row := spend.Row{Values: map[string]string{}, ObservationLevel: observationLevel(p.level)}
 	v := row.Values
 	project, e := text(p.fields["project_id"])
 	if e != nil {
@@ -467,7 +468,7 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, [32]byte, 
 		}
 	}
 	// Compare normalized approved fields, not encoding-specific raw JSON/CSV.
-	canonical := map[string]any{"values": v, "kind": kind, "unknown": p.unknown, "bad_usage": p.badUsage}
+	canonical := map[string]any{"values": v, "kind": kind, "level": row.ObservationLevel, "unknown": p.unknown, "bad_usage": p.badUsage}
 	for _, name := range []string{"user_id", "session_id", "provided_model_name", "environment", "release", "trace_name", "prompt_name"} {
 		s, _ := text(p.fields[name])
 		canonical[name] = s
@@ -564,6 +565,7 @@ func Investigate(dir, group, tag string, opts spend.Options) (Report, error) {
 		"Recorded cost (Langfuse) is the exact sum of usable total_cost values, not an invoice. Zero cost with usage has unknown origin.",
 		"Manifest coverage validates the supplied local copy, not upstream ingestion or hidden provider retries. Missing/partial files are not zero usage.",
 		"Raw user, session and custom labels are suppressed with local keyed aliases. Status is unknown; status_message is never decoded.",
+		"Level is an observation severity enum, not provider success or billing finality. DEFAULT/DEBUG/WARNING alone do not require usage review; ERROR and missing/invalid levels do. Other usage checks still apply. Per-request splits remain unavailable while call status is unknown.",
 	}
 	for _, c := range []*compare.Concentration{&r.Rankings, r.Cache.Rankings} {
 		if c != nil {

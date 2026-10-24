@@ -2,6 +2,11 @@ Langfuse GENERATION observations; recorded cost (Langfuse), not an invoice.
 Local coverage: 2 manifests, 2/2 files verified; 0 missing, 0 partial, 0 unmanifested.
 Observations: 28 physical, 28 unique, 0 duplicate copies removed; 10 GENERATION.
 Usage coverage: 2 missing, 2 partial, 0 invalid; 2 unmapped category occurrences; 6 usage rows with zero recorded cost.
+Observation level DEFAULT: 0 -> 0.
+Observation level DEBUG: 0 -> 0.
+Observation level WARNING: 0 -> 0.
+Observation level ERROR: 0 -> 0.
+Observation level unknown: 5 -> 5.
 Recorded tokens were unchanged (520 -> 520).
 Logged model requests: 5 -> 5.
 Before: Sat 2026-10-10 12:00:00 UTC to Sun 2026-10-11 12:00:00 UTC (end exclusive).
@@ -31,13 +36,13 @@ How complete is the export?
   Records needing usage review (categories may overlap): 5 -> 5.
   Missing token fields: 1 -> 1.
   Total field absent: 1 -> 1.
-  Unknown status: 5 -> 5.
+  Unknown call status (not itself a usage-review flag when level is DEFAULT/DEBUG/WARNING): 5 -> 5.
   Zero-filled: cannot determine from this export. Provider origin: not established by Langfuse observations.
   Recorded cost (Langfuse, analyzed GENERATION observations): 0.0003 -> 0.0003.
   Zero-cost origin unknown: 4 -> 4.
   No other usage problems found.
   Rows read: 28; unsupported rows: 18.
-  Whole-period per-request split needs clearer usage; recorded totals remain shown.
-  model-1 per-request split needs clearer usage on 5 before / 5 after records.
+  Whole-period per-request split unavailable while provider call status is unknown; observation severity does not establish success.
+  model-1 per-request split unavailable while provider call status is unknown.
 
 Next: review the leading contributors and flagged records in your local Langfuse export.

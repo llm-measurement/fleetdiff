@@ -53,18 +53,20 @@ func attributes(row Row) map[string]*commonpb.AnyValue {
 }
 
 type Quality struct {
-	Missing          uint64 `json:"missing_token_fields"`
-	Invalid          uint64 `json:"invalid_usage"`
-	TotalMismatch    uint64 `json:"component_total_mismatch"`
-	TotalMissing     uint64 `json:"missing_total_field"`
-	ZeroUnknown      uint64 `json:"zero_only_origin_unknown"`
-	Failed           uint64 `json:"failed_records"`
-	UnknownStatus    uint64 `json:"unknown_status"`
-	Unclear          uint64 `json:"unclear_usage_records"`
-	MissingIdentity  uint64 `json:"missing_group_identity"`
-	SpendMissing     uint64 `json:"missing_recorded_spend"`
-	SpendInvalid     uint64 `json:"invalid_recorded_spend"`
-	SpendZeroUnknown uint64 `json:"zero_spend_origin_unknown"`
+	Missing           uint64            `json:"missing_token_fields"`
+	Invalid           uint64            `json:"invalid_usage"`
+	TotalMismatch     uint64            `json:"component_total_mismatch"`
+	TotalMissing      uint64            `json:"missing_total_field"`
+	ZeroUnknown       uint64            `json:"zero_only_origin_unknown"`
+	Failed            uint64            `json:"failed_records"`
+	UnknownStatus     uint64            `json:"unknown_status"`
+	ObservationLevels map[string]uint64 `json:"observation_levels,omitempty"`
+	ErrorObservations uint64            `json:"error_observations,omitempty"`
+	Unclear           uint64            `json:"unclear_usage_records"`
+	MissingIdentity   uint64            `json:"missing_group_identity"`
+	SpendMissing      uint64            `json:"missing_recorded_spend"`
+	SpendInvalid      uint64            `json:"invalid_recorded_spend"`
+	SpendZeroUnknown  uint64            `json:"zero_spend_origin_unknown"`
 }
 
 func classify(row Row, a accounting.Observation) Quality {
@@ -95,7 +97,21 @@ func classify(row Row, a accounting.Observation) Quality {
 	default:
 		q.UnknownStatus = 1
 	}
-	if q.Missing+q.Invalid+q.TotalMismatch+q.TotalMissing+q.ZeroUnknown+q.Failed+q.UnknownStatus > 0 {
+	statusReview := q.UnknownStatus
+	if row.ObservationLevel != "" {
+		level := row.ObservationLevel
+		switch level {
+		case "DEFAULT", "DEBUG", "WARNING":
+			statusReview = 0
+		case "ERROR":
+			q.ErrorObservations = 1
+		default:
+			level = "unknown"
+			statusReview = 1
+		}
+		q.ObservationLevels = map[string]uint64{level: 1}
+	}
+	if q.Missing+q.Invalid+q.TotalMismatch+q.TotalMissing+q.ZeroUnknown+q.Failed+statusReview+q.ErrorObservations > 0 {
 		q.Unclear = 1
 	}
 	return q
@@ -109,6 +125,13 @@ func (q *Quality) add(v Quality) {
 	q.ZeroUnknown += v.ZeroUnknown
 	q.Failed += v.Failed
 	q.UnknownStatus += v.UnknownStatus
+	q.ErrorObservations += v.ErrorObservations
+	if v.ObservationLevels != nil && q.ObservationLevels == nil {
+		q.ObservationLevels = map[string]uint64{}
+	}
+	for k, n := range v.ObservationLevels {
+		q.ObservationLevels[k] += n
+	}
 	q.Unclear += v.Unclear
 	q.MissingIdentity += v.MissingIdentity
 	q.SpendMissing += v.SpendMissing

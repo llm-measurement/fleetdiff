@@ -36,6 +36,19 @@ func runLangfuse(dir, group, tag, format string, opts spend.Options, out, errout
 		fmt.Fprintf(&b, "Local coverage: %d manifests, %d/%d files verified; %d missing, %d partial, %d unmanifested.\n", c.Manifests, c.VerifiedFiles, c.ListedFiles, c.MissingFiles, c.PartialFiles, c.ExtraFiles)
 		fmt.Fprintf(&b, "Observations: %d physical, %d unique, %d duplicate copies removed; %d GENERATION.\n", c.PhysicalRows, c.UniqueRows, c.Duplicates, c.GenerationRows)
 		fmt.Fprintf(&b, "Usage coverage: %d missing, %d partial, %d invalid; %d unmapped category occurrences; %d usage rows with zero recorded cost.\n", c.MissingUsage, c.PartialUsage, c.InvalidUsage, c.UnknownCategories, c.UsageZeroCost)
+		for _, level := range []string{"DEFAULT", "DEBUG", "WARNING", "ERROR", "unknown"} {
+			fmt.Fprintf(&b, "Observation level %s: %d -> %d.\n", level, r.Before.Quality.ObservationLevels[level], r.After.Quality.ObservationLevels[level])
+		}
+		if r.Before.ErrorObservationTokens != nil || r.After.ErrorObservationTokens != nil {
+			a, bTokens := spend.FailureTokens{}, spend.FailureTokens{}
+			if r.Before.ErrorObservationTokens != nil {
+				a = *r.Before.ErrorObservationTokens
+			}
+			if r.After.ErrorObservationTokens != nil {
+				bTokens = *r.After.ErrorObservationTokens
+			}
+			fmt.Fprintf(&b, "Tokens recorded on ERROR observations: %d -> %d (input %d -> %d; output %d -> %d); included in totals, provider completion and billing finality unknown.\n", a.Total, bTokens.Total, a.Input, bTokens.Input, a.Output, bTokens.Output)
+		}
 		if c.Incomplete {
 			fmt.Fprintf(&b, "Incomplete local export coverage: %d schedule gaps, %d project-periods not fully manifested; absent data is not zero.\n", c.Gaps, c.UncoveredPeriods)
 			fmt.Fprintln(&b, "All totals below are partial observations from verified files, not complete selected-period totals.")
@@ -46,6 +59,7 @@ func runLangfuse(dir, group, tag, format string, opts spend.Options, out, errout
 		text = strings.ReplaceAll(text, "Comparison incomplete: some selected call types are not analyzed.", "Comparison incomplete: the supplied local export does not fully cover the selected periods.")
 		text = strings.ReplaceAll(text, "gateway-recorded", "Langfuse-recorded")
 		text = strings.ReplaceAll(text, "your local LiteLLM logs", "your local Langfuse export")
+		text = strings.ReplaceAll(text, "Unknown status", "Unknown call status (not itself a usage-review flag when level is DEFAULT/DEBUG/WARNING)")
 		if c.Incomplete {
 			text = strings.ReplaceAll(text, "Whole-period per-request split unavailable while selected call types remain unanalyzed.", "Whole-period per-request split unavailable while local export coverage is incomplete.")
 			text = strings.ReplaceAll(text, "Next: review unsupported call types in your local Langfuse export; analyze those rows before drawing a whole-export token-change conclusion.", "Next: restore missing or partial files and manifests before drawing a whole-period conclusion; observed totals above remain partial.")

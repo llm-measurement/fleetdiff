@@ -13,10 +13,14 @@ import (
 
 // csvField scans RFC4180 quoting even for discarded columns. Only approved
 // columns have a value buffer; encoding/csv cannot provide that boundary.
-func (l *lexer) csvField(keep bool) ([]byte, byte, error) {
+func (l *lexer) csvField(keep, level bool) ([]byte, byte, error) {
 	var out []byte
 	add := func(b byte) error {
 		if keep {
+			if level && len(out) == 7 {
+				out, keep = nil, false
+				return nil
+			}
 			if len(out) >= MaxFieldBytes {
 				return ErrInvalid
 			}
@@ -107,8 +111,9 @@ func (l *lexer) csvRecord(names []string) ([][]byte, error) {
 		if names != nil && i >= len(names) {
 			return nil, ErrInvalid
 		}
-		keep := names == nil || rowKeys[names[i]]
-		value, end, err := l.csvField(keep)
+		level := names != nil && names[i] == "level"
+		keep := names == nil || rowKeys[names[i]] || level
+		value, end, err := l.csvField(keep, level)
 		if err != nil {
 			return nil, err
 		}
@@ -154,6 +159,10 @@ func readCSV(r io.Reader, visit func(projection) error) error {
 		}
 		p := projection{fields: map[string][]byte{}}
 		for i, name := range names {
+			if name == "level" {
+				p.level = observationLevel(string(values[i]))
+				continue
+			}
 			if !rowKeys[name] {
 				continue
 			}

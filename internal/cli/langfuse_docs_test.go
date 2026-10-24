@@ -49,7 +49,7 @@ func checkLangfuseExample(t *testing.T, format string, output []byte) {
 			"trace_name-1: 4,000 -> 12,000 tokens; change +8,000.",
 			"trace_name-2: 4,000 -> 4,000 tokens; change +0.",
 			"1 leading tracked trace_name accounts for 100% of the net recorded increase.",
-			"Unknown status: 4 -> 6."} {
+			"Unknown call status (not itself a usage-review flag when level is DEFAULT/DEBUG/WARNING): 4 -> 6."} {
 			if !strings.Contains(string(output), want) {
 				t.Fatalf("example missing %q", want)
 			}
@@ -62,9 +62,9 @@ func TestLangfuseGuideStatusContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "This version doesn't read a success or status field from Langfuse observations, so the report marks status as unknown and lists those records for usage review. Recorded token and cost totals are still shown."
+	want := "Non-error severity does not prove a successful provider call or complete billing."
 	if !strings.Contains(strings.Join(strings.Fields(string(doc)), " "), want) {
-		t.Fatal("Langfuse status limitation must describe this version, not only the example")
+		t.Fatal("Langfuse severity must not imply provider success or billing completeness")
 	}
 }
 
