@@ -88,6 +88,41 @@ func TestLangfusePublicExample(t *testing.T) {
 	}
 }
 
+func TestLangfusePublicExampleModelAliases(t *testing.T) {
+	for _, format := range []string{"text", "json"} {
+		t.Run(format, func(t *testing.T) {
+			args := langfuseExampleArgs(format)
+			for i := range args {
+				if args[i] == "trace_name" {
+					args[i] = "provided_model_name"
+				}
+			}
+			var out, diagnostic bytes.Buffer
+			if code := Run(args, &out, &diagnostic); code != 0 || diagnostic.Len() != 0 {
+				t.Fatalf("example command failed: code %d %s", code, diagnostic.String())
+			}
+			if strings.Contains(out.String(), "synthetic-model") || strings.Contains(out.String(), "provided_model_name-1") {
+				t.Fatal("raw model or a second model-alias vocabulary escaped")
+			}
+			if format == "json" {
+				var r langfuse.Report
+				if err := json.Unmarshal(out.Bytes(), &r); err != nil {
+					t.Fatal(err)
+				}
+				if len(r.Models) != 1 || len(r.Rankings.Movers) != 1 || r.Models[0].Item != "model-1" || r.Models[0].Item != r.Rankings.Movers[0].Item {
+					t.Fatal("headline and contributor model aliases disagree")
+				}
+			} else {
+				for _, want := range []string{"What changed?\n  model-1:", "Who drove the increase?\n  model-1:"} {
+					if !strings.Contains(out.String(), want) {
+						t.Fatalf("model section missing %q", want)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestReleaseBinaryLangfuseExample(t *testing.T) {
 	binary := os.Getenv("FLEETDIFF_RELEASE_BINARY")
 	if binary == "" {

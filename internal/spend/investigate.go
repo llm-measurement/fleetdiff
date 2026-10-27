@@ -38,7 +38,9 @@ type Options struct {
 	Top                                           int
 	ShowHashes                                    bool
 	ShowLabels                                    bool
-	Now                                           time.Time
+	// Row adapters may share model aliases without changing group identities.
+	ModelAliases bool
+	Now          time.Time
 }
 
 type aggregate struct {
@@ -186,6 +188,9 @@ func InvestigateRows(read func(func(Row) error) error, opts Options) (Report, er
 }
 
 func investigate(path string, opts Options, source func(string, func(Row) error) error) (Report, error) {
+	if opts.ModelAliases && source == nil {
+		return Report{}, errors.New("shared model aliases require a row source")
+	}
 	if opts.GroupBy == "" {
 		opts.GroupBy = "key"
 	}
@@ -257,6 +262,8 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 	models := map[[32]byte][2]*aggregate{}
 	modelOrder := map[[32]byte]int{}
 	modelLabels := map[[32]byte]string{}
+	modelGroups := map[[32]byte][32]byte{}
+	splitModels := map[[32]byte]bool{}
 	// Sort full HMAC digests after reading instead of retaining a hash table.
 	// This keeps duplicate detection exact at its existing 256-bit identity.
 	var seen requestDigests
@@ -362,6 +369,13 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 		if e != nil {
 			return e
 		}
+		if opts.ModelAliases && present {
+			if first, ok := modelGroups[model]; ok {
+				splitModels[model] = splitModels[model] || first != group
+			} else {
+				modelGroups[model] = group
+			}
+		}
 		pair, ok := models[model]
 		if !ok {
 			if len(models) >= MaxModels {
@@ -439,6 +453,11 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 			publicCounts[public]++
 		}
 	}
+	var modelAliases map[[32]byte]string
+	if opts.ModelAliases {
+		modelAliases = map[[32]byte]string{}
+	}
+	splitAliases := map[string]bool{}
 	for i, v := range ordered {
 		m := Model{Item: fmt.Sprintf("model-%d", i+1), Before: v.pair[0].result(), After: v.pair[1].result()}
 		if public := modelLabels[v.hash]; public != "" {
@@ -447,6 +466,10 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 			} else {
 				m.Item = public
 			}
+		}
+		if opts.ModelAliases {
+			modelAliases[v.hash] = m.Item
+			splitAliases[m.Item] = splitModels[v.hash]
 		}
 		m.Volume = volume(m.Before, m.After)
 		if opts.ShowHashes {
@@ -469,7 +492,7 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 	if r.Before.Cache.Read.Covered == nil || r.After.Cache.Read.Covered == nil || *r.Before.Cache.Read.Covered == 0 || *r.After.Cache.Read.Covered == 0 {
 		r.Cache.Rankings = nil
 	}
-	if err := orderCandidatesRead(path, &r, key, secondDigest.Sum(nil), selection, read); err != nil {
+	if err := orderCandidatesRead(path, &r, key, secondDigest.Sum(nil), selection, read, modelAliases); err != nil {
 		return Report{}, err
 	}
 	if !r.Incomplete {
@@ -487,6 +510,12 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 			m := &movers[i]
 			if aliases[m.Hash] == "" {
 				aliases[m.Hash] = fmt.Sprintf("%s-%d", opts.GroupBy, len(aliases)+1)
+				if opts.ModelAliases && m.Item != "" {
+					aliases[m.Hash] = m.Item
+					if splitAliases[m.Item] {
+						aliases[m.Hash] += fmt.Sprintf(" [group-%d]", len(aliases))
+					}
+				}
 			}
 			m.Item = aliases[m.Hash]
 			if !opts.ShowHashes {

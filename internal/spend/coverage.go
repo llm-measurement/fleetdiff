@@ -100,10 +100,10 @@ func orderCandidates(path string, r *Report, key, expected []byte, selection *sc
 	if routing {
 		read = ReadRouting
 	}
-	return orderCandidatesRead(path, r, key, expected, selection, read)
+	return orderCandidatesRead(path, r, key, expected, selection, read, nil)
 }
 
-func orderCandidatesRead(path string, r *Report, key, expected []byte, selection *scopeSelection, read func(string, func(Row) error) error) error {
+func orderCandidatesRead(path string, r *Report, key, expected []byte, selection *scopeSelection, read func(string, func(Row) error) error, modelAliases map[[32]byte]string) error {
 	groups := []*compare.Concentration{&r.Rankings}
 	if r.Cache.Rankings != nil {
 		groups = append(groups, r.Cache.Rankings)
@@ -112,6 +112,8 @@ func orderCandidatesRead(path string, r *Report, key, expected []byte, selection
 		return nil
 	}
 	order := map[uint64]int{}
+	candidateModels := map[uint64][32]byte{}
+	ambiguousModels := map[uint64]bool{}
 	for _, g := range groups {
 		for _, m := range g.Movers {
 			h, err := strconv.ParseUint(m.Hash, 16, 64)
@@ -142,8 +144,20 @@ func orderCandidatesRead(path string, r *Report, key, expected []byte, selection
 			return err
 		}
 		id := binary.BigEndian.Uint64(h[:8])
-		if n, tracked := order[id]; present && tracked && n == 0 {
-			order[id] = row.Number
+		if n, tracked := order[id]; present && tracked {
+			if n == 0 {
+				order[id] = row.Number
+			}
+			if modelAliases != nil {
+				model, err := identity(key, "model", row.Values["model"])
+				if err != nil {
+					return err
+				}
+				if previous, ok := candidateModels[id]; ok && previous != model {
+					ambiguousModels[id] = true
+				}
+				candidateModels[id] = model
+			}
 		}
 		return nil
 	})
@@ -155,6 +169,16 @@ func orderCandidatesRead(path string, r *Report, key, expected []byte, selection
 	}
 	strength := func(v compare.Interval) int64 { return max(v.Upper, -v.Lower) }
 	for _, g := range groups {
+		if modelAliases != nil {
+			for i := range g.Movers {
+				m := &g.Movers[i]
+				id, _ := strconv.ParseUint(m.Hash, 16, 64)
+				m.Item = ""
+				if model, ok := candidateModels[id]; ok && !ambiguousModels[id] {
+					m.Item = modelAliases[model]
+				}
+			}
+		}
 		slices.SortFunc(g.Movers, func(a, b compare.Mover) int {
 			x, y := strength(a.Delta), strength(b.Delta)
 			if g == r.Cache.Rankings {

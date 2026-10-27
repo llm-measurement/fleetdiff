@@ -87,7 +87,11 @@ func TestDirectoryCompositionAndGrouping(t *testing.T) {
 			if bytes.Contains(b, []byte("PRIVATE_")) {
 				t.Fatal("raw label leaked")
 			}
-			if r.GroupBy != group || len(r.Rankings.Movers) != 1 || !strings.HasPrefix(r.Rankings.Movers[0].Item, group+"-") {
+			prefix := group + "-"
+			if group == "provided_model_name" {
+				prefix = "model-"
+			}
+			if r.GroupBy != group || len(r.Rankings.Movers) != 1 || !strings.HasPrefix(r.Rankings.Movers[0].Item, prefix) {
 				t.Fatal("group not composed")
 			}
 		})
