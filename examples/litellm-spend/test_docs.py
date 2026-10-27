@@ -86,6 +86,20 @@ class DocumentationTests(unittest.TestCase):
                 self.assertNotRegex(content.lower(),
                                     r"unreleased v0\.12|native candidate|candidate (?:build|recipe|checkout)")
 
+    def test_langfuse_guide_release_pins(self):
+        readme = (ROOT / "README.md").read_text()
+        versions = re.findall(r"^### 1\. Install (v\d+\.\d+\.\d+)$", readme, re.M)
+        self.assertEqual(len(versions), 1)
+        version = versions[0]
+        anchor = "1-install-" + version.replace(".", "")
+        self.assertIn(anchor, anchors(readme))
+        guide = (ROOT / "docs/LANGFUSE.md").read_text()
+        self.assertEqual(re.findall(
+            r"^git clone --depth 1 --branch (\S+) https://github\.com/llm-measurement/fleetdiff$",
+            guide, re.M), [version])
+        self.assertEqual(re.findall(
+            r"\[README\]\(\.\./README\.md#([^)]+)\)", guide), [anchor])
+
     def test_document_links(self):
         paths = [ROOT / "README.md", ROOT / "docs/WORKFLOWS.md",
                  ROOT / "docs/OPERATIONS.md", ROOT / "docs/RELEASING.md",
@@ -97,7 +111,8 @@ class DocumentationTests(unittest.TestCase):
         paths.extend(ROOT / name for name in (
             "SECURITY.md", "CHANGELOG.md", "docs/NATIVE_EXPORT.md", "docs/ROUTING.md",
             "docs/INSPECT.md", "docs/COMPARISON.md", "docs/releases/v0.11.0.md",
-            "docs/releases/v0.12.0.md", "examples/litellm-spend/TESTING.md"))
+            "docs/releases/v0.12.0.md", "docs/releases/v0.13.1.md",
+            "docs/LANGFUSE.md", "examples/litellm-spend/TESTING.md"))
         for path in paths:
             for link in re.findall(r"\]\(([^)\s]+)\)", path.read_text()):
                 parsed = urlsplit(link)

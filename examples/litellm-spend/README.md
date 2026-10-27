@@ -349,7 +349,7 @@ the call types and asks for a supported request-level export.
 [session-budget.csv](session-budget.csv) is a newly authored, deterministic
 Apache-2.0 fixture with four sessions and no production data. The companion
 [license notice](session-budget.csv.license) keeps the CSV directly importable.
-Use fleetdiff v0.13.0 for the session-budget command:
+Use fleetdiff v0.13.1 for the session-budget command:
 
 ```sh
 fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \
