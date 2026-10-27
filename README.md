@@ -20,13 +20,14 @@ fleetdiff reads LiteLLM databases and exports or Langfuse exports to show what c
 <a id="2-install-v0110"></a>
 <a id="1-install-v0120"></a>
 <a id="1-install-v0121"></a>
+<a id="1-install-v0130"></a>
 
-### 1. Install v0.13.0
+### 1. Install v0.13.1
 
 Linux or macOS; needs curl, gh, shasum and tar. The installer checks the release before unpacking it.
 
 ```sh
-bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/0d7db95c5bb3013f8c564c91fbb07b6235a2664e/scripts/install.sh | sh -s -- v0.13.0 ./fleetdiff-install'
+bash -o pipefail -c 'curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/llm-measurement/fleetdiff/0d7db95c5bb3013f8c564c91fbb07b6235a2664e/scripts/install.sh | sh -s -- v0.13.1 ./fleetdiff-install'
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -84,7 +85,7 @@ Install fleetdiff using [step 1](#1-install-v0120), then run the synthetic examp
 
 ```sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.13.0/examples/litellm-spend/synthetic.csv \
+  https://raw.githubusercontent.com/llm-measurement/fleetdiff/v0.13.1/examples/litellm-spend/synthetic.csv \
   --output synthetic.csv
 ./fleetdiff-install/fleetdiff investigate --litellm-spend synthetic.csv \
   --before-period 2026-10-07 --after-period 2026-10-08
@@ -117,16 +118,16 @@ The summary-file path also shows session concentration:
 
 ## Install
 
-The verified v0.13.0 installer selects the platform binary for your machine.
+The verified v0.13.1 installer selects the platform binary for your machine.
 For public release downloads, `gh` need not be signed in.
-For manual downloads, use the [v0.13.0 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.13.0)
+For manual downloads, use the [v0.13.1 archives](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.13.1)
 and [verification instructions](docs/OPERATIONS.md#install-and-verify).
 An administrator can verify and transfer artifacts through an approved internal mirror.
 
 With a security-patched Go 1.26 toolchain, install the same version from its module:
 
 ```sh
-go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.13.0
+go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@v0.13.1
 ```
 
 The executable goes to `GOBIN`, or `$(go env GOPATH)/bin` when unset.
@@ -173,7 +174,7 @@ Guides: [LiteLLM spend](https://llm-measurement.github.io/litellm-spend.html) | 
 - <a id="questions-it-answers"></a><a id="user-and-session-contributors"></a> [Questions and contributor rankings](docs/WORKFLOWS.md#questions-it-answers).
 - <a id="how-it-works"></a><a id="use-your-own-data"></a><a id="reading-the-results"></a> [How summary comparison works](docs/WORKFLOWS.md#how-it-works), [comparison contract](docs/COMPARISON.md) and [investigation contract](docs/INVESTIGATION.md).
 - <a id="built-to-be-checked"></a> [Operations](docs/OPERATIONS.md), [resource measurements](docs/BENCHMARKS.md) and [checks](docs/WORKFLOWS.md#built-to-be-checked).
-- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.13.0.md) and [release procedure](docs/RELEASING.md).
+- <a id="docs"></a> [FAQ](docs/FAQ.md), [security](SECURITY.md), [release notes](docs/releases/v0.13.1.md) and [release procedure](docs/RELEASING.md).
 
 Questions or feedback: [open an issue](https://github.com/llm-measurement/fleetdiff/issues).
 See [Contributing](CONTRIBUTING.md) for checks and signed, signed-off commits.

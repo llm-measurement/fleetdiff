@@ -21,11 +21,11 @@ It reads local files only, not Langfuse services or provider APIs.
 
 ## Try the synthetic example
 
-Install using the [README](../README.md#1-install-v0130), then get the example
+Install using the [README](../README.md#1-install-v0131), then get the example
 files (the installer does not include a source checkout):
 
 ```sh
-git clone --depth 1 --branch v0.13.0 https://github.com/llm-measurement/fleetdiff
+git clone --depth 1 --branch v0.13.1 https://github.com/llm-measurement/fleetdiff
 ```
 
 From the directory containing `fleetdiff-install` and this checkout, compare
@@ -55,13 +55,23 @@ Who drove the increase?
   trace_name-1: 4,000 -> 12,000 tokens; change +8,000.
   trace_name-2: 4,000 -> 4,000 tokens; change +0.
   1 leading tracked trace_name accounts for 100% of the net recorded increase.
+
+How complete is the export?
+  Observation levels: DEFAULT 4 -> 6.
+  Call status unknown (Langfuse doesn't record it): 4 -> 6.
+  Zero-filled: cannot determine from this export. Provider origin: not established by Langfuse observations.
+  Recorded cost (Langfuse, analyzed GENERATION observations): 0.008 -> 0.016.
+  No other usage problems found.
+  Rows read: 10.
+  Whole-period per-request split unavailable while provider call status is unknown; observation severity does not establish success.
+  model-1 per-request split unavailable while provider call status is unknown.
 ```
 
-The v0.13.0 binary does not read a success or status field from Langfuse
-observations: it reports unknown status and lists those records for usage review.
-Recorded token and cost totals are still shown. The fixture's `level` field is
-ignored by v0.13.0; non-error severity is not proof of provider success or complete
-billing.
+fleetdiff v0.13.1 reads only Langfuse's bounded `level` enum for observation
+severity. DEFAULT, DEBUG and WARNING alone do not trigger usage review.
+ERROR observations have a separate recorded-token subset. Missing or invalid
+levels still require review. Call status stays unknown because Langfuse does
+not record it; severity is not proof of provider success or complete billing.
 
 ## Grouping and accounting
 

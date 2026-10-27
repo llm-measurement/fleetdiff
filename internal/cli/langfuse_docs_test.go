@@ -67,12 +67,44 @@ func TestLangfuseGuideStatusContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "non-error severity is not proof of provider success or complete billing."
-	if !strings.Contains(strings.Join(strings.Fields(string(doc)), " "), want) {
-		t.Fatal("Langfuse severity must not imply provider success or billing completeness")
+	normalized := strings.Join(strings.Fields(string(doc)), " ")
+	for _, want := range []string{
+		"reads only Langfuse's bounded `level` enum",
+		"DEFAULT, DEBUG and WARNING alone do not trigger usage review.",
+		"ERROR observations have a separate recorded-token subset.",
+		"Missing or invalid levels still require review.",
+		"Call status stays unknown because Langfuse does not record it",
+		"severity is not proof of provider success or complete billing.",
+	} {
+		if !strings.Contains(normalized, want) {
+			t.Fatalf("Langfuse guide lacks current observation-level contract %q", want)
+		}
 	}
-	if strings.Contains(string(doc), "## Observation severity") || strings.Contains(string(doc), "(unreleased)") {
-		t.Fatal("deferred next-release section must not ship on main yet")
+	if strings.Contains(string(doc), "The v0.13.0 binary") || strings.Contains(string(doc), "(unreleased)") {
+		t.Fatal("released Langfuse guide still describes deferred or superseded behavior")
+	}
+	_, selected, ok := strings.Cut(string(doc), "Selected output from that command:\n\n```text\n")
+	if !ok {
+		t.Fatal("Langfuse guide selected output is missing")
+	}
+	selected, _, ok = strings.Cut(selected, "\n```")
+	if !ok || !strings.Contains(selected, "How complete is the export?") {
+		t.Fatal("Langfuse guide selected output lacks export coverage")
+	}
+	var out, diagnostic bytes.Buffer
+	if code := Run(langfuseExampleArgs("text"), &out, &diagnostic); code != 0 || diagnostic.Len() != 0 {
+		t.Fatalf("guide example failed: code %d %s", code, diagnostic.String())
+	}
+	checkLangfuseExample(t, "text", out.Bytes())
+	actual := strings.Split(out.String(), "\n")
+	for _, line := range strings.Split(selected, "\n") {
+		for len(actual) > 0 && actual[0] != line {
+			actual = actual[1:]
+		}
+		if len(actual) == 0 {
+			t.Fatalf("Langfuse guide selected line absent or out of order: %q", line)
+		}
+		actual = actual[1:]
 	}
 }
 
