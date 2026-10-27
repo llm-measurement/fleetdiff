@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.13.0](../../README.md#1-install-v0130), then run this fixture
+Install [fleetdiff v0.13.1](../../README.md#1-install-v0131), then run this fixture
 from the repository root with the verified binary:
 
 ```sh
