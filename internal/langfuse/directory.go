@@ -543,6 +543,7 @@ func Investigate(dir, group, tag string, opts spend.Options) (Report, error) {
 	if opts.GroupBy == "" {
 		opts.GroupBy = "key"
 	}
+	opts.ModelAliases = group == "provided_model_name"
 	r, err := spend.InvestigateRows(func(visit func(spend.Row) error) error {
 		for _, row := range snap.rows {
 			if row.Values["call_type"] != "completion" {
@@ -580,10 +581,13 @@ func Investigate(dir, group, tag string, opts spend.Options) (Report, error) {
 		"Raw user, session and custom labels are suppressed with local keyed aliases. Status is unknown; status_message is never decoded.",
 		"Level is an observation severity enum, not provider success or billing finality. DEFAULT/DEBUG/WARNING alone do not require usage review; ERROR and missing/invalid levels do. Other usage checks still apply. Per-request splits remain unavailable while call status is unknown.",
 	}
+	if opts.ModelAliases {
+		r.Notes = append(r.Notes, "Model labels in contributor rankings match the model totals. Bracketed group aliases distinguish project-scoped contributors when the same model occurs in multiple projects; those contributors are not merged.")
+	}
 	for _, c := range []*compare.Concentration{&r.Rankings, r.Cache.Rankings} {
 		if c != nil {
 			for i := range c.Movers {
-				_, n, ok := strings.Cut(c.Movers[i].Item, "-")
+				n, ok := strings.CutPrefix(c.Movers[i].Item, opts.GroupBy+"-")
 				if ok {
 					c.Movers[i].Item = group + "-" + n
 				}
