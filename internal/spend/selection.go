@@ -16,8 +16,11 @@ type scopeSelection struct {
 }
 
 func validateRoutingOptions(opts *Options) error {
-	if opts.ShowLabels && !opts.RoutingAudit {
-		return errors.New("show-labels requires routing-audit")
+	if opts.ShowLabels != opts.AcknowledgeSensitiveLabels {
+		return errors.New("show-labels and acknowledge-sensitive-labels must be supplied together")
+	}
+	if opts.ShowLabels && !opts.RoutingAudit && opts.GroupBy != "agent" {
+		return errors.New("show-labels requires agent grouping or routing-audit; user, session, end-user and key rankings stay alias-only")
 	}
 	if opts.RoutingBy != "" && !opts.RoutingAudit {
 		return errors.New("routing-by requires routing-audit")

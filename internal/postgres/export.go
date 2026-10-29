@@ -70,7 +70,7 @@ SET LOCAL idle_in_transaction_session_timeout = '120s';
 SET LOCAL client_encoding = 'UTF8';`); err != nil {
 		return result, err
 	}
-	if err = checkSchema(ctx, conn, o.Daily); err != nil {
+	if err = checkSchema(ctx, conn, o.Daily, o.RequestTags); err != nil {
 		return result, err
 	}
 	name := "spend." + o.Format

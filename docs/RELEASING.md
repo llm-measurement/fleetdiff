@@ -97,7 +97,7 @@ verify that every advertised version is downloadable. Do not replace immutable t
 or artifacts to correct a failed publication; fix forward with a new version if
 any release content must change.
 
-## After Publishing v0.13.1
+## After Publishing v0.14.0
 
 From an anonymous clone in a fresh directory outside any synced workspace:
 
@@ -106,7 +106,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    [OPERATIONS](OPERATIONS.md#install-and-verify). Confirm the signed tag and
    recorded build revision match the approved commit.
 2. Run the README's verified installer into a new directory. Confirm the native
-   executable reports `v0.13.1`, then run the packaged-binary tests above.
+   executable reports `v0.14.0`, then run the packaged-binary tests above.
 3. Set `FLEETDIFF_BIN` to that freshly installed executable and run the exact
    [pinned database test](../examples/litellm-spend/TESTING.md#pinned-database-integration).
    It exercises the real pinned writer, a SELECT-only SQL export and the released
@@ -141,7 +141,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
     subset, and absent agents read as unknown. Keep the v0.8.0 import-refactor
     output goldens and legacy identity-hash tests unchanged; reports without
     these conditions must remain byte-identical.
-11. Run the routing guide with default aliases and with `--show-labels`. Verify
+11. Run the routing guide with default aliases and with `--show-labels --acknowledge-sensitive-labels`. Verify
     public model names, explicit configuration-label warnings, missing serving
     identity, classifier overhead and raw-identity suppression. Exercise a
     pinned-writer `openai/<public-id>` export: price it only when the row provider
@@ -154,6 +154,13 @@ From an anonymous clone in a fresh directory outside any synced workspace:
     Exercise the README's database investigation, private cleanup and retained
     exports. Record the exact executable and distinguish native-driver tests
     from the older writer/psql tests; skipped database checks do not pass this gate.
+13. Run the agent-tag fixture from AGENT_ATTRIBUTION with the installed binary.
+    Check the 620-token/USD6.20 totals, alpha's +200 of +320-token answer,
+    unknown/ambiguous buckets, unavailable-cost visibility and two-flag escaped
+    label disclosure. Check project aliases on a two-project Langfuse export.
+    Retain the 18 default text/JSON byte comparisons against v0.13.1 separately
+    from these opt-in agent checks. Publish site pins and guide text only after
+    these released-artifact gates pass; do not treat source tests as that proof.
 
 The release workflow tests every native platform before publication. The local
 outsider run proves the post-publication download and database path on its own

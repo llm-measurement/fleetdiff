@@ -40,16 +40,23 @@ func queries(o exportdata.Options) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
+	tags, err := recipeBlock("$tags$")
+	if err != nil {
+		return "", "", err
+	}
 	if !o.UsageDetails {
 		details = ""
 	}
 	if !o.Routing {
 		routing = ""
 	}
+	if !o.RequestTags {
+		tags = ""
+	}
 	if strings.Count(query, "%s") != 1 || strings.Count(query, "%L") != 2 {
 		return "", "", errProjection
 	}
-	query = strings.Replace(query, "%s", details+routing, 1)
+	query = strings.Replace(query, "%s", details+routing+tags, 1)
 	query = strings.Replace(query, "%L", sqlTime(o.Start), 1)
 	query = strings.Replace(query, "%L", sqlTime(o.End), 1)
 	daily := litellmsql.DailyRecipe

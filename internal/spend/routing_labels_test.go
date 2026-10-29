@@ -56,6 +56,7 @@ func TestRoutingLabelsOptInAndAccountingUnchanged(t *testing.T) {
 	baseline := routingReport(t, rows, o)
 	assertRoutingPrivate(t, baseline)
 	o.ShowLabels = true
+	o.AcknowledgeSensitiveLabels = true
 	shown := routingReport(t, rows, o)
 	c := shown.RoutingAudit.Cohorts[0]
 	if !shown.RoutingAudit.ConfigurationLabelsIncluded || c.Route.Label != "PRIVATE_ROUTE" || c.Agent == nil || c.Agent.Label != "PRIVATE_AGENT" {
@@ -78,6 +79,7 @@ func TestRoutingLabelsOptInAndAccountingUnchanged(t *testing.T) {
 func TestRoutingUnknownAndAmbiguousLabelsRemainAliased(t *testing.T) {
 	o := routingOptions(t)
 	o.ShowLabels, o.RoutingBy = true, "route-agent"
+	o.AcknowledgeSensitiveLabels = true
 	rows := []map[string]string{routingSample("a", "2026-09-01", 90, 10), routingSample("b", "2026-09-02", 90, 10)}
 	rows[0]["model"], rows[1]["model"] = "gpt-6.1-sol", "gpt-6.1-sol"
 	delete(rows[0], "model_id")

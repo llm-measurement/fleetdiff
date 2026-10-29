@@ -143,7 +143,8 @@ check_report routing-audit '.routing_audit.model_rows.before.requests == 3 and
 
 check_case routing-labels 0 investigate --litellm-spend /examples/routing/synthetic.csv \
   --before-period 2026-10-01 --after-period 2026-10-02 --routing-audit \
-  --routing-by route-agent --show-labels --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+  --routing-by route-agent --show-labels --acknowledge-sensitive-labels \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
 check_report routing-labels '.routing_audit.configuration_labels_included == true and
     .routing_audit.cohorts[0].route.label == "coding-default" and
     .routing_audit.cohorts[0].agent.label == "agent-a" and
@@ -162,4 +163,31 @@ check_case what-if-routing 0 what-if --litellm-spend /examples/routing/synthetic
 check_report what-if-routing '.covered_observations == 2 and
     .excluded_observations.missing_split == 1 and
     .excluded_observations.unsupported_call_type == 1 and .moves[0].scoped == true'
-printf 'PASS restricted offline binary smoke: 14 cases (%s)\n' "$platform"
+check_case agent-id 0 investigate --litellm-spend /examples/litellm-spend/agents.csv \
+  --before-period 2026-10-07 --after-period 2026-10-08 --group-by agent \
+  --agent-source agent_id --rank-by recorded-spend-change \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report agent-id '.agents.label_source == "agent_id" and
+    .agents.contributors[0].recorded_usd_delta == "2" and
+    .agents.contributors[0].after.recorded_usd == "3" and
+    (.agents.contributors[0] | has("label") | not)'
+
+check_case agent-tags 0 investigate --litellm-spend /examples/litellm-spend/agent-tags.csv \
+  --before-period 2026-10-07 --after-period 2026-10-08 --group-by agent \
+  --agent-source request-tag --agent-tag-prefix 'agent:' --rank-by recorded-spend-change \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report agent-tags '.after.recorded_tokens == 620 and .after.recorded_spend_usd == "6.2" and
+    .agents.after.known.recorded_tokens == 500 and
+    .agents.after.unknown.recorded_tokens == 50 and
+    .agents.after.ambiguous.recorded_tokens == 70 and
+    .agents.after.coverage.repeated_agent_tag_rows == 1 and
+    .agents.after.coverage.empty_suffix_rows == 1'
+
+check_case agent-labels 0 investigate --litellm-spend /examples/litellm-spend/agent-tags.csv \
+  --before-period 2026-10-07 --after-period 2026-10-08 --group-by agent \
+  --agent-source request-tag --agent-tag-prefix 'agent:' --rank-by recorded-spend-change \
+  --show-labels --acknowledge-sensitive-labels \
+  --hash-secret-env FLEETDIFF_SMOKE_SECRET --format json
+check_report agent-labels '.agents.sensitive_labels_included == true and
+    .agents.contributors[0].label == "alpha"'
+printf 'PASS restricted offline binary smoke: 17 cases (%s)\n' "$platform"

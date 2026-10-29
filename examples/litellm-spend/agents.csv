@@ -1,0 +1,7 @@
+request_id,call_type,startTime,endTime,status,model,prompt_tokens,completion_tokens,total_tokens,spend,agent_id
+before-a,completion,2026-10-07T12:00:00Z,2026-10-07T12:00:01Z,success,synthetic-model,100,0,100,1,alpha
+before-b,completion,2026-10-07T12:00:00Z,2026-10-07T12:00:01Z,success,synthetic-model,100,0,100,1,beta
+before-c,completion,2026-10-07T12:00:00Z,2026-10-07T12:00:01Z,success,synthetic-model,100,0,100,1,gamma
+after-a,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,300,0,300,3,alpha
+after-b,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,100,0,100,1,beta
+after-c,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,100,0,100,1,gamma

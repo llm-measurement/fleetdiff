@@ -40,9 +40,18 @@ type Row struct {
 	// Set only by observation adapters, never by SQL/CSV status projections.
 	// Severity does not establish provider completion or billing finality.
 	ObservationLevel string
+	// Set by the Langfuse adapter only, preserving project-scoped agents.
+	AgentNamespace string
+	agent          *agentResolution
 }
 
 func (r Row) replayProjection() any {
+	if r.AgentNamespace != "" {
+		return struct {
+			Values                           map[string]string
+			ObservationLevel, AgentNamespace string
+		}{r.Values, r.ObservationLevel, r.AgentNamespace}
+	}
 	if r.ObservationLevel == "" {
 		return r.Values
 	}
@@ -80,7 +89,7 @@ func allowedColumn(name string) bool {
 	case "request_id", "call_type", "api_key", "user", "team_id", "organization_id", "end_user",
 		"model", "model_id", "model_group", "custom_llm_provider", "prompt_tokens", "completion_tokens",
 		"total_tokens", "spend", "status", "session_id", "startTime", "endTime", "cache_read_input_tokens",
-		"cache_write_input_tokens", "reasoning_output_tokens", "agent_id", "rejection_kind":
+		"cache_write_input_tokens", "reasoning_output_tokens", "agent_id", "rejection_kind", "request_tags":
 		return true
 	}
 	return false
@@ -95,7 +104,7 @@ func routingReaderColumn(name string) bool {
 }
 
 func retainSpendEmpty(name string, routing bool) bool {
-	if name == "rejection_kind" {
+	if name == "rejection_kind" || name == "request_tags" {
 		return true
 	}
 	return routing && (routingReaderColumn(name) || name == "agent_id" || name == "model" || name == "model_id")

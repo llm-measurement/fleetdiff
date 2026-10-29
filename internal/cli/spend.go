@@ -113,14 +113,54 @@ func renderSpend(out io.Writer, r spend.Report) {
 		}
 		fmt.Fprintln(out)
 	}
+	if r.Agents != nil {
+		if c := r.Increase; c != nil && !r.Incomplete {
+			label, verb := fmt.Sprintf("%d leading tracked agents", c.Count), "account"
+			if c.Count == 1 {
+				for _, m := range r.Rankings.Movers {
+					if m.Delta.Lower > 0 {
+						label, verb = m.Item, "accounts"
+						break
+					}
+				}
+				if leading := r.Agents.LeadingContributor; leading != nil && leading.Item == label {
+					label = agentLabel(*leading)
+				}
+			}
+			net := int64(r.After.Tokens - r.Before.Tokens)
+			if c.Delta.Upper > net {
+				if c.Delta.Lower >= net {
+					fell := compare.Interval{Lower: c.Delta.Lower - net, Upper: c.Delta.Upper - net}
+					fmt.Fprintf(out, "  %s added %s tokens while others fell by %s (net +%s).\n", label, spendInterval(c.Delta), spendInterval(fell), spendNumber(net))
+				} else {
+					changed := compare.Interval{Lower: net - c.Delta.Upper, Upper: net - c.Delta.Lower}
+					fmt.Fprintf(out, "  %s added %s tokens while others changed by %s (net +%s).\n", label, spendInterval(c.Delta), signedInterval(changed), spendNumber(net))
+				}
+			} else {
+				share := spendPercent(100 * c.Share.Lower)
+				if c.Delta.Lower != c.Delta.Upper {
+					lower, upper := c.Share.Lower*10000, c.Share.Upper*10000
+					if c.Share.Lower == c.Share.Upper {
+						lower, upper = math.Nextafter(lower, math.Inf(-1)), math.Nextafter(upper, math.Inf(1))
+					}
+					share = fmt.Sprintf("[%s, %s]", spendPercent(math.Floor(lower)/100), spendPercent(math.Ceil(upper)/100))
+				}
+				fmt.Fprintf(out, "  %s %s for %s of the net recorded increase (%s of +%s tokens).\n", label, verb, share, signedInterval(c.Delta), spendNumber(r.After.Tokens-r.Before.Tokens))
+			}
+		}
+		renderAgents(out, r.Agents)
+	}
 	for _, m := range r.Rankings.Movers {
+		if r.Agents != nil {
+			break
+		}
 		label := m.Item
 		if m.Hash != "" {
 			label += " (" + m.Hash + ")"
 		}
 		fmt.Fprintf(out, "  %s: %s -> %s tokens; change %s.\n", label, spendInterval(m.Before), spendInterval(m.After), signedInterval(m.Delta))
 	}
-	if c := r.Increase; c != nil && !r.Incomplete {
+	if c := r.Increase; c != nil && !r.Incomplete && r.Agents == nil {
 		kind := r.GroupBy
 		verb := "accounts"
 		if c.Count != 1 {
@@ -149,7 +189,7 @@ func renderSpend(out io.Writer, r spend.Report) {
 			fmt.Fprintf(out, "  %s leading tracked %s %s for %s of the net recorded increase.\n", spendNumber(c.Count), kind, verb, share)
 		}
 	}
-	if len(r.Rankings.Movers) == 0 {
+	if len(r.Rankings.Movers) == 0 && r.Agents == nil {
 		fmt.Fprintln(out, "  No tracked contributors with attributable recorded tokens.")
 	}
 	fmt.Fprintf(out, "  Attributed tokens: %s -> %s.\n", spendNumber(r.Before.AttributedTokens), spendNumber(r.After.AttributedTokens))
@@ -199,6 +239,10 @@ func renderSpend(out io.Writer, r spend.Report) {
 		}
 	}
 	a, b := r.Before.Quality, r.After.Quality
+	identityLabel := "Group identities missing"
+	if r.Agents != nil {
+		identityLabel = "Agent identity unknown or ambiguous"
+	}
 	var levels []string
 	for _, level := range []string{"DEFAULT", "DEBUG", "WARNING", "ERROR", "unknown"} {
 		if a.ObservationLevels[level] != 0 || b.ObservationLevels[level] != 0 {
@@ -230,7 +274,7 @@ func renderSpend(out io.Writer, r spend.Report) {
 		{"Total field absent", a.TotalMissing, b.TotalMissing},
 		{"Failed records (overlap usage categories)", a.Failed, b.Failed},
 		{"Unknown status", a.UnknownStatus, b.UnknownStatus},
-		{"Group identities missing", a.MissingIdentity, b.MissingIdentity},
+		{identityLabel, a.MissingIdentity, b.MissingIdentity},
 	} {
 		if v.a != 0 || v.b != 0 {
 			problems = true

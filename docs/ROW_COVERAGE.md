@@ -8,7 +8,7 @@ fixture reproduces a real response-ID collision through pinned LiteLLM's proxy
 and database writers. The next UTC day matches: 1 row and 1 daily request.
 The check leaves token and spend totals exactly as recorded in the export.
 
-Install [fleetdiff v0.9.0](../README.md#2-install-v090). From the repository
+Install [fleetdiff v0.14.0](../README.md#1-install-v0140) after publication. From the repository
 root, select the verified binary for the commands below:
 
 ```sh

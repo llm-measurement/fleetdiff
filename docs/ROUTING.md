@@ -21,7 +21,9 @@ fleetdiff investigate --litellm-spend ./spend.csv \
 ```
 
 Add `--routing-by route-agent` to separate the known agents within each route.
-Add `--show-labels` for a local report with the recorded route and agent names.
+Add `--show-labels --acknowledge-sensitive-labels` for a local report with the recorded route and agent names.
+The two-flag form targets the next minor release. Released v0.13.1 uses
+`--show-labels` alone for routing labels; agent contributor labels are unreleased.
 The usual `--group-by` still controls the existing contributor rankings; it does
 not change the routing table. `--format json` includes the same evidence as an
 additive `routing_audit` object. Default reports omit this object and section.
@@ -96,13 +98,14 @@ other model and deployment names stay aliased, including under `--show-labels`.
 The same public-model rule applies to `investigate`'s model totals. A catalog
 match identifies a public name, not independent proof of the serving model.
 Routes and agents stay aliased by default; `--show-hashes` adds keyed digests.
-`--show-labels` adds their recorded labels beside the aliases (JSON: `label`),
+`--show-labels --acknowledge-sensitive-labels` adds their recorded labels beside the aliases (JSON: `label`),
 with terminal controls escaped in text. Reports made with it contain
 configuration labels: keep them local and review them before sharing.
 Unknown identities and groups with conflicting raw spellings remain aliased.
 Distinct source groups resolving to the same public model keep an alias suffix
 so they remain distinguishable; their accounting groups and hashes are not merged.
-Selector arguments are not echoed; errors never expose configuration labels.
+Routing selector arguments are not echoed. Agent-tag cardinality errors name
+the selected prefix, with terminal controls escaped, to suggest a narrower one.
 An absent route stays unknown, even if `model_group` names a recovery route.
 The original route comes only from `metadata.original_model_group`.
 

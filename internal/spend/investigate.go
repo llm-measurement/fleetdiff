@@ -33,11 +33,13 @@ type Options struct {
 	ProviderCountsPath, ProviderModelMapPath      string
 	ProviderContractPath                          string
 	ScopeRoute, ScopeAgent                        string
+	AgentSource, AgentTagPrefix, RankBy           string
 	RoutingAudit                                  bool
 	RoutingBy                                     string
 	Top                                           int
 	ShowHashes                                    bool
 	ShowLabels                                    bool
+	AcknowledgeSensitiveLabels                    bool
 	// Row adapters may share model aliases without changing group identities.
 	ModelAliases bool
 	Now          time.Time
@@ -156,6 +158,14 @@ func requestDigest(key []byte, id string) [32]byte {
 }
 
 func groupIdentity(row Row, group string, key []byte) ([32]byte, bool, error) {
+	if group == "agent" {
+		if row.agent == nil || row.agent.state != "known" {
+			return [32]byte{}, false, nil
+		}
+		a := row.agent
+		digest, err := identity(key, "agent", a.source, a.prefix, row.AgentNamespace, a.label)
+		return digest, true, err
+	}
 	field := map[string]string{"key": "api_key", "team": "team_id", "user": "user", "end-user": "end_user", "session": "session_id"}[group]
 	value := row.Values[field]
 	if strings.TrimSpace(value) == "" {
@@ -181,7 +191,7 @@ func Investigate(path string, opts Options) (Report, error) {
 // InvestigateRows composes an offline source with the existing investigation.
 // The reader must replay the same completed snapshot on every pass.
 func InvestigateRows(read func(func(Row) error) error, opts Options) (Report, error) {
-	if read == nil || opts.DailySpendPath != "" || opts.RoutingAudit || opts.RoutingBy != "" || opts.ScopeRoute != "" || opts.ScopeAgent != "" || opts.ShowLabels || opts.ProviderCountsPath != "" || opts.ProviderModelMapPath != "" || opts.ProviderContractPath != "" {
+	if read == nil || opts.DailySpendPath != "" || opts.RoutingAudit || opts.RoutingBy != "" || opts.ScopeRoute != "" || opts.ScopeAgent != "" || opts.ShowLabels && opts.GroupBy != "agent" || opts.ProviderCountsPath != "" || opts.ProviderModelMapPath != "" || opts.ProviderContractPath != "" {
 		return Report{}, errors.New("row sources do not support SQL coverage, provider counts or routing options")
 	}
 	return investigate("", opts, func(_ string, visit func(Row) error) error { return read(visit) })
@@ -194,8 +204,11 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 	if opts.GroupBy == "" {
 		opts.GroupBy = "key"
 	}
-	if !slices.Contains([]string{"key", "team", "user", "end-user", "session"}, opts.GroupBy) || opts.Top < 1 || opts.Top > 100 {
-		return Report{}, errors.New("group-by must be key, team, user, end-user or session; top must be 1-100")
+	if !slices.Contains([]string{"key", "team", "user", "end-user", "session", "agent"}, opts.GroupBy) || opts.Top < 1 || opts.Top > 100 {
+		return Report{}, errors.New("group-by must be key, team, user, end-user, session or agent; top must be 1-100")
+	}
+	if err := ValidateAgentOptions(opts); err != nil {
+		return Report{}, err
 	}
 	if err := validateRoutingOptions(&opts); err != nil {
 		return Report{}, err
@@ -218,11 +231,24 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 	opts.ScopeRoute, opts.ScopeAgent = "", ""
 	routing := newRoutingAccumulator(opts, selection)
 	read := Read
-	if routing != nil {
+	if routing != nil || opts.GroupBy == "agent" {
 		read = ReadRouting
 	}
 	if source != nil {
 		read = source
+	}
+	if opts.GroupBy == "agent" {
+		base := read
+		read = func(path string, visit func(Row) error) error {
+			return base(path, func(row Row) error {
+				var err error
+				row.agent, err = resolveAgent(row, opts)
+				if err != nil {
+					return err
+				}
+				return visit(row)
+			})
+		}
 	}
 	var earliest, latest time.Time
 	firstDigest := sha256.New()
@@ -259,6 +285,7 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 		return Report{}, err
 	}
 	windows := [2]*aggregate{newAggregate(before, true), newAggregate(after, true)}
+	agents := newAgentAccumulator(opts, before, after)
 	models := map[[32]byte][2]*aggregate{}
 	modelOrder := map[[32]byte]int{}
 	modelLabels := map[[32]byte]string{}
@@ -345,6 +372,9 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 		if e = w.add(row, a, q); e != nil {
 			return e
 		}
+		if e = agents.add(row, side, group, a, q); e != nil {
+			return e
+		}
 		if present {
 			h := binary.BigEndian.Uint64(group[:8])
 			w.distinct.AddHash(h)
@@ -402,6 +432,7 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 		return Report{}, errors.New("export changed while reading; use a completed immutable export")
 	}
 	r.Before, r.After = windows[0].result(), windows[1].result()
+	r.Agents = agents.result()
 	r.RowCoverage = coverage.result()
 	r.ProviderCoverage, err = provider.result(r.RowCoverage)
 	if err != nil {
@@ -504,7 +535,7 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 		r.Cache.Rankings.Movers = r.Cache.Rankings.Movers[:min(opts.Top, len(r.Cache.Rankings.Movers))]
 		groups = append(groups, r.Cache.Rankings.Movers)
 	}
-	aliases := map[string]string{}
+	aliases := agents.aliases()
 	for _, movers := range groups {
 		for i := range movers {
 			m := &movers[i]
@@ -530,6 +561,9 @@ func investigate(path string, opts Options, source func(string, func(Row) error)
 		"Aliases use local keyed hashes; session identities are scoped to their API key. A recorded session need not be an agent conversation.",
 		"Recorded spend is the exact decimal sum of usable source values in USD, not an invoice. Default-zero costs have unknown origin.",
 		"Rankings describe tracked candidates; concentration uses the net recorded increase and can exceed 100% when other contributors decreased.",
+	}
+	if err := agents.finish(&r); err != nil {
+		return Report{}, err
 	}
 	return r, nil
 }

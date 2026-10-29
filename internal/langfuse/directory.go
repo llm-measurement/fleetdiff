@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"maps"
 	"math/big"
 	"os"
 	"path"
@@ -453,6 +454,12 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, projection
 		}
 	}
 	// All group identities are project-scoped; raw labels never reach output.
+	if group == "agent" {
+		row.AgentNamespace = project
+		if raw := p.fields["tags"]; len(raw) > 0 {
+			v["request_tags"] = string(raw)
+		}
+	}
 	v["api_key"] = framed("langfuse", project)
 	if group == "user_id" {
 		if v["user"] != "" {
@@ -478,6 +485,19 @@ func mappedRow(p projection, group, tag string) (spend.Row, [32]byte, projection
 	}
 	// Compare normalized approved fields, not encoding-specific raw JSON/CSV.
 	canonical := map[string]any{"accounting/grouping": v, "type": kind, "level": row.ObservationLevel, "start_time": v["startTime"], "end_time": v["endTime"], "total_cost": v["spend"]}
+	if group == "agent" {
+		grouping := maps.Clone(v)
+		if raw, ok := v["request_tags"]; ok {
+			tags, err := spend.ParseRequestTags(raw)
+			if err != nil {
+				return row, digest, projectionFingerprint{}, err
+			}
+			slices.Sort(tags)
+			normalized, _ := json.Marshal(tags)
+			grouping["request_tags"] = string(normalized)
+		}
+		canonical["accounting/grouping"] = grouping
+	}
 	for _, name := range []string{"user_id", "session_id", "provided_model_name", "environment", "release", "trace_name", "prompt_name"} {
 		s, _ := text(p.fields[name])
 		canonical[name] = s
@@ -532,8 +552,16 @@ func Investigate(dir, group, tag string, opts spend.Options) (Report, error) {
 	if group == "" {
 		group = "user_id"
 	}
-	if !slices.Contains([]string{"user_id", "session_id", "provided_model_name", "environment", "release", "trace_name", "prompt_name", "tag"}, group) || group == "tag" && (strings.TrimSpace(tag) == "" || len(tag) > MaxFieldBytes) || group != "tag" && tag != "" {
+	if !slices.Contains([]string{"user_id", "session_id", "provided_model_name", "environment", "release", "trace_name", "prompt_name", "tag", "agent"}, group) || group == "tag" && (strings.TrimSpace(tag) == "" || len(tag) > MaxFieldBytes) || group != "tag" && tag != "" {
 		return Report{}, errors.New("unsupported Langfuse group; tag grouping requires --langfuse-tag")
+	}
+	if group == "agent" && opts.AgentSource != "request-tag" {
+		return Report{}, errors.New("Langfuse agent grouping requires agent-source request-tag")
+	}
+	check := opts
+	check.GroupBy = group
+	if err := spend.ValidateAgentOptions(check); err != nil {
+		return Report{}, err
 	}
 	snap, err := loadDirectory(dir, group, tag)
 	if err != nil {
@@ -542,6 +570,9 @@ func Investigate(dir, group, tag string, opts spend.Options) (Report, error) {
 	opts.GroupBy = map[string]string{"user_id": "user", "session_id": "session"}[group]
 	if opts.GroupBy == "" {
 		opts.GroupBy = "key"
+	}
+	if group == "agent" {
+		opts.GroupBy = "agent"
 	}
 	opts.ModelAliases = group == "provided_model_name"
 	r, err := spend.InvestigateRows(func(visit func(spend.Row) error) error {

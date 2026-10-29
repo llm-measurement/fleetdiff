@@ -13,7 +13,7 @@ import (
 
 var errSchema = exportdata.ErrSchema
 
-func checkSchema(ctx context.Context, c *pgconn.PgConn, daily bool) error {
+func checkSchema(ctx context.Context, c *pgconn.PgConn, daily, requestTags bool) error {
 	spend := map[string]uint32{}
 	for _, name := range []string{"request_id", "call_type", "api_key", "user", "team_id", "organization_id", "end_user", "model", "model_id", "model_group", "custom_llm_provider", "status", "session_id", "agent_id"} {
 		spend[name] = 25
@@ -22,6 +22,9 @@ func checkSchema(ctx context.Context, c *pgconn.PgConn, daily bool) error {
 		spend[name] = 23
 	}
 	spend["spend"], spend["metadata"], spend["startTime"], spend["endTime"] = 701, 3802, 1114, 1114
+	if requestTags {
+		spend["request_tags"] = 3802
+	}
 	notNull := map[string]bool{}
 	for _, name := range []string{"request_id", "call_type", "api_key", "model", "prompt_tokens", "completion_tokens", "total_tokens", "spend", "startTime", "endTime"} {
 		notNull[name] = true

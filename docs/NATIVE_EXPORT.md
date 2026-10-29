@@ -97,6 +97,14 @@ GRANT SELECT (
 ALTER ROLE fleetdiff_reader SET default_transaction_read_only = on;
 ```
 
+Only for opt-in request-tag exports, also grant the new column below.
+This exports every request tag on a row, not only agent tags; keep the file private.
+
+```sql
+GRANT SELECT (request_tags)
+  ON TABLE public."LiteLLM_SpendLogs" TO fleetdiff_reader;
+```
+
 Only when daily counters are needed, also grant:
 
 ```sql
@@ -201,13 +209,21 @@ fleetdiff issues no database writes or schema migrations.
 
 The v0.12.0 shared SQL orders spend rows by `"startTime", request_id COLLATE
 "C"` and daily rows by `date COLLATE "C"`. For the same database snapshot, bounds,
-format and detail options, native and v0.12.0 `psql` exports must be
-byte-for-byte identical. Sequential exports from a changing live database are
+format and detail options, native and matching `psql` exports must be
+byte-for-byte identical. Default projections retain the v0.12.0 recipe's bytes;
+opt-in request tags require the matching recipe from the same build.
+Sequential exports from a changing live database are
 not the same snapshot. This ordering is new relative to the v0.11.0 recipe:
 it can change bytes, first-seen aliases and tied report order, not recorded
 totals or identity hashing. Database sorting can also affect export time.
 
 ## Limits And Failures
+
+- `--request-tags` includes every request tag on a row, not only agent tags.
+  This option targets the next minor release; use the matching source checkout
+  until it is released.
+  It is opt-in; default exports omit the column. The manual recipe uses
+  `-v request_tags=true` for the same JSON-array-text projection.
 
 | Native export bound | Value |
 | --- | --- |

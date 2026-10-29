@@ -14,6 +14,7 @@ type Options struct {
 	Start, End                   time.Time
 	Format                       string
 	Daily, Routing, UsageDetails bool
+	RequestTags                  bool
 }
 
 type Result struct {

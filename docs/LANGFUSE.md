@@ -21,11 +21,11 @@ It reads local files only, not Langfuse services or provider APIs.
 
 ## Try the synthetic example
 
-Install using the [README](../README.md#1-install-v0131), then get the example
-files (the installer does not include a source checkout):
+After v0.14.0 is published, install using the [README](../README.md#1-install-v0140),
+then get the example files (the installer does not include a source checkout):
 
 ```sh
-git clone --depth 1 --branch v0.13.1 https://github.com/llm-measurement/fleetdiff
+git clone --depth 1 --branch v0.14.0 https://github.com/llm-measurement/fleetdiff
 ```
 
 From the directory containing `fleetdiff-install` and this checkout, compare

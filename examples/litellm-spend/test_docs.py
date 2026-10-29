@@ -67,7 +67,7 @@ class DocumentationTests(unittest.TestCase):
 
     def test_native_release_promotion(self):
         readme = (ROOT / "README.md").read_text()
-        self.assertLess(readme.index("### 1. Install v0.13.1"),
+        self.assertLess(readme.index("### 1. Install v0.14.0"),
                         readme.index("investigate --litellm-db"))
         self.assertIn("Manual Alternative: Export With psql", readme)
         self.assertNotIn("go build", readme)
@@ -85,6 +85,23 @@ class DocumentationTests(unittest.TestCase):
                 content = (ROOT / name).read_text()
                 self.assertNotRegex(content.lower(),
                                     r"unreleased v0\.12|native candidate|candidate (?:build|recipe|checkout)")
+
+    def test_v014_preparation_and_agent_guide(self):
+        readme = (ROOT / "README.md").read_text()
+        installer = (ROOT / "scripts/install.sh").read_text()
+        self.assertIn("v0.14.0", installer)
+        self.assertNotIn("v0.13.1", installer)
+        self.assertIn("publication", readme)
+        self.assertIn("v0.14.0", (ROOT / "docs/ROW_COVERAGE.md").read_text())
+        guide = (ROOT / "docs/AGENT_ATTRIBUTION.md").read_text()
+        self.assertLess(guide.index("300 to 620 tokens"), guide.index("## Run"))
+        for phrase in ("200 of the 320-token", "62.5%", "project-1", "project-2",
+                       "--show-labels --acknowledge-sensitive-labels"):
+            self.assertIn(phrase, guide)
+        notes = (ROOT / "docs/releases/v0.14.0.md").read_text()
+        self.assertIn("## Breaking Routing Label Disclosure", notes)
+        self.assertIn("--show-labels --acknowledge-sensitive-labels", notes)
+        self.assertIn("Not tagged or published", notes)
 
     def test_langfuse_guide_release_pins(self):
         readme = (ROOT / "README.md").read_text()
@@ -112,7 +129,8 @@ class DocumentationTests(unittest.TestCase):
             "SECURITY.md", "CHANGELOG.md", "docs/NATIVE_EXPORT.md", "docs/ROUTING.md",
             "docs/INSPECT.md", "docs/COMPARISON.md", "docs/releases/v0.11.0.md",
             "docs/releases/v0.12.0.md", "docs/releases/v0.13.1.md",
-            "docs/LANGFUSE.md", "examples/litellm-spend/TESTING.md"))
+            "docs/LANGFUSE.md", "docs/AGENT_ATTRIBUTION.md", "docs/releases/v0.14.0.md",
+            "examples/litellm-spend/TESTING.md"))
         for path in paths:
             for link in re.findall(r"\]\(([^)\s]+)\)", path.read_text()):
                 parsed = urlsplit(link)

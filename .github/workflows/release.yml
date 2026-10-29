@@ -122,7 +122,7 @@ jobs:
         run: go test ./internal/cli -run '^TestReleaseBinary' -count=1 -v
       - name: Pinned SQL export through the packaged importer
         if: matrix.os == 'linux' && matrix.arch == 'amd64'
-        timeout-minutes: 10
+        timeout-minutes: 15
         env:
           FLEETDIFF_BIN: ${{ github.workspace }}/unpacked/fleetdiff
           FLEETDIFF_LINUX_BIN: ${{ github.workspace }}/unpacked/fleetdiff

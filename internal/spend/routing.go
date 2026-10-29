@@ -459,7 +459,7 @@ func newRoutingAccumulator(opts Options, selection *scopeSelection) *routingAccu
 		a.totals = newRoutingPair()
 		a.routes, a.models = map[routingID]int{}, map[routingID]int{}
 		a.modelLabels = map[routingID]string{}
-		a.showLabels = opts.ShowLabels
+		a.showLabels = opts.ShowLabels && opts.GroupBy != "agent"
 		if a.showLabels {
 			a.routeLabels, a.agentLabels = map[routingID]string{}, map[routingID]string{}
 		}

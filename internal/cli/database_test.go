@@ -78,7 +78,7 @@ func TestDatabaseExportOptions(t *testing.T) {
 		t.Run(map[bool]string{false: "defaults", true: "explicit"}[explicit], func(t *testing.T) {
 			args := []string{"export", "litellm", "--out", filepath.Join(t.TempDir(), "SENTINEL_DIRECTORY")}
 			if explicit {
-				args = append(args, "--from", "2026-10-01", "--to", "2026-10-15T00:00:00Z", "--format", "jsonl", "--daily", "--routing-details", "--usage-details=false", "--database-url-file", "SENTINEL_CREDENTIAL_FILE")
+				args = append(args, "--from", "2026-10-01", "--to", "2026-10-15T00:00:00Z", "--format", "jsonl", "--daily", "--routing-details", "--request-tags", "--usage-details=false", "--database-url-file", "SENTINEL_CREDENTIAL_FILE")
 			}
 			var got exportdata.Options
 			calls := 0
@@ -95,10 +95,10 @@ func TestDatabaseExportOptions(t *testing.T) {
 				t.Fatalf("incorrect range/destination: %+v", got)
 			}
 			if explicit {
-				if got.Format != "jsonl" || !got.Daily || !got.Routing || got.UsageDetails || got.CredentialFile != "SENTINEL_CREDENTIAL_FILE" || got.Start.Format(time.DateOnly) != "2026-10-01" {
+				if got.Format != "jsonl" || !got.Daily || !got.Routing || !got.RequestTags || got.UsageDetails || got.CredentialFile != "SENTINEL_CREDENTIAL_FILE" || got.Start.Format(time.DateOnly) != "2026-10-01" {
 					t.Fatalf("explicit options lost: %+v", got)
 				}
-			} else if got.Format != "csv" || got.Daily || got.Routing || !got.UsageDetails || !got.End.Equal(before.UTC().Truncate(24*time.Hour)) && !got.End.Equal(time.Now().UTC().Truncate(24*time.Hour)) {
+			} else if got.Format != "csv" || got.Daily || got.Routing || got.RequestTags || !got.UsageDetails || !got.End.Equal(before.UTC().Truncate(24*time.Hour)) && !got.End.Equal(time.Now().UTC().Truncate(24*time.Hour)) {
 				t.Fatalf("wrong defaults: %+v", got)
 			}
 		})
@@ -269,6 +269,8 @@ func TestDatabaseReportsMatchExistingFilePaths(t *testing.T) {
 		flags                         []string
 	}{
 		{"spend", "investigate", "litellm-spend/synthetic.csv", "", []string{"--before-period", "2026-10-07", "--after-period", "2026-10-08"}},
+		{"agent-id", "investigate", "litellm-spend/agents.csv", "", []string{"--before-period", "2026-10-07", "--after-period", "2026-10-08", "--group-by", "agent", "--agent-source", "agent_id", "--rank-by", "recorded-spend-change"}},
+		{"agent-tags", "investigate", "litellm-spend/agent-tags.csv", "", []string{"--before-period", "2026-10-07", "--after-period", "2026-10-08", "--group-by", "agent", "--agent-source", "request-tag", "--agent-tag-prefix", "agent:", "--show-labels", "--acknowledge-sensitive-labels"}},
 		{"coverage", "investigate", "litellm-spend/coverage_runtime_spend.csv", "litellm-spend/coverage_runtime_daily.csv", []string{"--before-period", "2026-10-07", "--after-period", "2026-10-08"}},
 		{"routing", "investigate", "routing/synthetic.csv", "", []string{"--before-period", "2026-10-01", "--after-period", "2026-10-02", "--routing-audit"}},
 		{"scope", "investigate", "routing/synthetic.csv", "", []string{"--before-period", "2026-10-01", "--after-period", "2026-10-02", "--scope-route", "coding-default"}},
@@ -307,6 +309,9 @@ func TestDatabaseReportsMatchExistingFilePaths(t *testing.T) {
 			}
 			if !opts.Routing || !opts.UsageDetails || opts.Daily != (tc.daily != "") {
 				t.Fatalf("wrong options: %+v", opts)
+			}
+			if opts.RequestTags != (tc.name == "agent-tags") {
+				t.Fatal("tag source did not control tag export")
 			}
 			if _, err := os.Stat(filepath.Dir(opts.Directory)); !errors.Is(err, os.ErrNotExist) {
 				t.Fatalf("temporary parent remains: %v", err)

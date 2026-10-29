@@ -31,6 +31,7 @@ Options:
   --format csv|jsonl         Spend file format (default csv)
   --daily                    Include daily row counters
   --routing-details          Include original-route and agent details
+  --request-tags             Include every request tag as private JSON-array text
   --usage-details=false      Omit default-on cache and usage details
   --database-url-file FILE   Read credentials from an owner-only regular file
 
@@ -45,6 +46,7 @@ private temporary data behind.
 
 type databaseFlags struct {
 	enabled, daily, routing, usage bool
+	requestTags                    bool
 	keep, credentials              string
 }
 
@@ -57,13 +59,14 @@ func (d *databaseFlags) register(f *flag.FlagSet) {
 	f.BoolVar(&d.daily, "daily", false, "")
 	f.BoolVar(&d.routing, "routing-details", false, "")
 	f.BoolVar(&d.usage, "usage-details", true, "")
+	f.BoolVar(&d.requestTags, "request-tags", false, "")
 }
 
 func (d databaseFlags) validate(f *flag.FlagSet) error {
 	var err error
 	f.Visit(func(v *flag.Flag) {
 		switch v.Name {
-		case "keep-export", "database-url-file", "daily", "routing-details", "usage-details":
+		case "keep-export", "database-url-file", "daily", "routing-details", "usage-details", "request-tags":
 			if !d.enabled {
 				err = errors.New("database export options require --litellm-db")
 			} else if (v.Name == "keep-export" || v.Name == "database-url-file") && strings.TrimSpace(v.Value.String()) == "" {
@@ -165,6 +168,7 @@ func (d databaseFlags) export(ctx context.Context, p spend.Period, exporter expo
 	r, err := exporter(ctx, exportdata.Options{
 		Directory: directory, CredentialFile: d.credentials, Start: p.Start, End: p.End,
 		Format: "csv", Daily: d.daily, Routing: true, UsageDetails: d.usage,
+		RequestTags: d.requestTags,
 	})
 	if err != nil || ctx.Err() != nil {
 		cleanup()
@@ -280,6 +284,7 @@ func runExport(ctx context.Context, args []string, out, errout io.Writer, export
 	f.BoolVar(&opts.Daily, "daily", false, "")
 	f.BoolVar(&opts.Routing, "routing-details", false, "")
 	f.BoolVar(&opts.UsageDetails, "usage-details", true, "")
+	f.BoolVar(&opts.RequestTags, "request-tags", false, "")
 	if err := f.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			if _, err := io.WriteString(out, exportHelp); err != nil {

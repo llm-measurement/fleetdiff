@@ -318,7 +318,7 @@ def seed_database(container, records):
 
 
 def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:00:00Z", details=None,
-                    routing=None):
+                    routing=None, tags=None):
     exports = {}
     for fmt in ("csv", "jsonl"):
         directory = "/tmp/export-" + uuid.uuid4().hex
@@ -332,6 +332,8 @@ def export_database(container, start="2026-10-07T00:00:00Z", end="2026-10-09T00:
             arguments.extend(("-v", "usage_details=" + str(details).lower()))
         if routing is not None:
             arguments.extend(("-v", "routing_details=" + str(routing).lower()))
+        if tags is not None:
+            arguments.extend(("-v", "request_tags=" + str(tags).lower()))
         output = psql(container, *arguments, "-f", "/example/export.sql", reader=True)
         require(not output.strip(), "SQL export leaked output outside its selected file")
         files = docker("exec", container, "ls", "-1", directory).splitlines()

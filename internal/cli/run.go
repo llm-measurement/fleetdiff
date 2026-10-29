@@ -82,10 +82,14 @@ Options:
   --provider-counts-contract FILE  UTC scope and primary counting-basis JSON
   --before-period PERIOD     UTC date or RFC3339 start/end (requires after-period)
   --after-period PERIOD      UTC date or RFC3339 start/end (equal duration)
-  --group-by KIND            key (default), team, user, end-user or session
+  --group-by KIND            key (default), team, user, end-user, session or agent
+  --agent-source SOURCE      agent_id (LiteLLM) or request-tag (explicit)
+  --agent-tag-prefix PREFIX  Exact, case-sensitive prefix for request-tag attribution
+  --rank-by KIND             recorded-spend-change for agent ranking
   --routing-audit            Show original-route distributions and attribution coverage
   --routing-by KIND          route (default) or route-agent; requires routing-audit
-  --show-labels              Include route/agent configuration labels; requires routing-audit
+  --show-labels              Include selected agent labels (or routing-audit labels)
+  --acknowledge-sensitive-labels  Required with show-labels; review before sharing
   --scope-route ID           Investigate one recorded original route (explicit periods)
   --scope-agent ID           Investigate one recorded agent (explicit periods)
   --period PERIOD            Single-period session review: UTC date or RFC3339 start/end
@@ -175,6 +179,9 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 	beforePeriod := flags.String("before-period", "", "")
 	afterPeriod := flags.String("after-period", "", "")
 	group := flags.String("group-by", "key", "")
+	agentSource := flags.String("agent-source", "", "")
+	agentPrefix := flags.String("agent-tag-prefix", "", "")
+	rankBy := flags.String("rank-by", "", "")
 	secret := flags.String("hash-secret-env", "", "")
 	period := flags.String("period", "", "")
 	budget := flags.String("session-budget-usd", "", "")
@@ -182,6 +189,7 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 	routingAudit := flags.Bool("routing-audit", false, "")
 	routingBy := flags.String("routing-by", "", "")
 	showLabels := flags.Bool("show-labels", false, "")
+	ackLabels := flags.Bool("acknowledge-sensitive-labels", false, "")
 	var scopeRoute, scopeAgent string
 	var routeSet, agentSet bool
 	flags.Func("scope-route", "", func(value string) error {
@@ -218,6 +226,12 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 	if err := database.validate(flags); err != nil {
 		return fail(2, err.Error())
 	}
+	if *showLabels != *ackLabels {
+		return fail(2, "show-labels and acknowledge-sensitive-labels must be supplied together")
+	}
+	if *showLabels && !*routingAudit && *group != "agent" {
+		return fail(2, "show-labels requires agent grouping or routing-audit; identity rankings stay alias-only")
+	}
 	spendMode, incompatible := database.enabled, false
 	sessionMode, windowSet, emptySessionOption, twoPeriods := false, false, false, false
 	groupExplicit := false
@@ -226,8 +240,8 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 	routingSet, routingBySet := false, false
 	flags.Visit(func(f *flag.Flag) {
 		switch f.Name {
-		case "litellm-db", "keep-export", "database-url-file", "daily", "routing-details", "usage-details":
-		case "routing-audit", "routing-by", "scope-route", "scope-agent", "show-labels":
+		case "litellm-db", "keep-export", "database-url-file", "daily", "routing-details", "usage-details", "request-tags":
+		case "routing-audit", "routing-by", "scope-route", "scope-agent":
 			spendMode, routingSet = true, true
 			routingBySet = routingBySet || f.Name == "routing-by"
 		case "litellm-daily-spend":
@@ -243,6 +257,8 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			spendMode, windowSet = true, true
 		case "group-by":
 			spendMode, groupExplicit = true, true
+		case "agent-source", "agent-tag-prefix", "rank-by", "show-labels", "acknowledge-sensitive-labels":
+			spendMode = true
 		case "litellm-spend", "langfuse-export", "langfuse-tag", "before-period", "after-period", "hash-secret-env":
 			spendMode = true
 		case "format", "top", "show-hashes":
@@ -254,6 +270,22 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 		}
 	})
 	if spendMode {
+		agentOpts := spend.Options{GroupBy: *group, AgentSource: *agentSource, AgentTagPrefix: *agentPrefix, RankBy: *rankBy, ScopeAgent: scopeAgent}
+		if err := spend.ValidateAgentOptions(agentOpts); err != nil {
+			return fail(2, err.Error())
+		}
+		if *group == "agent" && (sessionMode || windowSet) {
+			return fail(2, "agent grouping requires a two-period investigation")
+		}
+		tagOptOut := false
+		flags.Visit(func(f *flag.Flag) {
+			if f.Name == "request-tags" && !database.requestTags && *agentSource == "request-tag" {
+				tagOptOut = true
+			}
+		})
+		if tagOptOut {
+			return fail(2, "request-tag attribution requires tag export; do not combine with request-tags=false")
+		}
 		langfuseSet := false
 		flags.Visit(func(f *flag.Flag) {
 			if f.Name == "langfuse-export" || f.Name == "langfuse-tag" {
@@ -267,7 +299,7 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			if !groupExplicit {
 				*group = "user_id"
 			}
-			return runLangfuse(*langfusePath, *group, *langfuseTag, *format, spend.Options{BeforePeriod: *beforePeriod, AfterPeriod: *afterPeriod, SecretEnv: *secret, Top: *top, ShowHashes: *hashes}, out, errout)
+			return runLangfuse(*langfusePath, *group, *langfuseTag, *format, spend.Options{BeforePeriod: *beforePeriod, AfterPeriod: *afterPeriod, SecretEnv: *secret, Top: *top, ShowHashes: *hashes, AgentSource: *agentSource, AgentTagPrefix: *agentPrefix, RankBy: *rankBy, ShowLabels: *showLabels, AcknowledgeSensitiveLabels: *ackLabels}, out, errout)
 		}
 		if providerSet && (emptyProviderOption || *providerCountsPath == "" || sessionMode || windowSet || routeSet || agentSet) {
 			return fail(2, "provider coverage needs a nonempty aggregate CSV and an unscoped two-period spend investigation")
@@ -285,9 +317,6 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			if routingBySet && (!*routingAudit || *routingBy != "route" && *routingBy != "route-agent") {
 				return fail(2, "routing-by must be route or route-agent and requires routing-audit")
 			}
-			if *showLabels && !*routingAudit {
-				return fail(2, "show-labels requires routing-audit")
-			}
 			if routeSet && agentSet || routeSet && (strings.TrimSpace(scopeRoute) == "" || len(scopeRoute) > spend.MaxFieldBytes || database.enabled && !utf8.ValidString(scopeRoute)) || agentSet && (strings.TrimSpace(scopeAgent) == "" || len(scopeAgent) > spend.MaxFieldBytes || database.enabled && !utf8.ValidString(scopeAgent)) {
 				return fail(2, "choose one nonempty route or agent scope of at most 8192 bytes")
 			}
@@ -303,7 +332,7 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			}
 		}
 		if database.enabled {
-			if *format != "text" && *format != "json" || *top < 1 || *top > 100 || !slices.Contains([]string{"key", "team", "user", "end-user", "session"}, *group) {
+			if *format != "text" && *format != "json" || *top < 1 || *top > 100 || !slices.Contains([]string{"key", "team", "user", "end-user", "session", "agent"}, *group) {
 				return fail(2, "use text or json output, top between 1 and 100, and a supported spend group")
 			}
 			key, _, err := attribution.Secret(*secret)
@@ -336,6 +365,9 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			if err := validateDatabaseDaily(p, database.daily); err != nil {
 				return fail(2, err.Error())
 			}
+			if *group == "agent" && *agentSource == "request-tag" {
+				database.requestTags = true
+			}
 			r, cleanup, err := database.export(ctx, p, exporter)
 			defer cleanup()
 			if err != nil {
@@ -350,7 +382,9 @@ func RunWithExporter(ctx context.Context, args []string, in io.Reader, out, erro
 			BeforePeriod: *beforePeriod, AfterPeriod: *afterPeriod, GroupBy: *group,
 			SecretEnv: *secret, Top: *top, ShowHashes: *hashes, DailySpendPath: *dailySpendPath,
 			RoutingAudit: *routingAudit, RoutingBy: *routingBy, ScopeRoute: scopeRoute, ScopeAgent: scopeAgent,
-			ShowLabels:         *showLabels,
+			ShowLabels:                 *showLabels,
+			AcknowledgeSensitiveLabels: *ackLabels,
+			AgentSource:                *agentSource, AgentTagPrefix: *agentPrefix, RankBy: *rankBy,
 			ProviderCountsPath: *providerCountsPath, ProviderModelMapPath: *providerModelMapPath,
 			ProviderContractPath: *providerContractPath,
 		}, out, errout)

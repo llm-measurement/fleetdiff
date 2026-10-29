@@ -3,6 +3,33 @@
 
 # LiteLLM Spend Export Checks
 
+The captured row-coverage CSVs and `coverage_runtime_expected.json` retain their
+original observations and provenance. The captured export and runtime harness
+source hashes refer to commit
+`73df8c41de98e55758291d5282314d00347e4a27`, not this evolving checkout. Inspect
+that commit's `examples/litellm-spend/` source to reproduce those historical
+digests; a later source edit is not a new historical run. No archived source
+blob is needed. Current native export and psql recipe compatibility are
+exercised separately by the pinned database checks below.
+
+## Agent Tag Shape
+
+LiteLLM v1.104.0 can retain non-string request-tag elements. Its
+[`LiteLLM_SpendLogs` schema](https://github.com/BerriAI/litellm/blob/v1.104.0/schema.prisma#L667)
+declares `request_tags` as nullable JSON, not a string array. Its
+[spend writer](https://github.com/BerriAI/litellm/blob/v1.104.0/litellm/proxy/spend_tracking/spend_tracking_utils.py#L576)
+serializes `metadata.tags` when it is a list without validating its elements;
+the standard-logging-payload override is likewise JSON-serialized. The payload
+type stores the result as a JSON string. Thus a mixed array is a possible
+stored source value, not proof that the export itself is corrupt.
+
+Agent attribution keeps the entire such LiteLLM row in unknown identity with
+`non_string_tag_rows` coverage; it does not salvage the string elements. Tests
+exercise null, numeric, boolean, object and nested-array elements, mixed valid
+labels, exact token/USD preservation and text/JSON privacy across CSV/JSON/JSONL.
+Malformed JSON, invalid Unicode and oversized fields still fail. The Langfuse
+adapter keeps its existing string-only tag validation and GENERATION boundary.
+
 ## Documentation Checks
 
 Run the standard-library documentation checks without building or connecting to
