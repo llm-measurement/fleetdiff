@@ -112,8 +112,8 @@ def apply_documented_grants(container):
     grants = re.findall(
         r'GRANT SELECT\s*\([^;]+\)\s+ON TABLE public\."LiteLLM_(?:SpendLogs|DailyUserSpend)"'
         r"\s+TO fleetdiff_reader;", "\n".join(blocks))
-    require(len(grants) == 2 and
-            sum('public."LiteLLM_SpendLogs"' in grant for grant in grants) == 1,
+    require(len(grants) == 3 and
+            sum('public."LiteLLM_SpendLogs"' in grant for grant in grants) == 2,
             "documented export column grants are missing or ambiguous")
     psql(container, "-c", '''REVOKE SELECT ON TABLE public."LiteLLM_SpendLogs",
         public."LiteLLM_DailyUserSpend" FROM fixture_reader;''' +
@@ -188,7 +188,7 @@ class NativeExportTests(unittest.TestCase):
     def destination(self):
         return self.parent + "/out-" + uuid.uuid4().hex
 
-    def command(self, directory, *, fmt=None, daily=False, routing=False, usage=True,
+    def command(self, directory, *, fmt=None, daily=False, routing=False, usage=True, tags=False,
                 credential_file=None, url=URL, environment=None, start=START, end=END,
                 extra=(), pid_file=None, user=None):
         env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": self.parent,
@@ -204,6 +204,8 @@ class NativeExportTests(unittest.TestCase):
             args.append("--daily")
         if routing:
             args.append("--routing-details")
+        if tags:
+            args.append("--request-tags")
         if usage is not None:
             args.append("--usage-details=" + str(usage).lower())
         if credential_file is not None:
@@ -295,6 +297,16 @@ class NativeExportTests(unittest.TestCase):
         default = self.export(usage=None)
         assert_bytes(default["spend.csv"], spend.export_database(self.db)["csv"], "default spend")
 
+    def test_request_tag_column_type_is_opt_in(self):
+        psql(self.db, data=b'''ALTER TABLE public."LiteLLM_SpendLogs"
+            ALTER COLUMN request_tags DROP DEFAULT,
+            ALTER COLUMN request_tags TYPE text USING request_tags::text;''')
+        self.export(tags=True, success=False)
+        self.export()
+        psql(self.db, data=b'''ALTER TABLE public."LiteLLM_SpendLogs" DROP COLUMN request_tags;''')
+        self.export(tags=True, success=False)
+        self.export()
+
     def test_exact_documented_column_grants_preserve_export_bytes(self):
         expected = spend.export_database(self.db, details=True, routing=True)
         daily = self.daily_oracle()["daily.csv"]
@@ -303,6 +315,47 @@ class NativeExportTests(unittest.TestCase):
             actual = self.export(fmt=fmt, daily=True, routing=True)
             assert_bytes(actual["spend." + fmt], expected[fmt], "column-granted spend")
             assert_bytes(actual["daily.csv"], daily, "column-granted daily")
+
+    def test_request_tags_exact_bytes_and_optional_grant(self):
+        psql(self.db, data=b'''UPDATE public."LiteLLM_SpendLogs" SET
+            request_tags='["agent:alpha", "unrelated-private-tag"]'::jsonb;''')
+        apply_documented_grants(self.db)
+        for routing in (False, True):
+            for usage in (False, True):
+                oracle = spend.export_database(self.db, details=usage, routing=routing, tags=True)
+                for fmt in ("csv", "jsonl"):
+                    actual = self.export(fmt=fmt, routing=routing, usage=usage, tags=True)
+                    assert_bytes(actual["spend." + fmt], oracle[fmt], "request tags")
+                    if fmt == "csv":
+                        rows = list(csv.DictReader(io.StringIO(actual["spend.csv"].decode())))
+                    else:
+                        rows = [json.loads(line) for line in actual["spend.jsonl"].splitlines()]
+                    require(all(json.loads(row["request_tags"]) ==
+                                ["agent:alpha", "unrelated-private-tag"] for row in rows),
+                            "tag export lost or expanded tags")
+        offline = self.parent + "/agent-report.csv"
+        private_file(self.db, offline, oracle["csv"])
+        for source in ("agent_id", "request-tag"):
+            flags = ["--before-period", "2026-10-07", "--after-period", "2026-10-08",
+                     "--group-by", "agent", "--agent-source", source,
+                     "--rank-by", "recorded-spend-change", "--format", "json",
+                     "--hash-secret-env", "AGENT_TEST_SECRET"]
+            if source == "request-tag":
+                flags.extend(("--agent-tag-prefix", "agent:"))
+            prefix = ["docker", "exec", self.db, "env", "-i",
+                      "PATH=/usr/local/bin:/usr/bin:/bin", "GOMAXPROCS=1",
+                      "FLEETDIFF_LITELLM_DATABASE_URL=" + URL,
+                      "AGENT_TEST_SECRET=synthetic-agent-test-secret-at-least-32-bytes",
+                      "/native/fleetdiff", "investigate"]
+            local = run([*prefix, "--litellm-spend", offline, *flags])
+            native = run([*prefix, "--litellm-db", *flags])
+            self.check_result(local, True)
+            self.check_result(native, True)
+            assert_bytes(native.stdout, local.stdout, "agent database/file report")
+        psql(self.db, data=b'''REVOKE SELECT (request_tags)
+            ON public."LiteLLM_SpendLogs" FROM fixture_reader;''')
+        self.export()  # Default projection still works without the optional grant.
+        self.export(tags=True, success=False)
 
     def test_half_open_bounds_empty_windows_and_repeatability(self):
         for start, end in ((START, "2026-10-08T00:00:00Z"),

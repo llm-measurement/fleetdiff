@@ -21,6 +21,7 @@ CREATE TABLE public."LiteLLM_SpendLogs" (
     status text,
     session_id text,
     agent_id text,
+    request_tags jsonb DEFAULT '[]',
     "startTime" timestamp(3) NOT NULL,
     "endTime" timestamp(3) NOT NULL,
     metadata jsonb DEFAULT '{}',

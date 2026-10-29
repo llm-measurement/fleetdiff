@@ -4,6 +4,16 @@ Notable user-visible changes are recorded here, newest first.
 
 ## [Unreleased]
 
+- Add explicit agent attribution from LiteLLM `agent_id` or prefixed request
+  tags on LiteLLM and Langfuse, with exclusive known/unknown/ambiguous totals,
+  repeated/empty-tag coverage and an exact 1,024-agent bound.
+- Add opt-in request-tag export through the shared psql/native projection,
+  and an agent table with exact recorded USD, coverage, period shares and
+  `--rank-by recorded-spend-change`. Default exports and reports are unchanged.
+- Require `--acknowledge-sensitive-labels` together with `--show-labels` for
+  raw agent or routing labels. User/session/end-user/key rankings remain aliased.
+  See the [agent attribution contract](docs/AGENT_ATTRIBUTION.md).
+
 ## [0.13.1] - 2026-10-27
 
 See the [release notes](docs/releases/v0.13.1.md).

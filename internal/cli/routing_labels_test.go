@@ -17,7 +17,7 @@ func TestRoutingShowLabelsPrivacyBoundary(t *testing.T) {
 	path := routingCLIInput(t, true)
 	for _, format := range []string{"text", "json"} {
 		var out, errs bytes.Buffer
-		args := append(routingCLIArgs(path), "--routing-audit", "--routing-by", "route-agent", "--show-labels", "--show-hashes", "--format", format)
+		args := append(routingCLIArgs(path), "--routing-audit", "--routing-by", "route-agent", "--show-labels", "--acknowledge-sensitive-labels", "--show-hashes", "--format", format)
 		if code := Run(args, &out, &errs); code != 0 || errs.Len() != 0 {
 			t.Fatal("opted-in report failed", code, errs.String())
 		}

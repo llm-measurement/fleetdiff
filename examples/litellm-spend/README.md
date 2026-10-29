@@ -216,6 +216,11 @@ default to zero. No missing-path `NULL` should be interpreted as zero cache use.
 
 ### Agent Identity And Rejection Evidence
 
+For tag-based attribution, opt in with `-v request_tags=true` in the same psql
+export, or `--request-tags` in native export. Both add the nullable `request_tags`
+column as JSON-array text, without expanding rows. The read-only column grant
+is documented in [Administrator Setup](../../docs/NATIVE_EXPORT.md#administrator-setup).
+
 The projection also includes the pinned schema's `agent_id` and a SQL-derived
 `rejection_kind`. Both remain present with `usage_details=false`. Agent identity,
 like key/team/session identity, is sensitive: keep the export private. No raw
@@ -275,6 +280,9 @@ period has analyzable requests. When neither period has any, the command names
 the call types and asks for a supported request-level export.
 
 ## Data And Limits
+
+- Opt-in tag export includes every request tag on a row, not only agent tags.
+  Keep the file private; tags can contain personal identifiers.
 
 - Accepted inputs are request-level SQL projections as headered CSV, a JSON
   array, or JSONL. LiteLLM Usage dashboard CSV/JSON exports are daily aggregates:

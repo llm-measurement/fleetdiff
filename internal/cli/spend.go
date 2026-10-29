@@ -113,14 +113,20 @@ func renderSpend(out io.Writer, r spend.Report) {
 		}
 		fmt.Fprintln(out)
 	}
+	if r.Agents != nil {
+		renderAgents(out, r.Agents)
+	}
 	for _, m := range r.Rankings.Movers {
+		if r.Agents != nil {
+			break
+		}
 		label := m.Item
 		if m.Hash != "" {
 			label += " (" + m.Hash + ")"
 		}
 		fmt.Fprintf(out, "  %s: %s -> %s tokens; change %s.\n", label, spendInterval(m.Before), spendInterval(m.After), signedInterval(m.Delta))
 	}
-	if c := r.Increase; c != nil && !r.Incomplete {
+	if c := r.Increase; c != nil && !r.Incomplete && r.Agents == nil {
 		kind := r.GroupBy
 		verb := "accounts"
 		if c.Count != 1 {
@@ -149,7 +155,7 @@ func renderSpend(out io.Writer, r spend.Report) {
 			fmt.Fprintf(out, "  %s leading tracked %s %s for %s of the net recorded increase.\n", spendNumber(c.Count), kind, verb, share)
 		}
 	}
-	if len(r.Rankings.Movers) == 0 {
+	if len(r.Rankings.Movers) == 0 && r.Agents == nil {
 		fmt.Fprintln(out, "  No tracked contributors with attributable recorded tokens.")
 	}
 	fmt.Fprintf(out, "  Attributed tokens: %s -> %s.\n", spendNumber(r.Before.AttributedTokens), spendNumber(r.After.AttributedTokens))

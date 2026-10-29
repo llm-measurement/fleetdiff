@@ -49,6 +49,7 @@ type IncreaseShare struct {
 }
 
 type Report struct {
+	Agents         *AgentReport          `json:"agents,omitempty"`
 	AnalysisGap    string                `json:"analysis_unavailable,omitempty"`
 	RowCoverage    *RowCoverage          `json:"row_coverage,omitempty"`
 	Cache          compare.CacheView     `json:"cache"`

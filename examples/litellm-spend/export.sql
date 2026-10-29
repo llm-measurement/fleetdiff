@@ -13,6 +13,10 @@
 \else
 \set routing_details false
 \endif
+\if :{?request_tags}
+\else
+\set request_tags false
+\endif
 BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SET LOCAL TIME ZONE 'UTC';
 SET LOCAL search_path = pg_catalog;
@@ -76,6 +80,11 @@ SELECT CASE WHEN :'routing_details'::boolean THEN $routing$
 $routing$ ELSE '' END AS routing_projection
 \gset
 
+SELECT CASE WHEN :'request_tags'::boolean THEN $tags$
+       , request_tags::text AS request_tags
+$tags$ ELSE '' END AS tag_projection
+\gset
+
 -- Define the projection once, quoting bounds as SQL literals with format(%L).
 -- Pinned Prisma DateTime columns are timestamp(3) without time zone, stored UTC.
 -- Do not copy this interpretation to a differently configured database.
@@ -118,7 +127,7 @@ SELECT format($projection$
   WHERE "startTime" >= (%L::timestamptz AT TIME ZONE 'UTC')
     AND "startTime" < (%L::timestamptz AT TIME ZONE 'UTC')
   ORDER BY "startTime", request_id COLLATE "C"
-$projection$, :'detail_projection' || :'routing_projection', :'start_utc', :'end_utc') AS export_query
+$projection$, :'detail_projection' || :'routing_projection' || :'tag_projection', :'start_utc', :'end_utc') AS export_query
 \gset
 
 -- Write one client-local file in one pass; JSONL replaces the default CSV.

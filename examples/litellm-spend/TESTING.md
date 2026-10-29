@@ -3,6 +3,14 @@
 
 # LiteLLM Spend Export Checks
 
+The captured row-coverage CSVs and `coverage_runtime_expected.json` retain their
+original observations and provenance. `coverage_runtime_sources.tar.gz` retains
+the source bytes bound by that provenance; tests verify each original digest
+without treating later source edits as a new historical run. Current native
+export and psql recipe compatibility are exercised separately by the pinned
+database checks below. The archive contains source only and is never unpacked
+to the filesystem or executed by tests.
+
 ## Documentation Checks
 
 Run the standard-library documentation checks without building or connecting to

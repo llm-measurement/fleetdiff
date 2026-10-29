@@ -1,0 +1,9 @@
+request_id,call_type,startTime,endTime,status,model,prompt_tokens,completion_tokens,total_tokens,spend,agent_id,request_tags
+before-a,completion,2026-10-07T12:00:00Z,2026-10-07T12:00:01Z,success,synthetic-model,100,0,100,1,different-id,"[""agent:alpha"",""other:private""]"
+before-b,completion,2026-10-07T12:00:00Z,2026-10-07T12:00:01Z,success,synthetic-model,100,0,100,1,different-id,"[""agent:beta""]"
+before-c,completion,2026-10-07T12:00:00Z,2026-10-07T12:00:01Z,success,synthetic-model,100,0,100,1,different-id,"[""agent:gamma""]"
+after-a,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,300,0,300,3,different-id,"[""agent:alpha"",""agent:alpha"",""agent:""]"
+after-b,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,100,0,100,1,different-id,"[""agent:beta""]"
+after-c,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,100,0,100,1,different-id,"[""agent:gamma""]"
+after-untagged,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,50,0,50,0.50,,"[""other:private""]"
+after-ambiguous,completion,2026-10-08T12:00:00Z,2026-10-08T12:00:01Z,success,synthetic-model,70,0,70,0.70,,"[""agent:alpha"",""agent:beta""]"

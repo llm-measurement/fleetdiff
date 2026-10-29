@@ -141,7 +141,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
     subset, and absent agents read as unknown. Keep the v0.8.0 import-refactor
     output goldens and legacy identity-hash tests unchanged; reports without
     these conditions must remain byte-identical.
-11. Run the routing guide with default aliases and with `--show-labels`. Verify
+11. Run the routing guide with default aliases and with `--show-labels --acknowledge-sensitive-labels`. Verify
     public model names, explicit configuration-label warnings, missing serving
     identity, classifier overhead and raw-identity suppression. Exercise a
     pinned-writer `openai/<public-id>` export: price it only when the row provider
