@@ -274,6 +274,46 @@ func TestAgentIDTextPolishAndEscapedAnswer(t *testing.T) {
 	}
 }
 
+func TestAgentIncreaseNamesPositiveMoverWithOffsets(t *testing.T) {
+	t.Setenv("AGENT_CLI_SECRET", "synthetic-agent-secret-for-tests-at-least-32-bytes")
+	var input bytes.Buffer
+	w := csv.NewWriter(&input)
+	_ = w.Write([]string{"request_id", "call_type", "startTime", "endTime", "status", "model", "prompt_tokens", "completion_tokens", "total_tokens", "spend", "agent_id"})
+	for i, row := range []struct{ day, agent, tokens string }{
+		{"07", "alpha", "1000"}, {"07", "beta", "0"},
+		{"08", "alpha", "300"}, {"08", "beta", "600"}, {"08", "", "200"},
+	} {
+		start := "2026-10-" + row.day + "T12:00:00Z"
+		_ = w.Write([]string{string(rune('a' + i)), "completion", start, start, "success", "private-model", row.tokens, "0", row.tokens, "0", row.agent})
+	}
+	w.Flush()
+	path := filepath.Join(t.TempDir(), "agents.csv")
+	if err := os.WriteFile(path, input.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, labels := range []bool{false, true} {
+		args := []string{"investigate", "--litellm-spend", path, "--before-period", "2026-10-07", "--after-period", "2026-10-08", "--group-by", "agent", "--agent-source", "agent_id", "--hash-secret-env", "AGENT_CLI_SECRET"}
+		name := "agent-2"
+		if labels {
+			args = append(args, "--show-labels", "--acknowledge-sensitive-labels")
+			name += ` "beta"`
+		}
+		code, out, errs := databaseRun(args, nil)
+		want := name + " added 600 tokens while others fell by 500 (net +100)."
+		if code != 0 || errs != "" || !strings.Contains(out, want) || strings.Contains(out, "600%") {
+			t.Fatal("wrong increase attribution", code, errs, out)
+		}
+		code, data, errs := databaseRun(append(args, "--format", "json"), nil)
+		var r spend.Report
+		if code != 0 || errs != "" || json.Unmarshal([]byte(data), &r) != nil {
+			t.Fatal("JSON failed", code, errs)
+		}
+		if r.Before.Tokens != 1000 || r.After.Tokens != 1100 || r.Increase.Count != 1 || r.Increase.Delta.Lower != 600 || r.Increase.Delta.Upper != 600 || r.Increase.Share.Lower != 6 || r.Rankings.Movers[0].Item != "agent-1" || r.Rankings.Movers[0].Delta.Lower != -700 {
+			t.Fatal("text correction changed JSON accounting or rankings", data)
+		}
+	}
+}
+
 func TestAgentCostColumnsOnlyForDisplayedIncompleteCosts(t *testing.T) {
 	usd := "1"
 	value := spend.AgentValues{RecordedUSD: &usd, CostCoverage: spend.AgentCostCoverage{Usable: 1}}

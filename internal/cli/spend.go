@@ -116,21 +116,37 @@ func renderSpend(out io.Writer, r spend.Report) {
 	if r.Agents != nil {
 		if c := r.Increase; c != nil && !r.Incomplete {
 			label, verb := fmt.Sprintf("%d leading tracked agents", c.Count), "account"
-			if c.Count == 1 && len(r.Rankings.Movers) > 0 {
-				label, verb = r.Rankings.Movers[0].Item, "accounts"
+			if c.Count == 1 {
+				for _, m := range r.Rankings.Movers {
+					if m.Delta.Lower > 0 {
+						label, verb = m.Item, "accounts"
+						break
+					}
+				}
 				if leading := r.Agents.LeadingContributor; leading != nil && leading.Item == label {
 					label = agentLabel(*leading)
 				}
 			}
-			share := spendPercent(100 * c.Share.Lower)
-			if c.Delta.Lower != c.Delta.Upper {
-				lower, upper := c.Share.Lower*10000, c.Share.Upper*10000
-				if c.Share.Lower == c.Share.Upper {
-					lower, upper = math.Nextafter(lower, math.Inf(-1)), math.Nextafter(upper, math.Inf(1))
+			net := int64(r.After.Tokens - r.Before.Tokens)
+			if c.Delta.Upper > net {
+				if c.Delta.Lower >= net {
+					fell := compare.Interval{Lower: c.Delta.Lower - net, Upper: c.Delta.Upper - net}
+					fmt.Fprintf(out, "  %s added %s tokens while others fell by %s (net +%s).\n", label, spendInterval(c.Delta), spendInterval(fell), spendNumber(net))
+				} else {
+					changed := compare.Interval{Lower: net - c.Delta.Upper, Upper: net - c.Delta.Lower}
+					fmt.Fprintf(out, "  %s added %s tokens while others changed by %s (net +%s).\n", label, spendInterval(c.Delta), signedInterval(changed), spendNumber(net))
 				}
-				share = fmt.Sprintf("[%s, %s]", spendPercent(math.Floor(lower)/100), spendPercent(math.Ceil(upper)/100))
+			} else {
+				share := spendPercent(100 * c.Share.Lower)
+				if c.Delta.Lower != c.Delta.Upper {
+					lower, upper := c.Share.Lower*10000, c.Share.Upper*10000
+					if c.Share.Lower == c.Share.Upper {
+						lower, upper = math.Nextafter(lower, math.Inf(-1)), math.Nextafter(upper, math.Inf(1))
+					}
+					share = fmt.Sprintf("[%s, %s]", spendPercent(math.Floor(lower)/100), spendPercent(math.Ceil(upper)/100))
+				}
+				fmt.Fprintf(out, "  %s %s for %s of the net recorded increase (%s of +%s tokens).\n", label, verb, share, signedInterval(c.Delta), spendNumber(r.After.Tokens-r.Before.Tokens))
 			}
-			fmt.Fprintf(out, "  %s %s for %s of the net recorded increase (%s of +%s tokens).\n", label, verb, share, signedInterval(c.Delta), spendNumber(r.After.Tokens-r.Before.Tokens))
 		}
 		renderAgents(out, r.Agents)
 	}

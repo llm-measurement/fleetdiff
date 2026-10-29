@@ -88,6 +88,43 @@ func TestAgentTextMetadataDoesNotChangeJSON(t *testing.T) {
 	}
 }
 
+func TestAgentLeadingContributorIsPositiveMover(t *testing.T) {
+	var rows []map[string]string
+	for i, row := range []struct {
+		day, agent string
+		tokens     int
+	}{
+		{"2026-09-01", "alpha", 1000}, {"2026-09-01", "beta", 0},
+		{"2026-09-02", "alpha", 300}, {"2026-09-02", "beta", 600}, {"2026-09-02", "", 200},
+	} {
+		r := routingSample(fmt.Sprint(i), row.day, row.tokens, 0)
+		r["request_tags"] = "[]"
+		if row.agent != "" {
+			r["request_tags"] = fmt.Sprintf(`["agent:%s"]`, row.agent)
+		}
+		rows = append(rows, r)
+	}
+	o := agentOptions(t)
+	o.ShowLabels, o.AcknowledgeSensitiveLabels = true, true
+	r := routingReport(t, rows, o)
+	if r.Increase == nil || r.Increase.Count != 1 || r.Rankings.Movers[0].Item != "agent-1" {
+		t.Fatal("fixture must have one positive mover behind a larger decline")
+	}
+	if c := r.Agents.LeadingContributor; c == nil || c.Item != "agent-2" || c.Label != "beta" {
+		t.Fatal("leading contributor is not the positive mover", c)
+	}
+	before, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Restore the old text-only selection: serialized accounting must be identical.
+	r.Agents.LeadingContributor = &AgentContributor{Item: "agent-1", Label: "alpha"}
+	after, err := json.Marshal(r)
+	if err != nil || string(before) != string(after) {
+		t.Fatal("positive-mover selection changed JSON", err)
+	}
+}
+
 func TestAgentCapNamesPrefix(t *testing.T) {
 	var rows []map[string]string
 	for i := 0; i <= MaxAgents; i++ {

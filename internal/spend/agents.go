@@ -386,6 +386,15 @@ func (a *agentAccumulator) finish(r *Report) error {
 	}
 	remaining := [2]*routingTotals{newRoutingTotals(), newRoutingTotals()}
 	report.Contributors = []AgentContributor{}
+	leading := ""
+	if r.Increase != nil && r.Increase.Count == 1 {
+		for _, m := range r.Rankings.Movers {
+			if m.Delta.Lower > 0 {
+				leading = m.Item
+				break
+			}
+		}
+	}
 	for i, e := range entries {
 		c := AgentContributor{Item: fmt.Sprintf("agent-%d", e.order+1), Label: e.label, ProjectAlias: projects[e.project], Before: agentValues(e.pair[0].result(), totals[0]), After: agentValues(e.pair[1].result(), totals[1])}
 		if a.opts.ShowHashes {
@@ -395,7 +404,7 @@ func (a *agentAccumulator) finish(r *Report) error {
 			delta := costText(new(big.Rat).Sub(&e.pair[1].cost, &e.pair[0].cost))
 			c.Delta = &delta
 		}
-		if len(r.Rankings.Movers) > 0 && c.Item == r.Rankings.Movers[0].Item {
+		if c.Item == leading {
 			report.LeadingContributor = &c
 		}
 		if a.opts.RankBy == "recorded-spend-change" && c.Delta == nil {
