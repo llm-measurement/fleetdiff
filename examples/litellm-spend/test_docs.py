@@ -101,7 +101,9 @@ class DocumentationTests(unittest.TestCase):
         notes = (ROOT / "docs/releases/v0.14.0.md").read_text()
         self.assertIn("## Breaking Routing Label Disclosure", notes)
         self.assertIn("--show-labels --acknowledge-sensitive-labels", notes)
-        self.assertIn("Not tagged or published", notes)
+        self.assertIn("Released October 29, 2026.", notes)
+        self.assertNotIn("Not tagged or published", notes)
+        self.assertIn("until the released\nartifact checks pass", notes)
 
     def test_langfuse_guide_release_pins(self):
         readme = (ROOT / "README.md").read_text()
