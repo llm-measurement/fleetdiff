@@ -220,6 +220,8 @@ totals or identity hashing. Database sorting can also affect export time.
 ## Limits And Failures
 
 - `--request-tags` includes every request tag on a row, not only agent tags.
+  This option targets the next minor release; use the matching source checkout
+  until it is released.
   It is opt-in; default exports omit the column. The manual recipe uses
   `-v request_tags=true` for the same JSON-array-text projection.
 

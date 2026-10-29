@@ -216,7 +216,7 @@ default to zero. No missing-path `NULL` should be interpreted as zero cache use.
 
 ### Agent Identity And Rejection Evidence
 
-For tag-based attribution, opt in with `-v request_tags=true` in the same psql
+For next-minor tag-based attribution, opt in with `-v request_tags=true` in the same psql
 export, or `--request-tags` in native export. Both add the nullable `request_tags`
 column as JSON-array text, without expanding rows. The read-only column grant
 is documented in [Administrator Setup](../../docs/NATIVE_EXPORT.md#administrator-setup).

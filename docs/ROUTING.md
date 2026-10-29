@@ -22,6 +22,8 @@ fleetdiff investigate --litellm-spend ./spend.csv \
 
 Add `--routing-by route-agent` to separate the known agents within each route.
 Add `--show-labels --acknowledge-sensitive-labels` for a local report with the recorded route and agent names.
+The two-flag form targets the next minor release. Released v0.13.1 uses
+`--show-labels` alone for routing labels; agent contributor labels are unreleased.
 The usual `--group-by` still controls the existing contributor rankings; it does
 not change the routing table. `--format json` includes the same evidence as an
 additive `routing_audit` object. Default reports omit this object and section.
