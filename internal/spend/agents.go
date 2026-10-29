@@ -26,6 +26,7 @@ type AgentCoverage struct {
 	ColumnAbsentRows     uint64 `json:"column_absent_rows"`
 	EmptyOrNullRows      uint64 `json:"empty_or_null_rows"`
 	NoMatchingTagRows    uint64 `json:"no_matching_tag_rows"`
+	NonStringTagRows     uint64 `json:"non_string_tag_rows"`
 	RepeatedAgentTagRows uint64 `json:"repeated_agent_tag_rows"`
 	RepeatedAgentTags    uint64 `json:"repeated_agent_tags"`
 	EmptySuffixRows      uint64 `json:"empty_suffix_rows"`
@@ -47,6 +48,7 @@ type AgentReport struct {
 	RankBy            string             `json:"rank_by"`
 	LabelsIncluded    bool               `json:"sensitive_labels_included"`
 	Contributors      []AgentContributor `json:"contributors"`
+	UnavailableCosts  []AgentContributor `json:"unavailable_cost_contributors,omitempty"`
 	UndisplayedBefore AgentValues        `json:"known_undisplayed_before"`
 	UndisplayedAfter  AgentValues        `json:"known_undisplayed_after"`
 	ShareBasis        string             `json:"spend_share_basis"`
@@ -78,7 +80,7 @@ type AgentContributor struct {
 
 type agentResolution struct {
 	state, label, source, prefix string
-	absent, empty                bool
+	absent, empty, nonString     bool
 	repeated, emptySuffix        uint64
 }
 
@@ -134,6 +136,10 @@ func resolveAgent(row Row, o Options) (*agentResolution, error) {
 	}
 	tags, err := ParseRequestTags(raw)
 	if err != nil {
+		if errors.Is(err, ErrNonStringRequestTags) && row.AgentNamespace == "" {
+			a.nonString = true
+			return a, nil
+		}
 		return nil, err
 	}
 	// Deduplicate matching suffixes; retain no unselected tag values.
@@ -163,6 +169,8 @@ func resolveAgent(row Row, o Options) (*agentResolution, error) {
 	return a, nil
 }
 
+var ErrNonStringRequestTags = errors.New("invalid request_tags; every array element must be a string")
+
 // ParseRequestTags validates bounded scalar-array text for SQL and observation
 // adapters before attribution or duplicate normalization can discard evidence.
 func ParseRequestTags(raw string) ([]string, error) {
@@ -180,7 +188,7 @@ func ParseRequestTags(raw string) ([]string, error) {
 	for _, element := range elements {
 		var tag string
 		if len(element) == 0 || element[0] != '"' || json.Unmarshal(element, &tag) != nil {
-			return nil, errors.New("invalid request_tags; every array element must be a string")
+			return nil, ErrNonStringRequestTags
 		}
 		tags = append(tags, tag)
 	}
@@ -226,6 +234,9 @@ func (a *agentAccumulator) add(row Row, side int, digest [32]byte, obs accountin
 	if r.empty {
 		c.EmptyOrNullRows++
 	}
+	if r.nonString {
+		c.NonStringTagRows++
+	}
 	if r.repeated > 0 {
 		c.RepeatedAgentTagRows++
 		c.RepeatedAgentTags += r.repeated
@@ -261,7 +272,7 @@ func (a *agentAccumulator) add(row Row, side int, digest [32]byte, obs accountin
 		p = a.ambiguous
 	default:
 		c.UnknownRows++
-		if !r.absent && !r.empty && r.source == "request-tag" {
+		if !r.absent && !r.empty && !r.nonString && r.source == "request-tag" {
 			c.NoMatchingTagRows++
 		}
 		p = a.unknown
@@ -366,14 +377,6 @@ func (a *agentAccumulator) finish(r *Report) error {
 	remaining := [2]*routingTotals{newRoutingTotals(), newRoutingTotals()}
 	report.Contributors = []AgentContributor{}
 	for i, e := range entries {
-		if i >= a.opts.Top {
-			for side := range remaining {
-				if err := remaining[side].merge(&routingTotals{a: e.pair[side]}); err != nil {
-					return err
-				}
-			}
-			continue
-		}
 		c := AgentContributor{Item: fmt.Sprintf("agent-%d", e.order+1), Label: e.label, Before: agentValues(e.pair[0].result(), totals[0]), After: agentValues(e.pair[1].result(), totals[1])}
 		if a.opts.ShowHashes {
 			c.Hash = fmt.Sprintf("%x", e.digest)
@@ -381,6 +384,18 @@ func (a *agentAccumulator) finish(r *Report) error {
 		if c.Before.RecordedUSD != nil && c.After.RecordedUSD != nil {
 			delta := costText(new(big.Rat).Sub(&e.pair[1].cost, &e.pair[0].cost))
 			c.Delta = &delta
+		}
+		if a.opts.RankBy == "recorded-spend-change" && c.Delta == nil {
+			report.UnavailableCosts = append(report.UnavailableCosts, c)
+			continue
+		}
+		if i >= a.opts.Top {
+			for side := range remaining {
+				if err := remaining[side].merge(&routingTotals{a: e.pair[side]}); err != nil {
+					return err
+				}
+			}
+			continue
 		}
 		report.Contributors = append(report.Contributors, c)
 	}

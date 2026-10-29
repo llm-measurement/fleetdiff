@@ -28,15 +28,38 @@ func TestAgentTagResolution(t *testing.T) {
 		{`["agent:a","agent:a","agent:"]`, "known", "a", 1, 1},
 		{`["agent:a","agent:b","agent:a"]`, "ambiguous", "", 1, 0},
 		{`["agent:","agent: "]`, "unknown", "", 0, 2},
+		{`[null]`, "unknown", "", 0, 0},
+		{`[1]`, "unknown", "", 0, 0},
+		{`["agent:a",true,{"private":"value"}]`, "unknown", "", 0, 0},
 	} {
 		r, err := resolveAgent(Row{Values: map[string]string{"request_tags": tc.raw}}, agentOptions(t))
 		if err != nil || r.state != tc.state || r.label != tc.label || r.repeated != tc.repeats || r.emptySuffix != tc.empty {
 			t.Fatal("tag resolution mismatch", tc, err)
 		}
 	}
-	for _, raw := range []string{`{}`, `[null]`, `[1]`, `"agent:a"`, `["agent:a"`, `["agent:\ud800"]`, strings.Repeat("x", MaxFieldBytes+1)} {
+	for _, raw := range []string{`{}`, `"agent:a"`, `["agent:a"`, `["agent:\ud800"]`, `[1,"\ud800"]`, strings.Repeat("x", MaxFieldBytes+1)} {
 		if _, err := resolveAgent(Row{Values: map[string]string{"request_tags": raw}}, agentOptions(t)); err == nil {
 			t.Fatal("malformed tags accepted")
+		}
+	}
+}
+
+func TestAgentNonStringTagsPreserveAccounting(t *testing.T) {
+	for _, raw := range []string{`[null]`, `[1]`, `[false]`, `[{"PRIVATE":"value"}]`, `[["agent:a"]]`, `["agent:alpha",1]`} {
+		rows := agentFixtureRows()
+		rows[3]["request_tags"] = raw
+		o := agentOptions(t)
+		for _, disclose := range []bool{false, true} {
+			o.ShowLabels, o.AcknowledgeSensitiveLabels = disclose, disclose
+			r := routingReport(t, rows, o)
+			w := r.Agents.After
+			if r.After.Tokens != 620 || r.After.RecordedSpend != "6.2" || w.Known.Tokens != 200 || w.Unknown.Tokens != 350 || w.Unknown.RecordedSpend != "3.5" || w.Ambiguous.Tokens != 70 || w.Coverage.NonStringTagRows != 1 || w.Coverage.UnknownRows != 2 || w.Coverage.NoMatchingTagRows != 1 {
+				t.Fatal("non-string tags changed accounting or coverage", raw, w)
+			}
+			b, _ := json.Marshal(r)
+			if strings.Contains(string(b), "PRIVATE") || strings.Contains(string(b), `"label":"alpha"`) && disclose == false {
+				t.Fatal("invalid tags escaped")
+			}
 		}
 	}
 }

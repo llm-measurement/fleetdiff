@@ -95,3 +95,29 @@ func TestAgentCostAggregateExceedsPerRowBound(t *testing.T) {
 		t.Fatal("aggregate cost reapplied per-row validation")
 	}
 }
+
+func TestAgentUnavailableCostNeverHiddenByTop(t *testing.T) {
+	rows := agentFixtureRows()[:6]
+	for i, row := range rows {
+		row["spend"] = []string{"", "1", "", "9", "2", ""}[i]
+	}
+	o := agentOptions(t)
+	o.RankBy, o.Top = "recorded-spend-change", 1
+	r := routingReport(t, rows, o)
+	if len(r.Agents.Contributors) != 1 || r.Agents.Contributors[0].Item != "agent-2" || len(r.Agents.UnavailableCosts) != 2 || r.Agents.UndisplayedBefore.Requests != 0 || r.Agents.UndisplayedAfter.Requests != 0 {
+		t.Fatal("unavailable agent hidden by --top", r.Agents)
+	}
+	for _, c := range r.Agents.UnavailableCosts {
+		if c.Delta != nil || c.Before.RecordedUSD != nil || c.Before.CostCoverage.Missing != 1 {
+			t.Fatal("unavailable cost became a zero delta", c)
+		}
+	}
+	// With every cost unavailable, no agents are silently folded into a remainder.
+	for _, row := range rows {
+		row["spend"] = ""
+	}
+	r = routingReport(t, rows, o)
+	if len(r.Agents.Contributors) != 0 || len(r.Agents.UnavailableCosts) != 3 || r.Agents.UndisplayedAfter.Requests != 0 {
+		t.Fatal("all-unavailable ranking dropped agents")
+	}
+}

@@ -10,8 +10,11 @@ Notable user-visible changes are recorded here, newest first.
 - Add opt-in request-tag export through the shared psql/native projection,
   and an agent table with exact recorded USD, coverage, period shares and
   `--rank-by recorded-spend-change`. Default exports and reports are unchanged.
-- Require `--acknowledge-sensitive-labels` together with `--show-labels` for
-  raw agent or routing labels. User/session/end-user/key rankings remain aliased.
+- **Breaking change:** routing `--show-labels` now also requires
+  `--acknowledge-sensitive-labels`. Replace `--routing-audit --show-labels` with
+  `--routing-audit --show-labels --acknowledge-sensitive-labels` on existing
+  `fleetdiff investigate` commands. Raw agent labels require the same two flags.
+  User/session/end-user/key rankings remain aliased.
   See the [agent attribution contract](docs/AGENT_ATTRIBUTION.md).
 
 ## [0.13.1] - 2026-10-27

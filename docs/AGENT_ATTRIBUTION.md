@@ -44,7 +44,8 @@ observations. No request/observation join is inferred between sources.
 The default agent table orders by signed recorded-token change.
 `--rank-by recorded-spend-change` orders by signed change in usable recorded USD,
 descending, with first appearance breaking ties. An unavailable cost delta sorts
-after available deltas. Before/after USD, delta, cost coverage and each period's
+after available deltas and is listed separately, never hidden by `--top`.
+Before/after USD, delta, cost coverage and each period's
 share appear beside tokens. A period with no usable cost rows is unavailable,
 not a recorded zero. Known agents outside `--top` are summed separately.
 
@@ -66,8 +67,11 @@ arbitrary metadata extraction or automatic agent discovery is performed.
 
 The agent table is exact and bounded to 1,024 known agents across both periods,
 including project-scoped agents. Overflow fails and asks for a narrower prefix
-or export; the error quotes the selected prefix. Malformed/non-string tag arrays
-or tag data exceeding the existing 8 KiB field bound fail, without raw row data.
+or export; the error quotes the selected prefix. Malformed JSON, non-array tag
+data or data exceeding the existing 8 KiB field bound fail, without raw row data.
+LiteLLM arrays containing any non-string element count as unknown identity with
+separate `non_string_tag_rows` coverage, even if they also contain an agent tag;
+no label is salvaged. Langfuse tag arrays retain their string-only validation.
 An old export without tags remains readable and reports column-absent unknown
 identity. The optional `agents` JSON section is versioned independently as
 `fleetdiff-agent-attribution/v1`; collector summaries and the base accounting

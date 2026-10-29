@@ -357,6 +357,42 @@ class NativeExportTests(unittest.TestCase):
         self.export()  # Default projection still works without the optional grant.
         self.export(tags=True, success=False)
 
+    def test_non_string_request_tags_preserve_database_file_parity(self):
+        psql(self.db, data=b'''UPDATE public."LiteLLM_SpendLogs" SET
+            request_tags='["agent:PRIVATE_INVALID_LABEL", 1, null, false, {}, []]'::jsonb;''')
+        apply_documented_grants(self.db)
+        oracle = spend.export_database(self.db, tags=True)
+        for fmt in ("csv", "jsonl"):
+            actual = self.export(fmt=fmt, tags=True)
+            assert_bytes(actual["spend." + fmt], oracle[fmt], "mixed request tags")
+        offline = self.parent + "/mixed-agent-report.csv"
+        private_file(self.db, offline, oracle["csv"])
+        flags = ["--before-period", "2026-10-07", "--after-period", "2026-10-08",
+                 "--group-by", "agent", "--agent-source", "request-tag",
+                 "--agent-tag-prefix", "agent:", "--rank-by", "recorded-spend-change",
+                 "--show-labels", "--acknowledge-sensitive-labels", "--format", "json",
+                 "--hash-secret-env", "AGENT_TEST_SECRET"]
+        prefix = ["docker", "exec", self.db, "env", "-i",
+                  "PATH=/usr/local/bin:/usr/bin:/bin", "GOMAXPROCS=1",
+                  "FLEETDIFF_LITELLM_DATABASE_URL=" + URL,
+                  "AGENT_TEST_SECRET=synthetic-agent-test-secret-at-least-32-bytes",
+                  "/native/fleetdiff", "investigate"]
+        local = run([*prefix, "--litellm-spend", offline, *flags])
+        native = run([*prefix, "--litellm-db", *flags])
+        self.check_result(local, True)
+        self.check_result(native, True)
+        assert_bytes(native.stdout, local.stdout, "mixed-tag database/file report")
+        require(b"PRIVATE_INVALID_LABEL" not in native.stdout,
+                "non-string row salvaged or disclosed a label")
+        report = json.loads(native.stdout)
+        for side in ("before", "after"):
+            bucket = report["agents"][side]
+            require(bucket["coverage"]["non_string_tag_rows"] == report[side]["logged_model_requests"],
+                    "non-string coverage dropped analyzed rows")
+            require(bucket["unknown"]["recorded_tokens"] == report[side]["recorded_tokens"]
+                    and bucket["unknown"]["recorded_spend_usd"] == report[side]["recorded_spend_usd"],
+                    "non-string identity changed accounting")
+
     def test_half_open_bounds_empty_windows_and_repeatability(self):
         for start, end in ((START, "2026-10-08T00:00:00Z"),
                            ("2026-10-08T00:00:00Z", END),

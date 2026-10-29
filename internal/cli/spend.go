@@ -114,6 +114,21 @@ func renderSpend(out io.Writer, r spend.Report) {
 		fmt.Fprintln(out)
 	}
 	if r.Agents != nil {
+		if c := r.Increase; c != nil && !r.Incomplete {
+			label, verb := fmt.Sprintf("%d leading tracked agents", c.Count), "account"
+			if c.Count == 1 && len(r.Rankings.Movers) > 0 {
+				label, verb = r.Rankings.Movers[0].Item, "accounts"
+			}
+			share := spendPercent(100 * c.Share.Lower)
+			if c.Delta.Lower != c.Delta.Upper {
+				lower, upper := c.Share.Lower*10000, c.Share.Upper*10000
+				if c.Share.Lower == c.Share.Upper {
+					lower, upper = math.Nextafter(lower, math.Inf(-1)), math.Nextafter(upper, math.Inf(1))
+				}
+				share = fmt.Sprintf("[%s, %s]", spendPercent(math.Floor(lower)/100), spendPercent(math.Ceil(upper)/100))
+			}
+			fmt.Fprintf(out, "  %s %s for %s of the net recorded increase (%s of +%s tokens).\n", label, verb, share, signedInterval(c.Delta), spendNumber(r.After.Tokens-r.Before.Tokens))
+		}
 		renderAgents(out, r.Agents)
 	}
 	for _, m := range r.Rankings.Movers {

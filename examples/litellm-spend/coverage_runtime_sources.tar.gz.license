@@ -1,6 +1,0 @@
-SPDX-FileCopyrightText: 2026 Vijay and Codex
-SPDX-License-Identifier: Apache-2.0
-
-Historical source for the unchanged captured row-coverage fixture, retained from
-commit 73df8c41de98e55758291d5282314d00347e4a27 with git archive. Source hashes
-match coverage_runtime_expected.json. No new observations or private records.
