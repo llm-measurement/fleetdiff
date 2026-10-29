@@ -10,8 +10,9 @@ private local exports before analysis.
 
 The initial supported targets are Linux and macOS on AMD64 and ARM64. Native
 Windows binaries are not provided. Download a binary from the
-[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.13.1).
-Go is not needed to run it. The commands below use `curl` for downloading and
+[release page](https://github.com/llm-measurement/fleetdiff/releases/tag/v0.14.0).
+These v0.14.0 download commands require its published release assets; use the
+v0.13.1 release until publication. Go is not needed to run it. The commands below use `curl` for downloading and
 the [GitHub CLI](https://cli.github.com/) for provenance verification.
 
 The commands select Linux or macOS and AMD64 or ARM64 from the current shell's
@@ -22,7 +23,7 @@ subshell stops on any download or verification failure:
 ```sh
 (
 set -eu
-version=v0.13.1
+version=v0.14.0
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
@@ -56,7 +57,7 @@ From a reviewed repository checkout, the same download and verification steps
 are available as a script (no Go compiler needed):
 
 ```sh
-sh scripts/install.sh v0.13.1 ./fleetdiff-install
+sh scripts/install.sh v0.14.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
@@ -67,14 +68,14 @@ curl --fail --location --proto '=https' --tlsv1.2 \
   https://raw.githubusercontent.com/llm-measurement/fleetdiff/0d7db95c5bb3013f8c564c91fbb07b6235a2664e/scripts/install.sh \
   --output fleetdiff-install.sh
 less fleetdiff-install.sh
-sh fleetdiff-install.sh v0.13.1 ./fleetdiff-install
+sh fleetdiff-install.sh v0.14.0 ./fleetdiff-install
 ./fleetdiff-install/fleetdiff --version
 ```
 
-The immutable script pin is a reviewed installer; the explicit `v0.13.1`
+The immutable script pin is a reviewed installer; the explicit `v0.14.0`
 argument selects the release independently of that script's older default.
 
-The v0.13.1 binary includes [native LiteLLM export](NATIVE_EXPORT.md),
+The v0.14.0 binary includes [native LiteLLM export](NATIVE_EXPORT.md),
 [model-mix what-if repricing](WHAT_IF.md), the
 [LiteLLM spend importer](../examples/litellm-spend/README.md), optional
 [daily row coverage](ROW_COVERAGE.md), [Langfuse local exports](LANGFUSE.md)
@@ -124,7 +125,7 @@ Install a published version with a currently patched Go 1.26 or later toolchain:
 go install github.com/llm-measurement/fleetdiff/cmd/fleetdiff@latest
 ```
 
-Use `@v0.13.1` instead of `@latest` to pin that release. The binary is installed
+Use `@v0.14.0` instead of `@latest` to pin that release. The binary is installed
 under `GOBIN`, or `$(go env GOPATH)/bin` when unset; put that directory on `PATH`.
 This path uses Go module verification rather than the archive attestation above,
 and does not include unreleased checkout features.
@@ -145,7 +146,7 @@ Check `--version` on the binary you actually run:
 | Build | Version | Revision |
 |---|---|---|
 | Unstamped checkout build above | Go's embedded module/VCS version, or `dev` when unavailable | `unknown` |
-| Tagged `go install ...@v0.13.1` | `v0.13.1`, from Go's module metadata | `unknown` |
+| Tagged `go install ...@v0.14.0` | `v0.14.0`, from Go's module metadata | `unknown` |
 | Verified release archive | Stamped release version | Stamped source revision |
 
 A checkout may report a pseudo-version and `+dirty`, depending on the Go toolchain

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"strconv"
 	"text/tabwriter"
 
 	"github.com/llm-measurement/fleetdiff/internal/accounting"
@@ -33,8 +32,12 @@ func agentShare(v *string) string {
 	return new(big.Rat).Mul(n, big.NewRat(100, 1)).FloatString(2) + "%"
 }
 
-func agentCostCoverage(c spend.AgentCostCoverage) string {
-	return fmt.Sprintf("%d/%d/%d/%d", c.Usable, c.Missing, c.Invalid, c.ZeroUnknown)
+func agentLabel(c spend.AgentContributor) string {
+	label := routingLabel(spend.RoutingIdentity{Item: c.Item, Label: c.Label, Hash: c.Hash})
+	if c.Label != "" && c.ProjectAlias != "" {
+		label += " (" + c.ProjectAlias + ")"
+	}
+	return label
 }
 
 func renderAgents(out io.Writer, a *spend.AgentReport) {
@@ -47,8 +50,12 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 		w    spend.AgentWindow
 	}{{"Before", a.Before}, {"After", a.After}} {
 		c := side.w.Coverage
-		fmt.Fprintf(out, "  %s: %d known, %d unknown, %d ambiguous rows; %d column-absent, %d empty/null, %d without a matching tag.\n", side.name, c.KnownRows, c.UnknownRows, c.AmbiguousRows, c.ColumnAbsentRows, c.EmptyOrNullRows, c.NoMatchingTagRows)
-		fmt.Fprintf(out, "    Repeated agent tags: %d in %d rows; empty suffixes: %d in %d rows.\n", c.RepeatedAgentTags, c.RepeatedAgentTagRows, c.EmptySuffixTags, c.EmptySuffixRows)
+		if a.Source == "agent_id" {
+			fmt.Fprintf(out, "  %s: %d known, %d unknown rows; %d column-absent, %d empty/null.\n", side.name, c.KnownRows, c.UnknownRows, c.ColumnAbsentRows, c.EmptyOrNullRows)
+		} else {
+			fmt.Fprintf(out, "  %s: %d known, %d unknown, %d ambiguous rows; %d column-absent, %d empty/null, %d without a matching tag.\n", side.name, c.KnownRows, c.UnknownRows, c.AmbiguousRows, c.ColumnAbsentRows, c.EmptyOrNullRows, c.NoMatchingTagRows)
+			fmt.Fprintf(out, "    Repeated agent tags: %d in %d rows; empty suffixes: %d in %d rows.\n", c.RepeatedAgentTags, c.RepeatedAgentTagRows, c.EmptySuffixTags, c.EmptySuffixRows)
+		}
 		if c.NonStringTagRows > 0 {
 			fmt.Fprintf(out, "    Non-string tag elements: %d rows counted as unknown identity.\n", c.NonStringTagRows)
 		}
@@ -58,21 +65,39 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 			}
 			return w.RecordedSpend
 		}
-		fmt.Fprintf(out, "    Unknown: %d tokens / %s recorded USD; ambiguous: %d tokens / %s recorded USD.\n", side.w.Unknown.Tokens, usd(side.w.Unknown), side.w.Ambiguous.Tokens, usd(side.w.Ambiguous))
+		fmt.Fprintf(out, "    Unknown: %d tokens / %s recorded USD", side.w.Unknown.Tokens, usd(side.w.Unknown))
+		if a.Source != "agent_id" {
+			fmt.Fprintf(out, "; ambiguous: %d tokens / %s recorded USD", side.w.Ambiguous.Tokens, usd(side.w.Ambiguous))
+		}
+		fmt.Fprintln(out, ".")
 	}
 	fmt.Fprintln(out, "  Shares use all usable recorded USD in each period, including unknown, ambiguous and undisplayed agents. Missing/invalid costs remain unquantified; recorded USD is not an invoice.")
-	fmt.Fprintln(out, "  Cost coverage columns: usable/missing/invalid/zero-origin-unknown rows.")
+	showCosts := false
+	for _, contributors := range [][]spend.AgentContributor{a.Contributors, a.UnavailableCosts} {
+		for _, c := range contributors {
+			for _, v := range []spend.AgentValues{c.Before, c.After} {
+				showCosts = showCosts || v.CostCoverage.Missing+v.CostCoverage.Invalid+v.CostCoverage.ZeroUnknown != 0
+			}
+		}
+	}
+	if showCosts {
+		fmt.Fprintln(out, "  Cost coverage columns show before -> after row counts.")
+	} else {
+		fmt.Fprintln(out, "  All displayed agents have usable recorded USD in both periods.")
+	}
 	w := tabwriter.NewWriter(out, 0, 2, 2, ' ', 0)
-	fmt.Fprintln(w, "  Agent\tTokens before\tTokens after\tUSD before\tUSD after\tUSD change\tCost coverage before\tCost coverage after\tShare before\tShare after")
+	fmt.Fprint(w, "  Agent\tTokens before\tTokens after\tUSD before\tUSD after\tUSD change\tShare before\tShare after")
+	if showCosts {
+		fmt.Fprint(w, "\tUsable rows\tMissing rows\tInvalid rows\tZero-origin-unknown rows")
+	}
+	fmt.Fprintln(w)
 	writeContributor := func(c spend.AgentContributor) {
-		label := c.Item
-		if c.Label != "" {
-			label += " " + strconv.QuoteToASCII(c.Label)
+		fmt.Fprintf(w, "  %s\t%d\t%d\t%s\t%s\t%s\t%s\t%s", agentLabel(c), c.Before.Tokens, c.After.Tokens, agentUSD(c.Before.RecordedUSD), agentUSD(c.After.RecordedUSD), agentUSD(c.Delta), agentShare(c.Before.Share), agentShare(c.After.Share))
+		if showCosts {
+			b, a := c.Before.CostCoverage, c.After.CostCoverage
+			fmt.Fprintf(w, "\t%d -> %d\t%d -> %d\t%d -> %d\t%d -> %d", b.Usable, a.Usable, b.Missing, a.Missing, b.Invalid, a.Invalid, b.ZeroUnknown, a.ZeroUnknown)
 		}
-		if c.Hash != "" {
-			label += " (" + c.Hash + ")"
-		}
-		fmt.Fprintf(w, "  %s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", label, c.Before.Tokens, c.After.Tokens, agentUSD(c.Before.RecordedUSD), agentUSD(c.After.RecordedUSD), agentUSD(c.Delta), agentCostCoverage(c.Before.CostCoverage), agentCostCoverage(c.After.CostCoverage), agentShare(c.Before.Share), agentShare(c.After.Share))
+		fmt.Fprintln(w)
 	}
 	for _, c := range a.Contributors {
 		writeContributor(c)
@@ -89,10 +114,14 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 			fmt.Fprintf(out, "    %s: token change %s; recorded USD change unavailable.\n", c.Item, signedInterval(compare.Interval{Lower: delta, Upper: delta}))
 		}
 	}
-	for _, bucket := range []struct {
+	buckets := []struct {
 		name          string
 		before, after spend.Window
-	}{{"Unknown", a.Before.Unknown, a.After.Unknown}, {"Ambiguous", a.Before.Ambiguous, a.After.Ambiguous}} {
+	}{{"Unknown", a.Before.Unknown, a.After.Unknown}, {"Ambiguous", a.Before.Ambiguous, a.After.Ambiguous}}
+	if a.Source == "agent_id" {
+		buckets = buckets[:1]
+	}
+	for _, bucket := range buckets {
 		cost := func(v spend.Window) *big.Rat {
 			if v.Requests > 0 && v.Quality.SpendMissing+v.Quality.SpendInvalid == v.Requests {
 				return nil

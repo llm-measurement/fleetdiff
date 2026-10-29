@@ -72,6 +72,22 @@ func TestAgentSpendMissingAndDisclosure(t *testing.T) {
 	}
 }
 
+func TestAgentTextMetadataDoesNotChangeJSON(t *testing.T) {
+	r := routingReport(t, agentFixtureRows(), agentOptions(t))
+	before, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Agents.LeadingContributor = &AgentContributor{Item: "agent-1", Label: "text-only", ProjectAlias: "project-1"}
+	for i := range r.Agents.Contributors {
+		r.Agents.Contributors[i].ProjectAlias = "project-1"
+	}
+	after, err := json.Marshal(r)
+	if err != nil || string(before) != string(after) {
+		t.Fatal("text-only metadata changed JSON", err)
+	}
+}
+
 func TestAgentCapNamesPrefix(t *testing.T) {
 	var rows []map[string]string
 	for i := 0; i <= MaxAgents; i++ {

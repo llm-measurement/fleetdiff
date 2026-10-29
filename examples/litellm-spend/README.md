@@ -7,7 +7,7 @@
 increase, and two keys account for all of it.** The report separates request
 count from request size where the usage records support that comparison.
 
-Install [fleetdiff v0.13.1](../../README.md#1-install-v0131), then run this fixture
+Install [fleetdiff v0.14.0](../../README.md#1-install-v0140) after publication, then run this fixture
 from the repository root with the verified binary:
 
 ```sh
@@ -357,7 +357,7 @@ the call types and asks for a supported request-level export.
 [session-budget.csv](session-budget.csv) is a newly authored, deterministic
 Apache-2.0 fixture with four sessions and no production data. The companion
 [license notice](session-budget.csv.license) keeps the CSV directly importable.
-Use fleetdiff v0.13.1 for the session-budget command:
+Use fleetdiff v0.14.0 after publication for the session-budget command:
 
 ```sh
 fleetdiff investigate --litellm-spend examples/litellm-spend/session-budget.csv \

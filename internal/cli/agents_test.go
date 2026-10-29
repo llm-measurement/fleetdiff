@@ -92,8 +92,12 @@ func TestAgentCLIFormatsAndPrivacy(t *testing.T) {
 					t.Fatal("required columns or warning missing")
 				}
 				if format == "text" {
+					answer := "agent-1"
+					if disclose {
+						answer += ` "alpha"`
+					}
 					for _, want := range []string{
-						"agent-1 accounts for 62.5% of the net recorded increase (+200 of +320 tokens)",
+						answer + " accounts for 62.5% of the net recorded increase (+200 of +320 tokens)",
 						"Unknown (not ranked): 0 -> 1 rows; token change +50; recorded USD change 0.5",
 						"Ambiguous (not ranked): 0 -> 1 rows; token change +70; recorded USD change 0.7",
 					} {
@@ -219,5 +223,102 @@ func TestAgentTextEscapesSelectedLabel(t *testing.T) {
 	renderAgents(&b, &spend.AgentReport{Contributors: []spend.AgentContributor{{Item: "agent-1", Label: "name\n\x1b[31m\u202eend"}}})
 	if !strings.Contains(b.String(), `"name\n\x1b[31m\u202eend"`) || strings.ContainsAny(b.String(), "\x1b\u202e") {
 		t.Fatal("label changed terminal structure")
+	}
+}
+
+func TestAgentIDTextPolishAndEscapedAnswer(t *testing.T) {
+	t.Setenv("AGENT_CLI_SECRET", "synthetic-agent-secret-for-tests-at-least-32-bytes")
+	label := "alpha\n\x1b[31m\u202e"
+	var input bytes.Buffer
+	w := csv.NewWriter(&input)
+	_ = w.Write([]string{"request_id", "call_type", "startTime", "endTime", "status", "model", "prompt_tokens", "completion_tokens", "total_tokens", "spend", "agent_id", "request_tags"})
+	for i, row := range []struct{ day, agent, tokens, cost string }{
+		{"07", label, "100", "1"}, {"07", "beta", "100", "1"},
+		{"08", label, "300", "3"}, {"08", "beta", "100", "100"}, {"08", "", "50", "0.5"},
+	} {
+		start := "2026-10-" + row.day + "T12:00:00Z"
+		_ = w.Write([]string{string(rune('a' + i)), "completion", start, start, "success", "private-model", row.tokens, "0", row.tokens, row.cost, row.agent, `["agent:x","agent:y"]`})
+	}
+	w.Flush()
+	path := filepath.Join(t.TempDir(), "agents.csv")
+	if err := os.WriteFile(path, input.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"investigate", "--litellm-spend", path, "--before-period", "2026-10-07", "--after-period", "2026-10-08", "--group-by", "agent", "--agent-source", "agent_id", "--rank-by", "recorded-spend-change", "--top", "1", "--hash-secret-env", "AGENT_CLI_SECRET", "--show-labels", "--acknowledge-sensitive-labels"}
+	code, out, errs := databaseRun(args, nil)
+	if code != 0 || errs != "" {
+		t.Fatal(code, errs)
+	}
+	for _, want := range []string{`agent-1 "alpha\n\x1b[31m\u202e" accounts for`, "Agent identity unknown or ambiguous: 0 -> 1.", "All displayed agents have usable recorded USD in both periods."} {
+		if !strings.Contains(out, want) {
+			t.Fatal("agent polish missing", want, out)
+		}
+	}
+	for _, forbidden := range []string{"\x1b", "\u202e", "without a matching tag", "Repeated agent tags", "empty suffixes", "Ambiguous (not ranked)", "; ambiguous:", "Group identities missing", "Missing rows", "Zero-origin-unknown rows"} {
+		if strings.Contains(out, forbidden) {
+			t.Fatal("agent_id text includes inapplicable coverage or unsafe label", forbidden)
+		}
+	}
+	code, data, errs := databaseRun(append(args, "--format", "json"), nil)
+	var r spend.Report
+	if code != 0 || errs != "" || json.Unmarshal([]byte(data), &r) != nil {
+		t.Fatal("JSON failed", code, errs)
+	}
+	for _, field := range []string{`"ambiguous_rows": 0`, `"no_matching_tag_rows": 0`, `"empty_suffix_rows": 0`} {
+		if !strings.Contains(data, field) {
+			t.Fatal("JSON coverage was removed", field)
+		}
+	}
+	if r.Agents.Contributors[0].Item != "agent-2" {
+		t.Fatal("test must keep the token leader outside the displayed cost ranking")
+	}
+}
+
+func TestAgentCostColumnsOnlyForDisplayedIncompleteCosts(t *testing.T) {
+	usd := "1"
+	value := spend.AgentValues{RecordedUSD: &usd, CostCoverage: spend.AgentCostCoverage{Usable: 1}}
+	for _, kind := range []string{"complete", "missing", "invalid", "zero-origin", "unavailable"} {
+		t.Run(kind, func(t *testing.T) {
+			c := spend.AgentContributor{Item: "agent-1", Before: value, After: value, Delta: &usd}
+			r := &spend.AgentReport{Source: "agent_id", Contributors: []spend.AgentContributor{c}}
+			r.UndisplayedAfter.CostCoverage.Missing = 99
+			r.After.Unknown.Quality.SpendMissing = 10
+			switch kind {
+			case "missing":
+				r.Contributors[0].Before.CostCoverage.Missing = 1
+			case "invalid":
+				r.Contributors[0].After.CostCoverage.Invalid = 1
+			case "zero-origin":
+				r.Contributors[0].After.CostCoverage.ZeroUnknown = 1
+			case "unavailable":
+				c.Item, c.Delta, c.Before.RecordedUSD = "agent-2", nil, nil
+				c.Before.CostCoverage.Missing = 1
+				r.UnavailableCosts = []spend.AgentContributor{c}
+			}
+			var out bytes.Buffer
+			renderAgents(&out, r)
+			for _, column := range []string{"Usable rows", "Missing rows", "Invalid rows", "Zero-origin-unknown rows"} {
+				if strings.Contains(out.String(), column) != (kind != "complete") {
+					t.Fatal("coverage columns did not follow displayed rows", column, out.String())
+				}
+			}
+			if strings.Contains(out.String(), "All displayed agents have usable recorded USD in both periods.") != (kind == "complete") {
+				t.Fatal("complete-cost line mismatch")
+			}
+		})
+	}
+}
+
+func TestAgentTextProjectAliases(t *testing.T) {
+	var out bytes.Buffer
+	renderAgents(&out, &spend.AgentReport{Source: "request-tag", LabelsIncluded: true,
+		Contributors: []spend.AgentContributor{
+			{Item: "agent-1", Label: "alpha", ProjectAlias: "project-1"},
+			{Item: "agent-2", Label: "alpha", ProjectAlias: "project-2"},
+		}})
+	for _, want := range []string{`agent-1 "alpha" (project-1)`, `agent-2 "alpha" (project-2)`} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatal("identical project-scoped labels are ambiguous", out.String())
+		}
 	}
 }

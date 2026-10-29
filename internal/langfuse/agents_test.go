@@ -4,6 +4,7 @@
 package langfuse
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -31,6 +32,18 @@ func TestAgentTagsProjectScopeAndCoverage(t *testing.T) {
 	shown, err := Investigate(root, "agent", "", o)
 	if err != nil || shown.Agents.Contributors[0].Label != "alpha" || shown.Agents.Contributors[1].Label != "alpha" || shown.Before.Tokens != r.Before.Tokens {
 		t.Fatal("Langfuse disclosure or scope changed", err)
+	}
+	if shown.Agents.Contributors[0].ProjectAlias != "project-1" || shown.Agents.Contributors[1].ProjectAlias != "project-2" {
+		t.Fatal("project labels lack stable aliases", shown.Agents.Contributors)
+	}
+	data, _ := json.Marshal(shown.Agents)
+	if strings.Contains(string(data), "project-") || strings.Contains(string(data), "ProjectAlias") || strings.Contains(string(data), "LeadingContributor") {
+		t.Fatal("text-only disambiguation changed JSON")
+	}
+	for _, c := range r.Agents.Contributors {
+		if c.ProjectAlias != "" || c.Label != "" {
+			t.Fatal("undisclosed project metadata escaped")
+		}
 	}
 	o.AgentSource, o.AgentTagPrefix = "agent_id", ""
 	if _, err := Investigate(root, "agent", "", o); err == nil {

@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.13.1"
+const installTestVersion = "v0.14.0"
 const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/0d7db95c5bb3013f8c564c91fbb07b6235a2664e/scripts/install.sh"
 
 func TestInstallDocumentationVersionPins(t *testing.T) {

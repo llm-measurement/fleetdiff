@@ -118,6 +118,9 @@ func renderSpend(out io.Writer, r spend.Report) {
 			label, verb := fmt.Sprintf("%d leading tracked agents", c.Count), "account"
 			if c.Count == 1 && len(r.Rankings.Movers) > 0 {
 				label, verb = r.Rankings.Movers[0].Item, "accounts"
+				if leading := r.Agents.LeadingContributor; leading != nil && leading.Item == label {
+					label = agentLabel(*leading)
+				}
 			}
 			share := spendPercent(100 * c.Share.Lower)
 			if c.Delta.Lower != c.Delta.Upper {
@@ -220,6 +223,10 @@ func renderSpend(out io.Writer, r spend.Report) {
 		}
 	}
 	a, b := r.Before.Quality, r.After.Quality
+	identityLabel := "Group identities missing"
+	if r.Agents != nil {
+		identityLabel = "Agent identity unknown or ambiguous"
+	}
 	var levels []string
 	for _, level := range []string{"DEFAULT", "DEBUG", "WARNING", "ERROR", "unknown"} {
 		if a.ObservationLevels[level] != 0 || b.ObservationLevels[level] != 0 {
@@ -251,7 +258,7 @@ func renderSpend(out io.Writer, r spend.Report) {
 		{"Total field absent", a.TotalMissing, b.TotalMissing},
 		{"Failed records (overlap usage categories)", a.Failed, b.Failed},
 		{"Unknown status", a.UnknownStatus, b.UnknownStatus},
-		{"Group identities missing", a.MissingIdentity, b.MissingIdentity},
+		{identityLabel, a.MissingIdentity, b.MissingIdentity},
 	} {
 		if v.a != 0 || v.b != 0 {
 			problems = true

@@ -41,17 +41,18 @@ type AgentWindow struct {
 }
 
 type AgentReport struct {
-	Schema            string             `json:"schema"`
-	Source            string             `json:"label_source"`
-	Before            AgentWindow        `json:"before"`
-	After             AgentWindow        `json:"after"`
-	RankBy            string             `json:"rank_by"`
-	LabelsIncluded    bool               `json:"sensitive_labels_included"`
-	Contributors      []AgentContributor `json:"contributors"`
-	UnavailableCosts  []AgentContributor `json:"unavailable_cost_contributors,omitempty"`
-	UndisplayedBefore AgentValues        `json:"known_undisplayed_before"`
-	UndisplayedAfter  AgentValues        `json:"known_undisplayed_after"`
-	ShareBasis        string             `json:"spend_share_basis"`
+	Schema             string             `json:"schema"`
+	Source             string             `json:"label_source"`
+	Before             AgentWindow        `json:"before"`
+	After              AgentWindow        `json:"after"`
+	RankBy             string             `json:"rank_by"`
+	LabelsIncluded     bool               `json:"sensitive_labels_included"`
+	Contributors       []AgentContributor `json:"contributors"`
+	UnavailableCosts   []AgentContributor `json:"unavailable_cost_contributors,omitempty"`
+	UndisplayedBefore  AgentValues        `json:"known_undisplayed_before"`
+	UndisplayedAfter   AgentValues        `json:"known_undisplayed_after"`
+	ShareBasis         string             `json:"spend_share_basis"`
+	LeadingContributor *AgentContributor  `json:"-"`
 }
 
 type AgentCostCoverage struct {
@@ -70,12 +71,13 @@ type AgentValues struct {
 }
 
 type AgentContributor struct {
-	Item   string      `json:"item"`
-	Hash   string      `json:"hash,omitempty"`
-	Label  string      `json:"label,omitempty"`
-	Before AgentValues `json:"before"`
-	After  AgentValues `json:"after"`
-	Delta  *string     `json:"recorded_usd_delta"`
+	Item         string      `json:"item"`
+	Hash         string      `json:"hash,omitempty"`
+	Label        string      `json:"label,omitempty"`
+	Before       AgentValues `json:"before"`
+	After        AgentValues `json:"after"`
+	Delta        *string     `json:"recorded_usd_delta"`
+	ProjectAlias string      `json:"-"`
 }
 
 type agentResolution struct {
@@ -202,10 +204,11 @@ func newAgentPair(before, after Period) agentPair {
 }
 
 type agentEntry struct {
-	digest [32]byte
-	label  string
-	pair   agentPair
-	order  int
+	digest  [32]byte
+	label   string
+	project string
+	pair    agentPair
+	order   int
 }
 
 type agentAccumulator struct {
@@ -261,6 +264,7 @@ func (a *agentAccumulator) add(row Row, side int, digest [32]byte, obs accountin
 			e = &agentEntry{digest: digest, pair: newAgentPair(a.before, a.after), order: len(a.entries)}
 			if a.opts.ShowLabels && a.opts.AcknowledgeSensitiveLabels {
 				e.label = r.label
+				e.project = row.AgentNamespace
 			}
 			a.entries[digest] = e
 		}
@@ -329,6 +333,12 @@ func (a *agentAccumulator) finish(r *Report) error {
 		return nil
 	}
 	entries := a.ordered()
+	projects := map[string]string{}
+	for _, e := range entries {
+		if e.project != "" && projects[e.project] == "" {
+			projects[e.project] = fmt.Sprintf("project-%d", len(projects)+1)
+		}
+	}
 	slices.SortStableFunc(entries, func(x, y *agentEntry) int {
 		if a.opts.RankBy == "recorded-spend-change" {
 			available := func(e *agentEntry) bool {
@@ -377,13 +387,16 @@ func (a *agentAccumulator) finish(r *Report) error {
 	remaining := [2]*routingTotals{newRoutingTotals(), newRoutingTotals()}
 	report.Contributors = []AgentContributor{}
 	for i, e := range entries {
-		c := AgentContributor{Item: fmt.Sprintf("agent-%d", e.order+1), Label: e.label, Before: agentValues(e.pair[0].result(), totals[0]), After: agentValues(e.pair[1].result(), totals[1])}
+		c := AgentContributor{Item: fmt.Sprintf("agent-%d", e.order+1), Label: e.label, ProjectAlias: projects[e.project], Before: agentValues(e.pair[0].result(), totals[0]), After: agentValues(e.pair[1].result(), totals[1])}
 		if a.opts.ShowHashes {
 			c.Hash = fmt.Sprintf("%x", e.digest)
 		}
 		if c.Before.RecordedUSD != nil && c.After.RecordedUSD != nil {
 			delta := costText(new(big.Rat).Sub(&e.pair[1].cost, &e.pair[0].cost))
 			c.Delta = &delta
+		}
+		if len(r.Rankings.Movers) > 0 && c.Item == r.Rankings.Movers[0].Item {
+			report.LeadingContributor = &c
 		}
 		if a.opts.RankBy == "recorded-spend-change" && c.Delta == nil {
 			report.UnavailableCosts = append(report.UnavailableCosts, c)
