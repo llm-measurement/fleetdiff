@@ -4,9 +4,9 @@ Notable user-visible changes are recorded here, newest first.
 
 ## [Unreleased]
 
-## [0.14.0] - Unreleased
+## [0.14.0] - 2026-10-29
 
-Release preparation; no tag or publication yet. See [draft release notes](docs/releases/v0.14.0.md).
+See the [release notes](docs/releases/v0.14.0.md).
 
 - Add explicit agent attribution from LiteLLM `agent_id` or prefixed request
   tags on LiteLLM and Langfuse, with exclusive known/unknown/ambiguous totals,
