@@ -6,6 +6,6 @@ opentelemetry-exporter-otlp-proto-common==1.45.1
 opentelemetry-proto==1.45.1
 opentelemetry-semantic-conventions==0.66b1
 protobuf==7.36.2
-importlib-metadata==9.0.1
+importlib-metadata==10.1.0
 typing-extensions==4.16.0
-zipp==4.1.1
+zipp==4.1.2
