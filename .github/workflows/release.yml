@@ -58,7 +58,7 @@ jobs:
           jq -e 'any(.packages[]; .name == "github.com/llm-measurement/llm-sketchkit") and
             any(.packages[]; .name == "go.opentelemetry.io/proto/slim/otlp") and
             any(.packages[]; .name == "go.yaml.in/yaml/v3") and
-            any(.packages[]; .name == "github.com/jackc/pgx/v5" and .versionInfo == "v5.11.0") and
+            any(.packages[]; .name == "github.com/jackc/pgx/v5" and .versionInfo == "v5.12.0") and
             any(.packages[]; .name == "github.com/jackc/pgpassfile" and .versionInfo == "v1.0.0") and
             any(.packages[]; .name == "github.com/jackc/pgservicefile" and .versionInfo == "v0.0.0-20240606120523-5a60cdf6a761") and
             any(.packages[]; .name == "golang.org/x/text" and .versionInfo == "v0.41.0") and
