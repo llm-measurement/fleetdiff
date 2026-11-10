@@ -80,7 +80,7 @@ func databaseRuntimeModule(path string) (string, string) {
 		"github.com/jackc/pgx/v5/internal/pgio",
 		"github.com/jackc/pgx/v5/internal/pgdatetime",
 		"github.com/jackc/pgx/v5/internal/iobufpool":
-		return "github.com/jackc/pgx/v5", "v5.11.0"
+		return "github.com/jackc/pgx/v5", "v5.12.0"
 	}
 	return "", ""
 }
