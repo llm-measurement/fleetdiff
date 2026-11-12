@@ -4,6 +4,13 @@ Notable user-visible changes are recorded here, newest first.
 
 ## [Unreleased]
 
+## [0.14.1]
+
+See the [release notes](docs/releases/v0.14.1.md).
+
+- Build the release with Go 1.26.11 for GO-2026-6859.
+- Update pgx to v5.12.0. No new commands or accounting changes.
+
 ## [0.14.0] - 2026-10-29
 
 See the [release notes](docs/releases/v0.14.0.md).
