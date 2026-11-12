@@ -16,13 +16,15 @@ import (
 )
 
 const installTestVersion = "v0.14.0"
+const readmeInstallVersion = "v0.14.1"
 const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/0d7db95c5bb3013f8c564c91fbb07b6235a2664e/scripts/install.sh"
 
 func TestInstallDocumentationVersionPins(t *testing.T) {
 	parts := strings.Split(strings.TrimPrefix(installTestVersion, "v"), ".")
 	for path, want := range map[string][]string{
-		"../README.md": {"### 1. Install " + installTestVersion, "sh -s -- " + installTestVersion,
-			"cmd/fleetdiff@" + installTestVersion, "docs/releases/" + installTestVersion + ".md", installTestURL,
+		"../README.md": {"### 1. Install " + readmeInstallVersion, "sh -s -- " + readmeInstallVersion,
+			"cmd/fleetdiff@" + readmeInstallVersion, "docs/releases/" + readmeInstallVersion + ".md", installTestURL,
+			`<a id="1-install-v0140"></a>`,
 			`<a id="1-install-v0120"></a>`,
 			"`gh` need not be signed in", "https://llm-measurement.github.io/litellm-spend.html",
 			"https://llm-measurement.github.io/routing.html", "https://llm-measurement.github.io/row-coverage.html"},
@@ -64,7 +66,7 @@ func TestDocumentedReadmeInstall(t *testing.T) {
 	}
 	for _, failure := range []string{"", "download", "archive", "manifest", "checksum", "missing"} {
 		t.Run("failure="+failure, func(t *testing.T) {
-			root, env := installEnvironment(t, "Darwin", "arm64", "darwin_arm64", failure)
+			root, env := installEnvironmentForVersion(t, readmeInstallVersion, "Darwin", "arm64", "darwin_arm64", failure)
 			installer := filepath.Join(root, "reviewed-install.sh")
 			// Select the release explicitly even if the installer's default changes.
 			writeTestFile(t, installer, strings.ReplaceAll(string(script), installTestVersion, "v0.11.0"), 0600)
@@ -291,6 +293,11 @@ func TestInstallOptions(t *testing.T) {
 
 func installEnvironment(t *testing.T, system, arch, target, failure string) (string, []string) {
 	t.Helper()
+	return installEnvironmentForVersion(t, installTestVersion, system, arch, target, failure)
+}
+
+func installEnvironmentForVersion(t *testing.T, version, system, arch, target, failure string) (string, []string) {
+	t.Helper()
 	for _, command := range []string{"shasum", "tar"} {
 		if _, err := exec.LookPath(command); err != nil {
 			t.Skipf("installer test requires %s", command)
@@ -303,7 +310,7 @@ func installEnvironment(t *testing.T, system, arch, target, failure string) (str
 			t.Fatal(err)
 		}
 	}
-	name := "fleetdiff_" + installTestVersion + "_" + target + ".tar.gz"
+	name := "fleetdiff_" + version + "_" + target + ".tar.gz"
 	var archive strings.Builder
 	gz := gzip.NewWriter(&archive)
 	tw := tar.NewWriter(gz)
@@ -356,7 +363,7 @@ if [ "$TEST_FAILURE" = archive ] && [ "$asset" = "$TEST_ARCHIVE" ]; then exit 1;
 if [ "$TEST_FAILURE" = manifest ] && [ "$asset" = SHA256SUMS ]; then exit 1; fi
 `, 0700)
 	env := append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"TEST_SYSTEM="+system, "TEST_ARCH="+arch, "TEST_FAILURE="+failure, "TEST_VERSION="+installTestVersion,
+		"TEST_SYSTEM="+system, "TEST_ARCH="+arch, "TEST_FAILURE="+failure, "TEST_VERSION="+version,
 		"TEST_ASSETS="+assets, "TEST_ARCHIVE="+name, "TEST_LOG="+filepath.Join(root, "attestations"))
 	return root, env
 }
