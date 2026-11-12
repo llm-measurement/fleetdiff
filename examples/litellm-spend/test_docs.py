@@ -11,6 +11,8 @@ from test_spend import WRITER_OBSERVATIONS
 
 
 ROOT = Path(__file__).resolve().parents[2]
+README_RELEASE = "v0.14.1"
+LANGFUSE_FIXTURE_RELEASE = "v0.14.0"
 
 
 def anchors(text):
@@ -67,7 +69,7 @@ class DocumentationTests(unittest.TestCase):
 
     def test_native_release_promotion(self):
         readme = (ROOT / "README.md").read_text()
-        self.assertLess(readme.index("### 1. Install v0.14.0"),
+        self.assertLess(readme.index("### 1. Install " + README_RELEASE),
                         readme.index("investigate --litellm-db"))
         self.assertIn("Manual Alternative: Export With psql", readme)
         self.assertNotIn("go build", readme)
@@ -91,7 +93,8 @@ class DocumentationTests(unittest.TestCase):
         installer = (ROOT / "scripts/install.sh").read_text()
         self.assertIn("v0.14.0", installer)
         self.assertNotIn("v0.13.1", installer)
-        self.assertIn("publication", readme)
+        self.assertIn("https://github.com/llm-measurement/fleetdiff/releases/tag/" + README_RELEASE, readme)
+        self.assertNotIn("Until\npublication", readme)
         self.assertIn("v0.14.0", (ROOT / "docs/ROW_COVERAGE.md").read_text())
         guide = (ROOT / "docs/AGENT_ATTRIBUTION.md").read_text()
         self.assertLess(guide.index("300 to 620 tokens"), guide.index("## Run"))
@@ -108,16 +111,16 @@ class DocumentationTests(unittest.TestCase):
     def test_langfuse_guide_release_pins(self):
         readme = (ROOT / "README.md").read_text()
         versions = re.findall(r"^### 1\. Install (v\d+\.\d+\.\d+)$", readme, re.M)
-        self.assertEqual(len(versions), 1)
-        version = versions[0]
-        anchor = "1-install-" + version.replace(".", "")
-        self.assertIn(anchor, anchors(readme))
+        self.assertEqual(versions, [README_RELEASE])
+        fixture_anchor = "1-install-" + LANGFUSE_FIXTURE_RELEASE.replace(".", "")
+        self.assertIn(fixture_anchor, anchors(readme))
+        self.assertIn("1-install-" + README_RELEASE.replace(".", ""), anchors(readme))
         guide = (ROOT / "docs/LANGFUSE.md").read_text()
         self.assertEqual(re.findall(
             r"^git clone --depth 1 --branch (\S+) https://github\.com/llm-measurement/fleetdiff$",
-            guide, re.M), [version])
+            guide, re.M), [LANGFUSE_FIXTURE_RELEASE])
         self.assertEqual(re.findall(
-            r"\[README\]\(\.\./README\.md#([^)]+)\)", guide), [anchor])
+            r"\[README\]\(\.\./README\.md#([^)]+)\)", guide), [fixture_anchor])
 
     def test_document_links(self):
         paths = [ROOT / "README.md", ROOT / "docs/WORKFLOWS.md",
