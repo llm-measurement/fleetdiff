@@ -111,6 +111,38 @@ func TestCUSUMCalibratesAndDetectsPlantedChanges(t *testing.T) {
 	}
 }
 
+func TestCUSUMCalibrationRejectsChronologicalRateEvenWhenResamplesPass(t *testing.T) {
+	config := CUSUMConfig{Reference: 3, ScaleFloor: 1, MinShift: 2}
+	values := []float64{10, 10, 10, 14, 14, 10, 10, 10, 10, 10, 10, 14, 14, 10, 10, 10, 10, 10, 10}
+	quiet := make([]CUSUMBucket, len(values))
+	for i, value := range values {
+		quiet[i] = CUSUMBucket{Index: uint64(i), Value: value, Eligible: true}
+	}
+	opts := CUSUMCalibrationOptions{
+		Thresholds: []float64{3}, TargetSpacing: 5, BlockLength: 2, Resamples: 2, Seed: 0,
+	}
+	increments, err := cusumQuietIncrements(config, quiet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chronological := cusumReplayState{}
+	chronological.add(increments, opts.Thresholds[0])
+	if len(increments) != 16 || chronological.alarms != 4 ||
+		chronological.alarms <= len(increments)/opts.TargetSpacing {
+		t.Fatalf("chronological fixture must exceed the target: %d alarms in %d buckets",
+			chronological.alarms, len(increments))
+	}
+	resampled := replayCUSUMBlocks(increments, opts.Thresholds[0], opts)
+	if resampled != (CUSUMReplay{Eligible: 32, Alarms: 5}) || resampled.Alarms > resampled.Eligible/opts.TargetSpacing {
+		t.Fatalf("block replay must pass independently of chronological replay: %+v", resampled)
+	}
+
+	calibration, err := CalibrateCUSUM(config, quiet, opts)
+	if _, ok := calibration.Threshold(); err != nil || ok || calibration.Status != CUSUMUncalibrated {
+		t.Fatalf("accepted a threshold whose chronological rate exceeds the target: %+v, %v", calibration, err)
+	}
+}
+
 func TestCUSUMBlockReplayPreservesOrderAndCarriesOnlyWithinResamples(t *testing.T) {
 	// The seeded paths are [1, 3, -4, 1, 3] and [3, 1, 3, 1, 1].
 	// Only the second crosses 5, on an increment at the start of a block.
