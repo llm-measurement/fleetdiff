@@ -1,0 +1,8 @@
+1 unusual windows among 1 checked.
+
+1970-01-01T00:25:00Z
+  reported tokens per attempt: 40.00; typical 10.00 (4.00x).
+
+Baseline: 24 of 24 requested windows, 1970-01-01T00:01:00Z to 1970-01-01T00:24:00Z (window starts).
+Thresholds: robust score 4.0, relative change 50%, persistence 1 window(s).
+Notes: Shares use ranked activity, not all traffic. Newly prominent does not mean a new identity. Use --format json for full details.

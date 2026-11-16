@@ -1,0 +1,222 @@
+{
+  "schema": "fleetdiff-scan/v1",
+  "status": "evaluated",
+  "as_of_unix_nano": 1560000000000,
+  "baseline_start_unix_nano": 60000000000,
+  "baseline_end_unix_nano": 1500000000000,
+  "baseline_windows": 24,
+  "requested_baseline_windows": 24,
+  "unusual_windows": 1,
+  "windows": [
+    {
+      "start_unix_nano": 1500000000000,
+      "end_unix_nano": 1560000000000,
+      "status": "evaluated",
+      "signals": [
+        {
+          "signal": "missing_usage_share",
+          "status": "evaluated",
+          "current": {
+            "lower": 0,
+            "upper": 0
+          },
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0.05,
+          "minimum_change": 0.05,
+          "robust_score": 0,
+          "baseline_samples": 24
+        },
+        {
+          "signal": "attempt_volume",
+          "status": "evaluated",
+          "current": {
+            "lower": 100,
+            "upper": 100
+          },
+          "baseline_median": 100,
+          "baseline_mad": 0,
+          "baseline_upper": 100,
+          "threshold": 150,
+          "minimum_change": 50,
+          "robust_score": 0,
+          "baseline_samples": 24
+        },
+        {
+          "signal": "tokens_per_attempt",
+          "status": "evaluated",
+          "current": {
+            "lower": 40,
+            "upper": 40
+          },
+          "baseline_median": 10,
+          "baseline_mad": 0,
+          "baseline_upper": 10,
+          "threshold": 15,
+          "minimum_change": 5,
+          "robust_score": 30,
+          "baseline_samples": 24
+        },
+        {
+          "signal": "attribution",
+          "measurement": "top_sessions",
+          "status": "not_configured",
+          "reason": "This ranking was not exported.",
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0,
+          "minimum_change": 0,
+          "robust_score": 0,
+          "baseline_samples": 0
+        },
+        {
+          "signal": "attribution",
+          "measurement": "top_sessions_requests",
+          "status": "not_configured",
+          "reason": "This ranking was not exported.",
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0,
+          "minimum_change": 0,
+          "robust_score": 0,
+          "baseline_samples": 0
+        },
+        {
+          "signal": "attribution",
+          "measurement": "top_users",
+          "status": "not_configured",
+          "reason": "This ranking was not exported.",
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0,
+          "minimum_change": 0,
+          "robust_score": 0,
+          "baseline_samples": 0
+        },
+        {
+          "signal": "attribution",
+          "measurement": "top_users_requests",
+          "status": "not_configured",
+          "reason": "This ranking was not exported.",
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0,
+          "minimum_change": 0,
+          "robust_score": 0,
+          "baseline_samples": 0
+        },
+        {
+          "signal": "attribution",
+          "measurement": "top_prompts",
+          "status": "not_configured",
+          "reason": "This ranking was not exported.",
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0,
+          "minimum_change": 0,
+          "robust_score": 0,
+          "baseline_samples": 0
+        },
+        {
+          "signal": "attribution",
+          "measurement": "top_prompts_requests",
+          "status": "not_configured",
+          "reason": "This ranking was not exported.",
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0,
+          "minimum_change": 0,
+          "robust_score": 0,
+          "baseline_samples": 0
+        },
+        {
+          "signal": "attribution",
+          "measurement": "top_tool_errors",
+          "status": "not_configured",
+          "reason": "This ranking was not exported.",
+          "baseline_median": 0,
+          "baseline_mad": 0,
+          "baseline_upper": 0,
+          "threshold": 0,
+          "minimum_change": 0,
+          "robust_score": 0,
+          "baseline_samples": 0
+        }
+      ],
+      "findings": [
+        {
+          "signal": "tokens_per_attempt",
+          "status": "evaluated",
+          "current": {
+            "lower": 40,
+            "upper": 40
+          },
+          "baseline_median": 10,
+          "baseline_mad": 0,
+          "baseline_upper": 10,
+          "threshold": 15,
+          "minimum_change": 5,
+          "robust_score": 30,
+          "baseline_samples": 24,
+          "id": "90c545503246048eb6995f47eadc7a12",
+          "direction": "up"
+        }
+      ],
+      "omitted_findings": 0,
+      "pending_persistence": 0
+    }
+  ],
+  "thresholds": {
+    "robust_score": 4,
+    "relative_change": 0.5,
+    "share_floor": 0.25,
+    "share_change": 0.1,
+    "coverage_change": 0.05,
+    "min_attempts": 100,
+    "persistence_windows": 1,
+    "max_age_nano": 180000000000
+  },
+  "notes": [
+    "The baseline is preceding observed history, not a seasonal model or a calibrated probability of anomaly.",
+    "Shares describe attributed weight, excluding missing keys. Flags identify contributors for review, not loop causes or invoice amounts.",
+    "Finding IDs support external alert deduplication. This command stores no alert state."
+  ],
+  "token_cusum": {
+    "status": "uncalibrated",
+    "unit": "observed_tokens",
+    "clock": "collector_processing_time",
+    "reference_windows": 24,
+    "scale_floor": 1,
+    "minimum_shift": 2,
+    "windows": [
+      {
+        "start_unix_nano": 1500000000000,
+        "end_unix_nano": 1560000000000,
+        "status": "uncalibrated",
+        "observed_tokens": 4000,
+        "reference_samples": 24,
+        "diagnostic": {
+          "median": 1000,
+          "mad": 0,
+          "scale": 1,
+          "residual": 3000,
+          "statistic": 2999
+        }
+      }
+    ],
+    "notes": [
+      "Calibration is pending; these scores are diagnostics rather than alert verdicts.",
+      "The measurement is observed input plus output tokens, not cost.",
+      "One compatible nonseasonal stratum; exclude declared incidents before evaluation.",
+      "Missing or ineligible positions reset the rolling reference and statistic; no refractory period.",
+      "Expected producers declare disjoint ownership; complete intervals do not prove every physical request arrived."
+    ]
+  }
+}
