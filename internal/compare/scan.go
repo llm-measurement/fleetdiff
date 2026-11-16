@@ -106,6 +106,7 @@ type scanFrame struct {
 	start, end, emitted int64
 	complete            bool
 	counters            map[string]uint64
+	sources             []summary.Source
 	modelUsage          *modelusage.Block
 	sketches            map[string]*frequentitems.Sketch
 	upperBounds         map[string]int64
@@ -286,6 +287,7 @@ func scanFrames(input []summary.Envelope, expected []string) ([]scanFrame, int64
 		}
 		f := scanFrame{start: start, end: start + input[0].WindowDuration, complete: len(combined.Missing)+len(combined.Partial) == 0, counters: combined.Counters, sketches: map[string]*frequentitems.Sketch{}, upperBounds: map[string]int64{}}
 		f.modelUsage = combined.ModelUsage
+		f.sources = combined.Sources
 		for _, doc := range groups[start] {
 			f.emitted = max(f.emitted, doc.EmittedAt)
 		}

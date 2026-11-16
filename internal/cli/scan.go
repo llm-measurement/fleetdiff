@@ -37,10 +37,15 @@ Usage: fleetdiff scan [options] PATH
   --top N                         Findings displayed per window (default 20)
   --format text|json              Output format (default text)
   --show-hashes                   Include pseudonymous, linkable hashes
+  --token-cusum                   Add uncalibrated observed-token diagnostics
+  --cusum-scale-floor N           Token scale floor (default 1; requires --token-cusum)
+  --cusum-min-shift N             Shift in scale units (default 2; requires --token-cusum)
 
 Reads canonical summary files, not raw traces. No network requests or file writes.
 Missing history is not a quiet result. Unknown usage is never converted to savings.
 Exit: 0 evaluated/quiet, 3 unusual, 4 not ready or limited, 1 input/output, 2 options.
+Token CUSUM uses --baseline for its rolling reference; without calibration it
+returns 4 unless existing scan findings return 3. It never supplies alert verdicts.
 Cron needs a wrapper that handles the exit code; scan does not send notifications.
 `
 
@@ -54,6 +59,9 @@ func runScan(args []string, out, errout io.Writer) int {
 	format := f.String("format", "text", "")
 	asOf := f.String("as-of", "", "")
 	maxAge := f.String("max-age", "", "")
+	tokenCUSUM := f.Bool("token-cusum", false, "")
+	cusumFloor := f.Float64("cusum-scale-floor", 1, "")
+	cusumShift := f.Float64("cusum-min-shift", 2, "")
 	f.IntVar(&o.Recent, "recent", o.Recent, "")
 	f.IntVar(&o.Persist, "persist", o.Persist, "")
 	f.IntVar(&o.Top, "top", o.Top, "")
@@ -80,6 +88,9 @@ func runScan(args []string, out, errout io.Writer) int {
 	}
 	if f.NArg() != 1 || strings.TrimSpace(*expected) == "" || len(*expected) > 128*129 || (*format != "text" && *format != "json") {
 		return fail(2, "supply one summary path, expected producers, and text or json format")
+	}
+	if err := validateTokenCUSUMFlags(f, *tokenCUSUM, *cusumFloor, *cusumShift); err != nil {
+		return fail(2, err.Error())
 	}
 	o.Expected = strings.Split(*expected, ",")
 	for i := range o.Expected {
@@ -115,6 +126,10 @@ func runScan(args []string, out, errout io.Writer) int {
 	input, err := compare.ReadSeries(f.Arg(0))
 	if err != nil {
 		return fail(1, err.Error())
+	}
+	if *tokenCUSUM {
+		options := compare.TokenCUSUMOptions{ScaleFloor: *cusumFloor, MinShift: *cusumShift}
+		return runTokenCUSUMScan(input, o, options, *format, out, errout)
 	}
 	r, err := compare.Scan(input, o)
 	if err != nil {
