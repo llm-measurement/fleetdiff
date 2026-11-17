@@ -10,3 +10,15 @@ b214e8466291879aa7862f7d26875778ee20ea95:internal/diagnose/shadow_test.go:generi
 # Planted sentinels asserting that CLI and config input never enters reports.
 b214e8466291879aa7862f7d26875778ee20ea95:internal/cli/diagnose_test.go:generic-api-key:85
 b214e8466291879aa7862f7d26875778ee20ea95:internal/diagnose/diagnose_test.go:generic-api-key:65
+
+# Published SHA-256 of the named CSV, verified against that immutable input.
+646b6b4cfd03ea044557aece5bfc3c4621762511:evidence/model-mix/manifest.json:generic-api-key:9
+
+# Public synthetic hashing keys confined to tests; no provider authentication.
+a7dcb195cc59d310093604d55adbc6c355fb601a:internal/cli/refactor_golden_test.go:generic-api-key:15
+1e310e9b446871cda5a3275bc0680f369e51dd1a:internal/cli/refactor_golden_test.go:generic-api-key:15
+f64d4bec6f7bba032c908839a33cae7b0125010a:internal/clauderecords/period_test.go:generic-api-key:69
+f64d4bec6f7bba032c908839a33cae7b0125010a:internal/clauderecords/investigate_test.go:generic-api-key:241
+
+# Deliberately planted privacy sentinel in a test's temporary input rows.
+d47787238fa657f585d461260581f503eaa01d10:internal/cli/spend_text_test.go:generic-api-key:160
