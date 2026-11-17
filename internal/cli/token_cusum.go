@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/change"
@@ -17,11 +18,55 @@ import (
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/summary"
 )
 
+type tokenCUSUMFlags struct {
+	enabled bool
+	options compare.TokenCUSUMOptions
+}
+
+func addTokenCUSUMFlags(flags *flag.FlagSet) *tokenCUSUMFlags {
+	cusum := &tokenCUSUMFlags{}
+	flags.BoolVar(&cusum.enabled, "token-cusum", false, "")
+	flags.StringVar(&cusum.options.Stratum, "cusum-stratum", "", "")
+	flags.Float64Var(&cusum.options.ScaleFloor, "cusum-scale-floor", 1, "")
+	flags.Float64Var(&cusum.options.MinShift, "cusum-min-shift", 2, "")
+	return cusum
+}
+
+func (cusum tokenCUSUMFlags) parse(flags *flag.FlagSet, baseline string, o *compare.ScanOptions) error {
+	if err := validateTokenCUSUMFlags(flags, cusum.enabled, cusum.options.ScaleFloor, cusum.options.MinShift, cusum.options.Stratum); err != nil {
+		return err
+	}
+	if count, err := strconv.Atoi(baseline); err == nil {
+		o.Baseline = count
+		return nil
+	}
+	if cusum.options.Stratum != "" {
+		return errors.New("seasonal token CUSUM requires an integer baseline count, not a duration")
+	}
+	duration, err := time.ParseDuration(baseline)
+	if err != nil || duration <= 0 {
+		return errors.New("baseline must be a window count or positive duration")
+	}
+	o.BaselineDuration = int64(duration)
+	return nil
+}
+
+func (cusum tokenCUSUMFlags) run(input []summary.Envelope, o compare.ScanOptions, format string, out, errout io.Writer) (int, bool) {
+	if !cusum.enabled {
+		return 0, false
+	}
+	return runTokenCUSUMScan(input, o, cusum.options, format, out, errout), true
+}
+
 func validateTokenCUSUMFlags(flags *flag.FlagSet, enabled bool, floor, shift float64, stratum string) error {
 	customized := false
+	explicitBaseline := false
 	flags.Visit(func(option *flag.Flag) {
 		if option.Name == "cusum-scale-floor" || option.Name == "cusum-min-shift" || option.Name == "cusum-stratum" {
 			customized = true
+		}
+		if option.Name == "baseline" {
+			explicitBaseline = true
 		}
 	})
 	if customized && !enabled {
@@ -32,6 +77,9 @@ func validateTokenCUSUMFlags(flags *flag.FlagSet, enabled bool, floor, shift flo
 	}
 	if stratum != "" && stratum != compare.TokenCUSUMWeekdayStratum {
 		return errors.New("unsupported token CUSUM stratum; use utc-day-of-week")
+	}
+	if stratum == compare.TokenCUSUMWeekdayStratum && !explicitBaseline {
+		return errors.New("utc-day-of-week requires an explicit --baseline count of matching weeks (6..384)")
 	}
 	config := change.CUSUMConfig{Reference: compare.DefaultScanOptions().Baseline, ScaleFloor: floor, MinShift: shift}
 	_, err := change.NewCUSUM(config, change.CUSUMCalibration{})

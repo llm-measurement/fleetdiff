@@ -36,6 +36,7 @@ func TestTokenCUSUMSeasonalCLIOptionRefusals(t *testing.T) {
 		{"unknown", []string{"--token-cusum", "--cusum-stratum", "PRIVATE_MODE_SENTINEL"}, "unsupported"},
 		{"case sensitive", []string{"--token-cusum", "--cusum-stratum", "UTC-DAY-OF-WEEK"}, "unsupported"},
 		{"no implicit trimming", []string{"--token-cusum", "--cusum-stratum", " utc-day-of-week"}, "unsupported"},
+		{"requires explicit baseline", []string{"--token-cusum", "--cusum-stratum", "utc-day-of-week"}, "requires an explicit --baseline"},
 		{"duration", []string{"--token-cusum", "--cusum-stratum", "utc-day-of-week", "--baseline", "1008h"}, "integer baseline"},
 		{"short duration", []string{"--token-cusum", "--cusum-stratum", "utc-day-of-week", "--baseline", "6m"}, "integer baseline"},
 		{"bad baseline", []string{"--token-cusum", "--cusum-stratum", "utc-day-of-week", "--baseline", "PRIVATE_BASELINE_SENTINEL"}, "integer baseline"},
@@ -91,6 +92,9 @@ func TestTokenCUSUMSeasonalCLIReports(t *testing.T) {
 							t.Fatalf("legacy scan = %d: %s", legacyCode, errout.String())
 						}
 						args = append(args, "--token-cusum", "--cusum-stratum", compare.TokenCUSUMWeekdayStratum)
+						if baseline == 24 {
+							args = append(args, "--baseline", "24")
+						}
 						// Exercise both documented positional forms on the same input.
 						for _, pathFirst := range []bool{false, true} {
 							call := append(append([]string{}, args...), directory)
@@ -180,6 +184,24 @@ func TestTokenCUSUMSeasonalCLIReports(t *testing.T) {
 	}
 }
 
+func TestTokenCUSUMSeasonalCLIReportsRequiredHistory(t *testing.T) {
+	directory, asOf := tokenCUSUMSeasonalDirectory(t, 6, false)
+	args := []string{"scan", directory, "--expected", "PRIVATE_PRODUCER", "--as-of", asOf.Format(time.RFC3339),
+		"--token-cusum", "--cusum-stratum", compare.TokenCUSUMWeekdayStratum, "--baseline=24"}
+	for _, format := range []string{"text", "json"} {
+		t.Run(format, func(t *testing.T) {
+			var out, errout bytes.Buffer
+			if code := Run(append(args, "--format", format), &out, &errout); code != 4 || errout.Len() != 0 {
+				t.Fatalf("incomplete history = %d: %s", code, errout.String())
+			}
+			want := "Needs 24 matching weeks per weekday; found 6 consecutive eligible weeks."
+			if !strings.Contains(out.String(), want) {
+				t.Fatalf("missing required versus found history %q: %s", want, out.String())
+			}
+		})
+	}
+}
+
 func TestTokenCUSUMSeasonalCLIEmptyModePreservesOutput(t *testing.T) {
 	directory := tokenCUSUMDirectory(t, true)
 	for _, format := range []string{"text", "json"} {
@@ -265,7 +287,7 @@ func TestTokenCUSUMSeasonalCLIHelp(t *testing.T) {
 	if code := Run([]string{"scan", "--help"}, &out, &errout); code != 0 || errout.Len() != 0 {
 		t.Fatalf("help = %d: %s", code, errout.String())
 	}
-	for _, want := range []string{"--cusum-stratum MODE", "utc-day-of-week", "UTC-aligned daily windows", "preceding matching weekly windows", "durations are not accepted"} {
+	for _, want := range []string{"--cusum-stratum MODE", "utc-day-of-week", "UTC-aligned daily windows", "preceding matching weekly windows", "explicit", "no default"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("help is missing %q", want)
 		}

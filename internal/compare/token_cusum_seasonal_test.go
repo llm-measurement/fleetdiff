@@ -296,7 +296,8 @@ func TestTokenCUSUMSeasonalGapPositionsAndWeeklyRewarming(t *testing.T) {
 			}
 			window := report.TokenCUSUM.Windows[0]
 			if occurrence == 0 {
-				if window.Total != nil || window.Status != change.CUSUMInsufficient || window.Samples != 0 || window.Reason == "" || window.Diagnostic != nil {
+				if window.Total != nil || window.Status != change.CUSUMInsufficient || window.Samples != 0 ||
+					window.Reason != "The matching weekday summary window is missing." || window.Diagnostic != nil {
 					t.Fatalf("missing wall-clock current position became zero or was omitted: %+v", window)
 				}
 			} else if occurrence <= 6 {

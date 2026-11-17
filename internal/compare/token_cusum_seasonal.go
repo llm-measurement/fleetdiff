@@ -5,6 +5,7 @@ package compare
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/change"
@@ -120,7 +121,7 @@ func scoreWeekdayCUSUM(analysis *TokenCUSUMAnalysis, frames []scanFrame, base Sc
 			return err
 		}
 		if start >= recentStart {
-			window := weekdayCUSUMWindow(frame, total, reason, result, key)
+			window := weekdayCUSUMWindow(frame, total, reason, result, key, config.Reference)
 			analysis.Windows = append(analysis.Windows, window)
 			allScored = allScored && result.Status == change.CUSUMUncalibrated
 		}
@@ -147,7 +148,7 @@ func weekdayCUSUMTotal(frame scanFrame, present bool, base ScanReport, quality m
 	return tokenCUSUMTotal(frame)
 }
 
-func weekdayCUSUMWindow(frame scanFrame, total *uint64, reason string, result change.CUSUMResult, key int) TokenCUSUMWindow {
+func weekdayCUSUMWindow(frame scanFrame, total *uint64, reason string, result change.CUSUMResult, key, reference int) TokenCUSUMWindow {
 	window := TokenCUSUMWindow{
 		Start: frame.start, End: frame.end, Total: total, Status: result.Status,
 		Samples: result.Samples, Reason: reason, StratumKey: &key,
@@ -158,7 +159,7 @@ func weekdayCUSUMWindow(frame scanFrame, total *uint64, reason string, result ch
 			Residual: result.Residual, Statistic: result.Statistic,
 		}
 	} else if window.Reason == "" {
-		window.Reason = "Not enough preceding consecutive eligible matching weekly windows for the configured reference."
+		window.Reason = fmt.Sprintf("Needs %d matching weeks per weekday; found %d consecutive eligible weeks.", reference, result.Samples)
 	}
 	return window
 }
