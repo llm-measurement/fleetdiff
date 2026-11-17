@@ -13,10 +13,12 @@ import (
 const maxExactCUSUMTokens = uint64(1 << 53)
 
 // TokenCUSUMOptions freezes source-unit scaling and the standardized shift.
-// The existing scan baseline length supplies the rolling reference length.
+// The scan baseline count supplies the reference length. A declared stratum
+// uses preceding matching occurrences instead of adjacent windows.
 type TokenCUSUMOptions struct {
 	ScaleFloor float64
 	MinShift   float64
+	Stratum    string
 }
 
 // TokenCUSUMScanReport adds opt-in diagnostics without changing legacy findings.
@@ -27,14 +29,15 @@ type TokenCUSUMScanReport struct {
 
 // TokenCUSUMAnalysis deliberately supplies no threshold or alert verdict.
 type TokenCUSUMAnalysis struct {
-	Status     change.CUSUMStatus `json:"status"`
-	Unit       string             `json:"unit"`
-	Clock      string             `json:"clock"`
-	Reference  int                `json:"reference_windows"`
-	ScaleFloor float64            `json:"scale_floor"`
-	MinShift   float64            `json:"minimum_shift"`
-	Windows    []TokenCUSUMWindow `json:"windows"`
-	Notes      []string           `json:"notes"`
+	Status      change.CUSUMStatus     `json:"status"`
+	Unit        string                 `json:"unit"`
+	Clock       string                 `json:"clock"`
+	Reference   int                    `json:"reference_windows"`
+	ScaleFloor  float64                `json:"scale_floor"`
+	MinShift    float64                `json:"minimum_shift"`
+	Windows     []TokenCUSUMWindow     `json:"windows"`
+	Notes       []string               `json:"notes"`
+	Seasonality *TokenCUSUMSeasonality `json:"seasonality,omitempty"`
 }
 
 // TokenCUSUMWindow retains exact observed totals separately from robust scores.
@@ -46,9 +49,10 @@ type TokenCUSUMWindow struct {
 	Total      *uint64            `json:"observed_tokens,omitempty"`
 	Samples    int                `json:"reference_samples"`
 	Diagnostic *TokenCUSUMScore   `json:"diagnostic,omitempty"`
+	StratumKey *int               `json:"stratum_key,omitempty"`
 }
 
-// TokenCUSUMScore uses only preceding complete consecutive buckets.
+// TokenCUSUMScore uses only preceding complete consecutive matching buckets.
 type TokenCUSUMScore struct {
 	Median    float64 `json:"median"`
 	MAD       float64 `json:"mad"`
@@ -58,8 +62,12 @@ type TokenCUSUMScore struct {
 }
 
 // ScanTokenCUSUM composes the existing scan/combiner with an uncalibrated,
-// nonseasonal token-total diagnostic. It does not reprice tokens or rank keys.
+// token-total diagnostic, optionally separated into declared seasonal strata.
+// It does not reprice tokens or rank keys.
 func ScanTokenCUSUM(input []summary.Envelope, o ScanOptions, options TokenCUSUMOptions) (TokenCUSUMScanReport, error) {
+	if options.Stratum != "" {
+		return scanWeekdayTokenCUSUM(input, o, options)
+	}
 	base, err := Scan(input, o)
 	if err != nil {
 		return TokenCUSUMScanReport{}, err

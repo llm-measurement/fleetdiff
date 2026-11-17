@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/change"
@@ -17,11 +18,55 @@ import (
 	"github.com/llm-measurement/llm-sketchkit/go/sketchkit/summary"
 )
 
-func validateTokenCUSUMFlags(flags *flag.FlagSet, enabled bool, floor, shift float64) error {
+type tokenCUSUMFlags struct {
+	enabled bool
+	options compare.TokenCUSUMOptions
+}
+
+func addTokenCUSUMFlags(flags *flag.FlagSet) *tokenCUSUMFlags {
+	cusum := &tokenCUSUMFlags{}
+	flags.BoolVar(&cusum.enabled, "token-cusum", false, "")
+	flags.StringVar(&cusum.options.Stratum, "cusum-stratum", "", "")
+	flags.Float64Var(&cusum.options.ScaleFloor, "cusum-scale-floor", 1, "")
+	flags.Float64Var(&cusum.options.MinShift, "cusum-min-shift", 2, "")
+	return cusum
+}
+
+func (cusum tokenCUSUMFlags) parse(flags *flag.FlagSet, baseline string, o *compare.ScanOptions) error {
+	if err := validateTokenCUSUMFlags(flags, cusum.enabled, cusum.options.ScaleFloor, cusum.options.MinShift, cusum.options.Stratum); err != nil {
+		return err
+	}
+	if count, err := strconv.Atoi(baseline); err == nil {
+		o.Baseline = count
+		return nil
+	}
+	if cusum.options.Stratum != "" {
+		return errors.New("seasonal token CUSUM requires an integer baseline count, not a duration")
+	}
+	duration, err := time.ParseDuration(baseline)
+	if err != nil || duration <= 0 {
+		return errors.New("baseline must be a window count or positive duration")
+	}
+	o.BaselineDuration = int64(duration)
+	return nil
+}
+
+func (cusum tokenCUSUMFlags) run(input []summary.Envelope, o compare.ScanOptions, format string, out, errout io.Writer) (int, bool) {
+	if !cusum.enabled {
+		return 0, false
+	}
+	return runTokenCUSUMScan(input, o, cusum.options, format, out, errout), true
+}
+
+func validateTokenCUSUMFlags(flags *flag.FlagSet, enabled bool, floor, shift float64, stratum string) error {
 	customized := false
+	explicitBaseline := false
 	flags.Visit(func(option *flag.Flag) {
-		if option.Name == "cusum-scale-floor" || option.Name == "cusum-min-shift" {
+		if option.Name == "cusum-scale-floor" || option.Name == "cusum-min-shift" || option.Name == "cusum-stratum" {
 			customized = true
+		}
+		if option.Name == "baseline" {
+			explicitBaseline = true
 		}
 	})
 	if customized && !enabled {
@@ -29,6 +74,12 @@ func validateTokenCUSUMFlags(flags *flag.FlagSet, enabled bool, floor, shift flo
 	}
 	if !enabled {
 		return nil
+	}
+	if stratum != "" && stratum != compare.TokenCUSUMWeekdayStratum {
+		return errors.New("unsupported token CUSUM stratum; use utc-day-of-week")
+	}
+	if stratum == compare.TokenCUSUMWeekdayStratum && !explicitBaseline {
+		return errors.New("utc-day-of-week requires an explicit --baseline count of matching weeks (6..384)")
 	}
 	config := change.CUSUMConfig{Reference: compare.DefaultScanOptions().Baseline, ScaleFloor: floor, MinShift: shift}
 	_, err := change.NewCUSUM(config, change.CUSUMCalibration{})
@@ -65,10 +116,21 @@ func runTokenCUSUMScan(input []summary.Envelope, o compare.ScanOptions, options 
 
 func renderTokenCUSUM(out io.Writer, analysis compare.TokenCUSUMAnalysis) {
 	fmt.Fprintf(out, "\nObserved-token CUSUM: %s (collector processing time).\n", analysis.Status)
-	fmt.Fprintf(out, "Reference: %d preceding windows; scale floor %g tokens; minimum shift %g scale units.\n",
-		analysis.Reference, analysis.ScaleFloor, analysis.MinShift)
+	if seasonal := analysis.Seasonality; seasonal != nil {
+		fmt.Fprintf(out, "Seasonality: %s; timezone %s; cadence %s; %s.\n",
+			seasonal.Key, seasonal.Timezone, seasonal.Cadence, seasonal.KeyConvention)
+		fmt.Fprintf(out, "Reference: %d %s; scale floor %g tokens; minimum shift %g scale units.\n",
+			analysis.Reference, seasonal.ReferenceUnit, analysis.ScaleFloor, analysis.MinShift)
+	} else {
+		fmt.Fprintf(out, "Reference: %d preceding windows; scale floor %g tokens; minimum shift %g scale units.\n",
+			analysis.Reference, analysis.ScaleFloor, analysis.MinShift)
+	}
 	for _, window := range analysis.Windows {
-		fmt.Fprintf(out, "  %s: %s", time.Unix(0, window.Start).UTC().Format(time.RFC3339Nano), window.Status)
+		fmt.Fprintf(out, "  %s", time.Unix(0, window.Start).UTC().Format(time.RFC3339Nano))
+		if window.StratumKey != nil {
+			fmt.Fprintf(out, " [stratum key %d]", *window.StratumKey)
+		}
+		fmt.Fprintf(out, ": %s", window.Status)
 		if window.Total != nil {
 			fmt.Fprintf(out, "; %d observed tokens", *window.Total)
 		}

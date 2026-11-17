@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"time"
 
@@ -38,6 +37,7 @@ Usage: fleetdiff scan [options] PATH
   --format text|json              Output format (default text)
   --show-hashes                   Include pseudonymous, linkable hashes
   --token-cusum                   Add uncalibrated observed-token diagnostics
+  --cusum-stratum MODE            utc-day-of-week (requires --token-cusum)
   --cusum-scale-floor N           Token scale floor (default 1; requires --token-cusum)
   --cusum-min-shift N             Shift in scale units (default 2; requires --token-cusum)
 
@@ -46,6 +46,9 @@ Missing history is not a quiet result. Unknown usage is never converted to savin
 Exit: 0 evaluated/quiet, 3 unusual, 4 not ready or limited, 1 input/output, 2 options.
 Token CUSUM uses --baseline for its rolling reference; without calibration it
 returns 4 unless existing scan findings return 3. It never supplies alert verdicts.
+Seasonal utc-day-of-week requires UTC-aligned daily windows and an explicit
+--baseline N counting preceding matching weekly windows (6..384); no default
+or duration is accepted for weekday mode.
 Cron needs a wrapper that handles the exit code; scan does not send notifications.
 `
 
@@ -59,9 +62,7 @@ func runScan(args []string, out, errout io.Writer) int {
 	format := f.String("format", "text", "")
 	asOf := f.String("as-of", "", "")
 	maxAge := f.String("max-age", "", "")
-	tokenCUSUM := f.Bool("token-cusum", false, "")
-	cusumFloor := f.Float64("cusum-scale-floor", 1, "")
-	cusumShift := f.Float64("cusum-min-shift", 2, "")
+	cusum := addTokenCUSUMFlags(f)
 	f.IntVar(&o.Recent, "recent", o.Recent, "")
 	f.IntVar(&o.Persist, "persist", o.Persist, "")
 	f.IntVar(&o.Top, "top", o.Top, "")
@@ -89,21 +90,12 @@ func runScan(args []string, out, errout io.Writer) int {
 	if f.NArg() != 1 || strings.TrimSpace(*expected) == "" || len(*expected) > 128*129 || (*format != "text" && *format != "json") {
 		return fail(2, "supply one summary path, expected producers, and text or json format")
 	}
-	if err := validateTokenCUSUMFlags(f, *tokenCUSUM, *cusumFloor, *cusumShift); err != nil {
+	if err := cusum.parse(f, *baseline, &o); err != nil {
 		return fail(2, err.Error())
 	}
 	o.Expected = strings.Split(*expected, ",")
 	for i := range o.Expected {
 		o.Expected[i] = strings.TrimSpace(o.Expected[i])
-	}
-	if count, err := strconv.Atoi(*baseline); err == nil {
-		o.Baseline = count
-	} else {
-		d, err := time.ParseDuration(*baseline)
-		if err != nil || d <= 0 {
-			return fail(2, "baseline must be a window count or positive duration")
-		}
-		o.BaselineDuration = int64(d)
 	}
 	o.Now = time.Now().UnixNano()
 	if *asOf != "" {
@@ -127,9 +119,8 @@ func runScan(args []string, out, errout io.Writer) int {
 	if err != nil {
 		return fail(1, err.Error())
 	}
-	if *tokenCUSUM {
-		options := compare.TokenCUSUMOptions{ScaleFloor: *cusumFloor, MinShift: *cusumShift}
-		return runTokenCUSUMScan(input, o, options, *format, out, errout)
+	if code, handled := cusum.run(input, o, *format, out, errout); handled {
+		return code
 	}
 	r, err := compare.Scan(input, o)
 	if err != nil {
