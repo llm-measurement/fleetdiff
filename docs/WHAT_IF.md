@@ -93,7 +93,7 @@ all three assumptions. Unmeasured pairs stay level 1 only, with
 
 ## Prices and arithmetic
 
-[Bundled prices](../internal/reprice/data/prices.json) are dated USD per million
+[Bundled prices](../internal/reprice/data/prices-v2.json) are dated USD per million
 tokens at direct-provider standard/global rates. Each request selects a price
 tier from its complete prompt length, including cache reads and writes; all
 its input, cache and output tokens then use that tier. Make a copy with your

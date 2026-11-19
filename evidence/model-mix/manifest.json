@@ -12,6 +12,7 @@
     "evidence/model-mix/test_reproduce_model_mix.py": "0cacf17ac594e07fead744e907ff61f22437cfcbcc2c748703e20b21747c54e4",
     "internal/reprice/data/factors.json": "cd1b087e294a3d9768cc52b8dd8a6d0b2ab169bcb8b979bc44957310869d2b99",
     "internal/reprice/data/prices.json": "5d0e1af2d161af4823e92f00123b3b724b5b7f528d5984cfcc05242e189d252f",
+    "internal/reprice/data/prices-v2.json": "3c3a9e53380d07ec4958055a62fc5648961bdd42e50f5e252b4050b833906cd7",
     "scripts/reproduce-model-mix.py": "7350792bb1444cc6e383dfe932ee7d3a41b2923879089e83a2da522f3f289671"
   }
 }
