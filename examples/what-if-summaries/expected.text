@@ -1,17 +1,17 @@
-Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.798000 -> $0.659080 to $0.675154, depending on workload assumptions.
+Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.80 -> $0.66 to $0.68, depending on workload assumptions.
 Period: Wed 2026-10-07 00:00:00 UTC -> Wed 2026-10-07 00:01:00 UTC (end exclusive). Prices: 2026-11-19 (bundled); measured factors: 2026-10-14.
 
-Level 1, same work and output verbosity: $0.675458
-Level 2, qa: $0.660386 (propagated mean-interval endpoints $0.659080 to $0.661890)
-Level 2, extraction: $0.664357 (propagated mean-interval endpoints $0.662330 to $0.666731)
-Level 2, coding: $0.671966 (propagated mean-interval endpoints $0.669189 to $0.675154)
+Level 1, same work and output verbosity: $0.68
+Level 2, qa: $0.66 (propagated mean-interval endpoints $0.66 to $0.66)
+Level 2, extraction: $0.66 (propagated mean-interval endpoints $0.66 to $0.67)
+Level 2, coding: $0.67 (propagated mean-interval endpoints $0.67 to $0.68)
 
 move-1: 50% of claude-sonnet-5-5 -> gpt-6.1-sol
-  Moved traffic, level 1: $0.395000 -> $0.272458; input tokenizer factor 0.668804955
+  Moved traffic, level 1: $0.40 -> $0.27; input tokenizer factor 0.668804955
   Output share of moved target cost at level 1: 9.18%
-  qa: $0.257386 ($0.256080 to $0.258890)
-  extraction: $0.261357 ($0.259330 to $0.263731)
-  coding: $0.268966 ($0.266189 to $0.272154)
+  qa: $0.26 ($0.26 to $0.26)
+  extraction: $0.26 ($0.26 to $0.26)
+  coding: $0.27 ($0.27 to $0.27)
 
 Coverage: 5 observations priced; missing splits are excluded, never zero.
   missing split: 1

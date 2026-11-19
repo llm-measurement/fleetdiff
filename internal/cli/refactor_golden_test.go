@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// These bytes were recorded from v0.8.0, before extracting shared import helpers.
+// Recorded from v0.8.0; only money-bearing text goldens were deliberately updated.
 func TestImportRefactorGoldenOutputs(t *testing.T) {
 	t.Setenv("FLEETDIFF_GOLDEN_KEY", "synthetic-refactor-regression-key-32-bytes")
 	for _, tc := range []struct {
@@ -46,7 +46,7 @@ func TestImportRefactorGoldenOutputs(t *testing.T) {
 					t.Fatal(err)
 				}
 				if !bytes.Equal(out.Bytes(), want) {
-					t.Fatalf("output differs from v0.8.0 golden %s (got %d bytes, want %d)", path, out.Len(), len(want))
+					t.Fatalf("output differs from checked golden %s (got %d bytes, want %d)", path, out.Len(), len(want))
 				}
 			})
 		}

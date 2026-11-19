@@ -34,7 +34,7 @@ How complete is the export?
   Total field absent: 1 -> 1.
   Call status unknown (Langfuse doesn't record it): 5 -> 5.
   Zero-filled: cannot determine from this export. Provider origin: not established by Langfuse observations.
-  Recorded cost (Langfuse, analyzed GENERATION observations): 0.0003 -> 0.0003.
+  Recorded cost (Langfuse, analyzed GENERATION observations): <$0.01 -> <$0.01.
   Zero-cost origin unknown: 4 -> 4.
   No other usage problems found.
   Rows read: 28; unsupported rows: 18.

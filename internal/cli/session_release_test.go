@@ -49,8 +49,8 @@ func TestReleaseBinarySessionBudget(t *testing.T) {
 				}
 			}
 			if format == "text" {
-				if !strings.HasPrefix(string(output), "3 of 4 sessions with complete recorded spend exceed the supplied USD 1.00 cap.\n") ||
-					!strings.Contains(string(output), "Recorded USD: p50 1.10; p95 1.60; max 1.60 (n=4, exact nearest-rank).") ||
+				if !strings.HasPrefix(string(output), "3 of 4 sessions with complete recorded spend exceed the supplied $1.00 cap.\n") ||
+					!strings.Contains(string(output), "Recorded USD: p50 $1.10; p95 $1.60; max $1.60 (n=4, exact nearest-rank).") ||
 					(strings.Contains(string(output), "file's observed span") != (period == "")) ||
 					(period != "" && strings.Contains(string(output), "clipped")) {
 					t.Fatal("packaged session headline, distribution or period changed")

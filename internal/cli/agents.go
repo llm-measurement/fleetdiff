@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"text/tabwriter"
 
-	"github.com/llm-measurement/fleetdiff/internal/accounting"
 	"github.com/llm-measurement/fleetdiff/internal/compare"
 	"github.com/llm-measurement/fleetdiff/internal/spend"
 )
@@ -18,7 +17,7 @@ func agentUSD(v *string) string {
 	if v == nil {
 		return "unavailable"
 	}
-	return *v
+	return usdText(*v)
 }
 
 func agentShare(v *string) string {
@@ -45,10 +44,13 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 	if a.LabelsIncluded {
 		fmt.Fprintln(out, "  Sensitive agent labels included; review before sharing.")
 	}
+	unknownAmounts := usdCompared(a.Before.Unknown.RecordedSpend, a.After.Unknown.RecordedSpend)
+	ambiguousAmounts := usdCompared(a.Before.Ambiguous.RecordedSpend, a.After.Ambiguous.RecordedSpend)
 	for _, side := range []struct {
-		name string
-		w    spend.AgentWindow
-	}{{"Before", a.Before}, {"After", a.After}} {
+		name  string
+		w     spend.AgentWindow
+		index int
+	}{{"Before", a.Before, 0}, {"After", a.After, 1}} {
 		c := side.w.Coverage
 		if a.Source == "agent_id" {
 			fmt.Fprintf(out, "  %s: %d known, %d unknown rows; %d column-absent, %d empty/null.\n", side.name, c.KnownRows, c.UnknownRows, c.ColumnAbsentRows, c.EmptyOrNullRows)
@@ -59,15 +61,15 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 		if c.NonStringTagRows > 0 {
 			fmt.Fprintf(out, "    Non-string tag elements: %d rows counted as unknown identity.\n", c.NonStringTagRows)
 		}
-		usd := func(w spend.Window) string {
+		usd := func(w spend.Window, formatted string) string {
 			if w.Requests > 0 && w.Quality.SpendMissing+w.Quality.SpendInvalid == w.Requests {
 				return "unavailable"
 			}
-			return w.RecordedSpend
+			return formatted
 		}
-		fmt.Fprintf(out, "    Unknown: %d tokens / %s recorded USD", side.w.Unknown.Tokens, usd(side.w.Unknown))
+		fmt.Fprintf(out, "    Unknown: %d tokens / %s recorded USD", side.w.Unknown.Tokens, usd(side.w.Unknown, unknownAmounts[side.index]))
 		if a.Source != "agent_id" {
-			fmt.Fprintf(out, "; ambiguous: %d tokens / %s recorded USD", side.w.Ambiguous.Tokens, usd(side.w.Ambiguous))
+			fmt.Fprintf(out, "; ambiguous: %d tokens / %s recorded USD", side.w.Ambiguous.Tokens, usd(side.w.Ambiguous, ambiguousAmounts[side.index]))
 		}
 		fmt.Fprintln(out, ".")
 	}
@@ -92,7 +94,18 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 	}
 	fmt.Fprintln(w)
 	writeContributor := func(c spend.AgentContributor) {
-		fmt.Fprintf(w, "  %s\t%d\t%d\t%s\t%s\t%s\t%s\t%s", agentLabel(c), c.Before.Tokens, c.After.Tokens, agentUSD(c.Before.RecordedUSD), agentUSD(c.After.RecordedUSD), agentUSD(c.Delta), agentShare(c.Before.Share), agentShare(c.After.Share))
+		before, after := "unavailable", "unavailable"
+		if c.Before.RecordedUSD != nil && c.After.RecordedUSD != nil {
+			amounts := usdCompared(*c.Before.RecordedUSD, *c.After.RecordedUSD)
+			before, after = amounts[0], amounts[1]
+		} else {
+			before, after = agentUSD(c.Before.RecordedUSD), agentUSD(c.After.RecordedUSD)
+		}
+		delta := "unavailable"
+		if c.Delta != nil {
+			delta = signedUSD(*c.Delta)
+		}
+		fmt.Fprintf(w, "  %s\t%d\t%d\t%s\t%s\t%s\t%s\t%s", agentLabel(c), c.Before.Tokens, c.After.Tokens, before, after, delta, agentShare(c.Before.Share), agentShare(c.After.Share))
 		if showCosts {
 			b, a := c.Before.CostCoverage, c.After.CostCoverage
 			fmt.Fprintf(w, "\t%d -> %d\t%d -> %d\t%d -> %d\t%d -> %d", b.Usable, a.Usable, b.Missing, a.Missing, b.Invalid, a.Invalid, b.ZeroUnknown, a.ZeroUnknown)
@@ -132,10 +145,15 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 		x, y := cost(bucket.before), cost(bucket.after)
 		delta := "unavailable"
 		if x != nil && y != nil {
-			delta = accounting.CostText(new(big.Rat).Sub(y, x))
+			delta = signedUSD(new(big.Rat).Sub(y, x).RatString())
 		}
 		tokens := int64(bucket.after.Tokens) - int64(bucket.before.Tokens)
 		fmt.Fprintf(out, "  %s (not ranked): %d -> %d rows; token change %s; recorded USD change %s.\n", bucket.name, bucket.before.Requests, bucket.after.Requests, signedInterval(compare.Interval{Lower: tokens, Upper: tokens}), delta)
 	}
-	fmt.Fprintf(out, "  Known agents not displayed: %d -> %d rows; %d -> %d tokens; %s -> %s recorded USD.\n", a.UndisplayedBefore.Requests, a.UndisplayedAfter.Requests, a.UndisplayedBefore.Tokens, a.UndisplayedAfter.Tokens, agentUSD(a.UndisplayedBefore.RecordedUSD), agentUSD(a.UndisplayedAfter.RecordedUSD))
+	before, after := agentUSD(a.UndisplayedBefore.RecordedUSD), agentUSD(a.UndisplayedAfter.RecordedUSD)
+	if a.UndisplayedBefore.RecordedUSD != nil && a.UndisplayedAfter.RecordedUSD != nil {
+		amounts := usdCompared(*a.UndisplayedBefore.RecordedUSD, *a.UndisplayedAfter.RecordedUSD)
+		before, after = amounts[0], amounts[1]
+	}
+	fmt.Fprintf(out, "  Known agents not displayed: %d -> %d rows; %d -> %d tokens; %s -> %s recorded USD.\n", a.UndisplayedBefore.Requests, a.UndisplayedAfter.Requests, a.UndisplayedBefore.Tokens, a.UndisplayedAfter.Tokens, before, after)
 }

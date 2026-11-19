@@ -98,8 +98,8 @@ func TestAgentCLIFormatsAndPrivacy(t *testing.T) {
 					}
 					for _, want := range []string{
 						answer + " accounts for 62.5% of the net recorded increase (+200 of +320 tokens)",
-						"Unknown (not ranked): 0 -> 1 rows; token change +50; recorded USD change 0.5",
-						"Ambiguous (not ranked): 0 -> 1 rows; token change +70; recorded USD change 0.7",
+						"Unknown (not ranked): 0 -> 1 rows; token change +50; recorded USD change +$0.50",
+						"Ambiguous (not ranked): 0 -> 1 rows; token change +70; recorded USD change +$0.70",
 					} {
 						if !strings.Contains(out, want) {
 							t.Fatal("answer or unattributed change missing", want)

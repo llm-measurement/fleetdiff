@@ -115,7 +115,7 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    selected output. Keep command logs, asset hashes, signature/attestation
    results, platform/version and test output in private `docs/local/` evidence.
 5. Run the session-budget sample without `--period` or `--group-by`: check the
-   3-of-4 headline, exact USD percentiles, observed-span label and two above-cap
+   3-of-4 headline, cent-formatted USD percentiles, observed-span label and two above-cap
    sessions with no recorded session-budget rejection. Repeat with
    `--period 2026-10-03`: no session should be labeled clipped or possibly clipped.
 6. Run the cache-drop fixture and inspect the shipped synthetic capture with
@@ -124,13 +124,13 @@ From an anonymous clone in a fresh directory outside any synced workspace:
 7. Run the [row-coverage fixture](ROW_COVERAGE.md#reading-coverage): require
    8 exported rows versus 9 daily requests and one missing row on October 7,
    with matched counts on October 8. Repeat in JSON and without the optional
-   daily input; the latter must match the v0.8.0 golden output.
+   daily input; the latter must match the checked text golden.
 8. Run the paired SQL helper against the pinned test DB and repeat coverage with
    that export. Record failure-logging-disabled behavior: a request absent from
    both tables cannot be found by their count comparison.
 9. Run the [what-if sample](WHAT_IF.md#no-data-handy-try-the-sample) with the
-   installed executable: require USD 0.154400 -> 0.109398 to 0.147974 under
-   workload assumptions, level 1 USD 0.148703, three covered observations and
+   installed executable: require $0.15 -> $0.11 to $0.15 under
+   workload assumptions, level 1 $0.15, three covered observations and
    one missing-split exclusion. Repeat in JSON and with the workload map;
    require one mapped result and no raw fixture identities. Reproduce the
    public factors from the tagged checkout with the commands above. Site bumps
@@ -138,9 +138,9 @@ From an anonymous clone in a fresh directory outside any synced workspace:
 10. Exercise failure rows with recorded tokens and sessions with absent or
     partial agent attribution. Verify the failure subtotal does not alter
     recorded or re-priced totals, pricing exclusions apply to the failure
-    subset, and absent agents read as unknown. Keep the v0.8.0 import-refactor
-    output goldens and legacy identity-hash tests unchanged; reports without
-    these conditions must remain byte-identical.
+    subset, and absent agents read as unknown. Keep JSON import-refactor
+    goldens and legacy identity-hash tests unchanged; compare text with the
+    checked money-format goldens.
 11. Run the routing guide with default aliases and with `--show-labels --acknowledge-sensitive-labels`. Verify
     public model names, explicit configuration-label warnings, missing serving
     identity, classifier overhead and raw-identity suppression. Exercise a

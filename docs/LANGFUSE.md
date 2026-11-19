@@ -60,7 +60,7 @@ How complete is the export?
   Observation levels: DEFAULT 4 -> 6.
   Call status unknown (Langfuse doesn't record it): 4 -> 6.
   Zero-filled: cannot determine from this export. Provider origin: not established by Langfuse observations.
-  Recorded cost (Langfuse, analyzed GENERATION observations): 0.008 -> 0.016.
+  Recorded cost (Langfuse, analyzed GENERATION observations): <$0.01 -> $0.02.
   No other usage problems found.
   Rows read: 10.
   Whole-period per-request split unavailable while provider call status is unknown; observation severity does not establish success.

@@ -34,13 +34,13 @@ func TestSessionCLIResultFirstAndPrivacy(t *testing.T) {
 				t.Fatalf("%d %s", code, errout.String())
 			}
 			if format == "text" {
-				if !strings.HasPrefix(out.String(), "3 of 4 sessions with complete recorded spend exceed the supplied USD 1.00 cap.\nGrouped by session ID alone") {
+				if !strings.HasPrefix(out.String(), "3 of 4 sessions with complete recorded spend exceed the supplied $1.00 cap.\nGrouped by session ID alone") {
 					t.Fatal(out.String())
 				}
 				if strings.Contains(out.String(), "clipped") {
 					t.Fatal(out.String())
 				}
-				for _, s := range []string{"Wed 2026-09-02", "Thu 2026-09-03", "p50 1.20; p95 3.00; max 3.00 (n=4", "Above-cap sessions with no recorded session-budget rejection: 3", "failure logging completeness is unknown"} {
+				for _, s := range []string{"Wed 2026-09-02", "Thu 2026-09-03", "p50 $1.20; p95 $3.00; max $3.00 (n=4", "Above-cap sessions with no recorded session-budget rejection: 3", "failure logging completeness is unknown"} {
 					if !strings.Contains(out.String(), s) {
 						t.Fatal(s, out.String())
 					}

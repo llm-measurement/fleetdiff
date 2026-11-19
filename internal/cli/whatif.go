@@ -209,14 +209,7 @@ func runWhatIf(ctx context.Context, args []string, out, errout io.Writer, export
 }
 
 func money(s string) string {
-	r, ok := new(big.Rat).SetString(s)
-	if !ok {
-		return "unknown"
-	}
-	if r.Sign() > 0 && r.Cmp(big.NewRat(1, 1000000)) < 0 {
-		return "< $0.000001"
-	}
-	return "$" + r.FloatString(6)
+	return usdText(s)
 }
 func percent(s string) string {
 	r, ok := new(big.Rat).SetString(s)
@@ -242,16 +235,19 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 	} else if !matched {
 		fmt.Fprintf(out, "No covered traffic matches the requested moves; covered source cost remains %s.\n", money(*r.Before))
 	} else if r.Envelope != nil {
-		fmt.Fprintf(out, "%s: %s -> %s to %s, depending on workload assumptions.\n", lead, money(*r.Before), money(r.Envelope.Low), money(r.Envelope.High))
+		amounts := usdCompared(*r.Before, r.Envelope.Low, r.Envelope.High)
+		fmt.Fprintf(out, "%s: %s -> %s to %s, depending on workload assumptions.\n", lead, amounts[0], amounts[1], amounts[2])
 	} else {
-		fmt.Fprintf(out, "%s: %s -> %s at unchanged output verbosity.\n", lead, money(*r.Before), money(*r.Level1))
+		amounts := usdCompared(*r.Before, *r.Level1)
+		fmt.Fprintf(out, "%s: %s -> %s at unchanged output verbosity.\n", lead, amounts[0], amounts[1])
 	}
 	fmt.Fprintf(out, "Period: %s -> %s (end exclusive). Prices: %s (%s); measured factors: %s.\n", r.Source.Start.Format("Mon 2006-01-02 15:04:05 MST"), r.Source.End.Format("Mon 2006-01-02 15:04:05 MST"), r.PriceDate, r.PriceSource, r.FactorDate)
 	if r.Level1 != nil {
 		fmt.Fprintf(out, "\nLevel 1, same work and output verbosity: %s\n", money(*r.Level1))
 	}
 	for _, w := range r.Level2 {
-		fmt.Fprintf(out, "Level 2, %s: %s (propagated mean-interval endpoints %s to %s)\n", w.Workload, money(w.Mean), money(w.Low), money(w.High))
+		amounts := usdCompared(w.Mean, w.Low, w.High)
+		fmt.Fprintf(out, "Level 2, %s: %s (propagated mean-interval endpoints %s to %s)\n", w.Workload, amounts[0], amounts[1], amounts[2])
 	}
 	for _, m := range r.Moves {
 		fmt.Fprintf(out, "\n%s: %s of %s -> %s", m.Item, percent(m.Fraction), m.From, m.To)
@@ -260,13 +256,15 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 		}
 		fmt.Fprintln(out)
 		if m.Level1 != nil {
-			fmt.Fprintf(out, "  Moved traffic, level 1: %s -> %s; input tokenizer factor %s\n", money(*m.Before), money(*m.Level1), m.InputFactor)
+			amounts := usdCompared(*m.Before, *m.Level1)
+			fmt.Fprintf(out, "  Moved traffic, level 1: %s -> %s; input tokenizer factor %s\n", amounts[0], amounts[1], m.InputFactor)
 		}
 		if m.OutputShare != nil {
 			fmt.Fprintf(out, "  Output share of moved target cost at level 1: %s\n", percent(*m.OutputShare))
 		}
 		for _, w := range m.Level2 {
-			fmt.Fprintf(out, "  %s: %s (%s to %s)\n", w.Workload, money(w.Mean), money(w.Low), money(w.High))
+			amounts := usdCompared(w.Mean, w.Low, w.High)
+			fmt.Fprintf(out, "  %s: %s (%s to %s)\n", w.Workload, amounts[0], amounts[1], amounts[2])
 		}
 		if m.Gap != "" {
 			fmt.Fprintln(out, "  "+m.Gap)
@@ -296,9 +294,11 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 	if f := r.PricedFailures; f != nil && f.Total.Sign() > 0 {
 		fmt.Fprintf(out, "\nPriced failure subset: %s records; gateway-recorded tokens, provider/billing finality unknown.\n", spendNumber(f.Records))
 		fmt.Fprintf(out, "  Tokens: input %s, output %s, total %s; input includes cache read %s and cache write %s.\n", spendNumber(f.Input), spendNumber(f.Output), spendNumber(f.Total), spendNumber(f.CacheRead), spendNumber(f.CacheWrite))
-		fmt.Fprintf(out, "  Cost contribution already included above: source %s; level 1 %s.\n", money(*f.Before), money(*f.Level1))
+		amounts := usdCompared(*f.Before, *f.Level1)
+		fmt.Fprintf(out, "  Cost contribution already included above: source %s; level 1 %s.\n", amounts[0], amounts[1])
 		for _, w := range f.Level2 {
-			fmt.Fprintf(out, "  Level 2 contribution, %s: %s (%s to %s).\n", w.Workload, money(w.Mean), money(w.Low), money(w.High))
+			amounts := usdCompared(w.Mean, w.Low, w.High)
+			fmt.Fprintf(out, "  Level 2 contribution, %s: %s (%s to %s).\n", w.Workload, amounts[0], amounts[1], amounts[2])
 		}
 	}
 	fmt.Fprintln(out, "Dominant uncertainty: "+r.Dominant)
