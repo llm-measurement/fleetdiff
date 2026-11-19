@@ -131,32 +131,47 @@ func validatePrices(p Prices) error {
 			return errors.New("invalid or duplicate model in prices")
 		}
 		seen[m.ID] = true
-		if p.Version == 1 || len(m.Tiers) == 0 {
-			if len(m.Tiers) != 0 || !validRates(m.Input, m.Output, m.CacheRead, m.CacheWrite) {
-				return errors.New("each model needs nonnegative decimal input, output, cache-read and cache-write USD prices per million tokens")
-			}
-			continue
-		}
-		if len(m.Tiers) > 8 || m.Input != "" || m.Output != "" || m.CacheRead != "" || m.CacheWrite != "" || m.InputTierMax != 0 || m.CacheWriteTTL == "" {
-			return errors.New("tiered model needs 1-8 tiers and one selected cache-write TTL class")
-		}
-		previous := uint64(0)
-		for i, tier := range m.Tiers {
-			if (tier.MaxPromptTokens == 0 && i != len(m.Tiers)-1) ||
-				(tier.MaxPromptTokens != 0 && tier.MaxPromptTokens <= previous) ||
-				len(tier.CacheWrite) == 0 || len(tier.CacheWrite) > 4 ||
-				!validRates(tier.Input, tier.Output, tier.CacheRead, tier.CacheWrite[m.CacheWriteTTL]) {
-				return errors.New("tier bounds and selected rates must be ordered and complete")
-			}
-			for ttl, rate := range tier.CacheWrite {
-				if !validTTL(ttl) || !validRate(rate) {
-					return errors.New("tier cache-write classes need known TTLs and nonnegative rates")
-				}
-			}
-			previous = tier.MaxPromptTokens
+		if err := validatePriceModel(p.Version, m); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func validatePriceModel(version int, m Price) error {
+	if version == 1 || len(m.Tiers) == 0 {
+		if len(m.Tiers) != 0 || !validRates(m.Input, m.Output, m.CacheRead, m.CacheWrite) {
+			return errors.New("each model needs nonnegative decimal input, output, cache-read and cache-write USD prices per million tokens")
+		}
+		return nil
+	}
+	return validateTiers(m)
+}
+
+func validateTiers(m Price) error {
+	if len(m.Tiers) > 8 || m.Input != "" || m.Output != "" || m.CacheRead != "" || m.CacheWrite != "" || m.InputTierMax != 0 || m.CacheWriteTTL == "" {
+		return errors.New("tiered model needs 1-8 tiers and one selected cache-write TTL class")
+	}
+	previous := uint64(0)
+	for i, tier := range m.Tiers {
+		if !validTier(m, tier, i, previous) {
+			return errors.New("tier bounds and selected rates must be ordered and complete")
+		}
+		for ttl, rate := range tier.CacheWrite {
+			if !validTTL(ttl) || !validRate(rate) {
+				return errors.New("tier cache-write classes need known TTLs and nonnegative rates")
+			}
+		}
+		previous = tier.MaxPromptTokens
+	}
+	return nil
+}
+
+func validTier(m Price, tier PriceTier, i int, previous uint64) bool {
+	return !((tier.MaxPromptTokens == 0 && i != len(m.Tiers)-1) ||
+		(tier.MaxPromptTokens != 0 && tier.MaxPromptTokens <= previous) ||
+		len(tier.CacheWrite) == 0 || len(tier.CacheWrite) > 4 ||
+		!validRates(tier.Input, tier.Output, tier.CacheRead, tier.CacheWrite[m.CacheWriteTTL]))
 }
 
 func validRate(s string) bool { _, ok := decimal(s); return ok }

@@ -394,6 +394,9 @@ func (c *Calculator) Add(r Record) error {
 		if sourceProblem == "missing" {
 			issue = "outside_price_tier"
 		} else if sourceProblem == "mixed" {
+			if r.InputMin == nil {
+				return errors.New("source request cohort may cross price tiers; supply request-level rows")
+			}
 			return errors.New("source request cohort crosses price tiers; supply request-level rows")
 		}
 	}
@@ -419,6 +422,9 @@ func (c *Calculator) Add(r Record) error {
 			return errors.New("a move exceeds the target's priced input tier; supply an applicable price table or select a narrower export")
 		}
 		if reason == "mixed" {
+			if r.InputMin == nil {
+				return errors.New("a move's cohort may cross target price tiers; supply request-level rows")
+			}
 			return errors.New("a move's cohort crosses target price tiers; supply request-level rows")
 		}
 		targetTiers[i] = tier
@@ -518,6 +524,28 @@ func (c *Calculator) Result(source Source) Report {
 	return r
 }
 
+func targetTierUses(target *Price, buckets map[bucketKey]pricedBucket) []TierUse {
+	if len(target.Tiers) == 0 {
+		return nil
+	}
+	tierCounts := map[int]uint64{}
+	for key, bucket := range buckets {
+		tierCounts[key.targetTier] += bucket.requests
+	}
+	var uses []TierUse
+	for index, tier := range target.Tiers {
+		if count := tierCounts[index]; count != 0 {
+			used := TierUse{Tier: index + 1, CoveredRequests: count}
+			if tier.MaxPromptTokens != 0 {
+				maximum := tier.MaxPromptTokens
+				used.MaxPromptTokens = &maximum
+			}
+			uses = append(uses, used)
+		}
+	}
+	return uses
+}
+
 func (c *Calculator) result(source Source, variants []string) Report {
 	r := Report{Schema: "fleetdiff-what-if/v1", Source: source, PriceDate: c.prices.Date, FactorDate: c.factors.Date, Covered: c.covered, Excluded: c.excluded, Unmapped: c.unmapped, Moves: []MoveReport{}, Level2: []WorkloadCost{},
 		Dominant:    "How output verbosity on your traffic differs from the measured workload averages.",
@@ -569,7 +597,6 @@ func (c *Calculator) result(source Source, variants []string) Report {
 			}
 			return a.targetTier - b.targetTier
 		})
-		tierCounts := map[int]uint64{}
 		for _, key := range keys {
 			bucket := m.buckets[key]
 			b, _ := cost(bucket.totals, c.price(m.move.From).selectedTier(key.sourceTier), big.NewRat(1, 1), big.NewRat(1, 1))
@@ -577,20 +604,8 @@ func (c *Calculator) result(source Source, variants []string) Report {
 			before.Add(before, b)
 			next.Add(next, n)
 			out.Add(out, o)
-			tierCounts[key.targetTier] += bucket.requests
 		}
-		if target := c.price(m.move.To); len(target.Tiers) > 0 {
-			for index, tier := range target.Tiers {
-				if count := tierCounts[index]; count != 0 {
-					used := TierUse{Tier: index + 1, CoveredRequests: count}
-					if tier.MaxPromptTokens != 0 {
-						maximum := tier.MaxPromptTokens
-						used.MaxPromptTokens = &maximum
-					}
-					mr.TargetTiers = append(mr.TargetTiers, used)
-				}
-			}
-		}
+		mr.TargetTiers = targetTierUses(c.price(m.move.To), m.buckets)
 		before.Mul(before, m.ratio)
 		next.Mul(next, m.ratio)
 		out.Mul(out, m.ratio)

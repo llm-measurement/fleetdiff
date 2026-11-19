@@ -81,6 +81,80 @@ func TestTokenizerFactorSelectsTierBeforePricing(t *testing.T) {
 	}
 }
 
+func TestMappedLevelTwoPricesEachTargetTier(t *testing.T) {
+	p, f, s := tieredFixture()
+	f.InputPairs[0].Factor = "1"
+	mapping := WorkloadMap{Version: 1, Mappings: []Mapping{
+		{Selector: Selector{Kind: "key", Value: "short-key"}, Workload: "qa"},
+		{Selector: Selector{Kind: "key", Value: "long-key"}, Workload: "extraction"},
+	}}
+	c := calculator(t, p, f, s, mapping)
+	short := tierRecord(100000)
+	short.Key = "short-key"
+	long := tierRecord(100001)
+	long.Key = "long-key"
+	for _, record := range []Record{short, long} {
+		if err := c.Add(record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := c.Result(Source{})
+	if got.Unmapped != 0 || len(got.Level2) != 1 || got.Level2[0].Workload != "mapped" ||
+		got.Level2[0].Mean != "0.051300500" || len(got.Moves[0].Level2) != 1 ||
+		got.Moves[0].Level2[0].Mean != "0.051300500" {
+		t.Fatalf("level 2 must price each mapped request at its own target tier: %+v", got)
+	}
+}
+
+func TestTieredSourceBaselineUsesItsOwnTier(t *testing.T) {
+	p, f, s := tieredFixture()
+	p.Models[0].Provider = p.Models[1].Provider
+	s.Moves[0].From, s.Moves[0].To = "b", "a"
+	c := calculator(t, p, f, s, WorkloadMap{})
+	r := tierRecord(100001)
+	r.Model = "b"
+	if err := c.Add(r); err != nil {
+		t.Fatal(err)
+	}
+	got := c.Result(Source{})
+	if got.Before == nil || *got.Before != "0.042500500" || got.Moves[0].Before == nil ||
+		*got.Moves[0].Before != "0.042500500" {
+		t.Fatalf("source baseline used the wrong price tier: %+v", got)
+	}
+}
+
+func TestTieredCohortWithoutExtremaMayCross(t *testing.T) {
+	p, f, s := tieredFixture()
+	f.InputPairs[0].Factor = "1"
+	c := calculator(t, p, f, s, WorkloadMap{})
+	r := tierRecord(200001)
+	r.Count = 2
+	*r.Output, *r.CacheRead, *r.CacheWrite = 200, 40000, 20000
+	if err := c.Add(r); err == nil || !strings.Contains(err.Error(), "may cross target price tiers") {
+		t.Fatalf("unknown per-request sizes selected a tier: %v", err)
+	}
+}
+
+func TestUnboundedTierMustBeLast(t *testing.T) {
+	p, _, _ := tieredFixture()
+	p.Models[1].Tiers[0].MaxPromptTokens = 0
+	p.Models[1].Tiers[1].MaxPromptTokens = 200000
+	if err := validatePrices(p); err == nil {
+		t.Fatal("an unbounded tier before a later tier was accepted")
+	}
+}
+
+func TestTieredOverrideNeedsCompleteTiersOrMaximum(t *testing.T) {
+	bundled, _, _ := tieredFixture()
+	override := Prices{Version: 1, Date: "2026-11-19", Models: []Price{{
+		ID: "b", Provider: "provider-b", Input: "0.1", Output: "0.5",
+		CacheRead: "0.01", CacheWrite: "0.125",
+	}}}
+	if _, err := OverridePrices(bundled, override); err == nil || !strings.Contains(err.Error(), "explicit tiers or a priced input maximum") {
+		t.Fatalf("unbounded flat override expanded a tiered model: %v", err)
+	}
+}
+
 func TestTieredCalculatorKeepsItsPriceSnapshot(t *testing.T) {
 	p, f, s := tieredFixture()
 	f.InputPairs[0].Factor = "1"
