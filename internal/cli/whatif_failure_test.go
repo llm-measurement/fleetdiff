@@ -147,10 +147,13 @@ func TestWhatIfFailureDisclosureEligibility(t *testing.T) {
 			return []string{"--scope-key", "SENTINEL_SELECTED_KEY"}
 		}, prepriceCount: true},
 		{name: "source-price-tier", extra: func(t *testing.T) []string {
-			return []string{"--prices", whatIfFailurePrices(t, func(p *reprice.Prices) { p.Models[0].InputTierMax = 9999 })}
+			return []string{"--prices", whatIfFailurePrices(t, func(p *reprice.Prices) { p.Models[0].Tiers[0].MaxPromptTokens = 9999 })}
 		}, prepriceCount: true},
 		{name: "target-tier-rejection", extra: func(t *testing.T) []string {
-			return []string{"--prices", whatIfFailurePrices(t, func(p *reprice.Prices) { p.Models[1].InputTierMax = 1 })}
+			return []string{"--prices", whatIfFailurePrices(t, func(p *reprice.Prices) {
+				p.Models[1].Tiers[0].MaxPromptTokens = 1
+				p.Models[1].Tiers = p.Models[1].Tiers[:1]
+			})}
 		}, wantError: true},
 		{name: "zero-origin", change: func(_ int, r map[string]string) {
 			for _, k := range []string{"prompt_tokens", "completion_tokens", "total_tokens", "cache_read_input_tokens", "cache_write_input_tokens", "reasoning_output_tokens"} {
@@ -164,7 +167,13 @@ func TestWhatIfFailureDisclosureEligibility(t *testing.T) {
 		{name: "zero-price-nonzero-tokens", extra: func(t *testing.T) []string {
 			return []string{"--prices", whatIfFailurePrices(t, func(p *reprice.Prices) {
 				for i := range p.Models {
-					p.Models[i].Input, p.Models[i].Output, p.Models[i].CacheRead, p.Models[i].CacheWrite = "0", "0", "0", "0"
+					for j := range p.Models[i].Tiers {
+						tier := &p.Models[i].Tiers[j]
+						tier.Input, tier.Output, tier.CacheRead = "0", "0", "0"
+						for ttl := range tier.CacheWrite {
+							tier.CacheWrite[ttl] = "0"
+						}
+					}
 				}
 			})}
 		}, priced: true, prepriceCount: true},

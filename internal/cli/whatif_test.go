@@ -125,7 +125,13 @@ func TestWhatIfPriceOverrideAndUnmatchedScope(t *testing.T) {
 	}
 	p.Date = "2026-10-15"
 	for i := range p.Models {
-		p.Models[i].Input, p.Models[i].Output, p.Models[i].CacheRead, p.Models[i].CacheWrite = "0", "0", "0", "0"
+		for j := range p.Models[i].Tiers {
+			tier := &p.Models[i].Tiers[j]
+			tier.Input, tier.Output, tier.CacheRead = "0", "0", "0"
+			for ttl := range tier.CacheWrite {
+				tier.CacheWrite[ttl] = "0"
+			}
+		}
 	}
 	b, err := json.Marshal(p)
 	if err != nil {

@@ -49,6 +49,20 @@ From a v0.12.0 checkout, using the verified binary installed above:
   --workload-map examples/what-if/workload-map.json --format json
 ```
 
+The [long-prompt sample](../examples/what-if/long-prompt.csv) has one call on
+each side of Haiku 5.5's 100,000-token boundary. It requires a build with
+version 2 price tables; earlier releases cannot run it:
+
+```sh
+./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/long-prompt.csv \
+  --period 2026-10-07 --from claude-sonnet-5-5 --to claude-haiku-5-5 \
+  --fraction 1 --format json
+```
+
+The move's `target_tiers` lists one covered source request in each tier. These
+counts precede the proposed move fraction; they are not a forecast of sent
+requests.
+
 ## Scenarios and workload mappings
 
 For several moves, use `--scenario` with a versioned file:
@@ -80,8 +94,10 @@ all three assumptions. Unmeasured pairs stay level 1 only, with
 ## Prices and arithmetic
 
 [Bundled prices](../internal/reprice/data/prices.json) are dated USD per million
-tokens, for the recorded standard/global tier and cache-write duration. Make a
-copy with your applicable rates and date, then pass `--prices prices.json`.
+tokens at direct-provider standard/global rates. Each request selects a price
+tier from its complete prompt length, including cache reads and writes; all
+its input, cache and output tokens then use that tier. Make a copy with your
+applicable rates and date, then pass `--prices prices.json`.
 Every known source and target used in the report needs all four prices. Unknown
 model IDs or missing prices are refused for a move; other unpriced input rows
 are excluded and counted. The report labels overrides explicitly.
@@ -89,8 +105,31 @@ LiteLLM rows may use `provider/name`: the prefix must exactly equal that row's
 `custom_llm_provider` and the exact catalog entry's provider. Use the public
 catalog ID for `--from` and `--to`. No case folding, trimming or alias lookup is
 performed; investigation labels use the same match.
-Omitted input-tier limits and cache-write durations retain the bundled values;
-an applicable replacement tier must be stated explicitly in the price file.
+Version 2 tables use ordered `tiers`, with `max_prompt_tokens: 0` meaning an
+unbounded last tier. Each tier includes `input`, `output`, `cache_read` and a
+`cache_write` map by duration. The model's `cache_write_ttl` chooses the
+duration assumed for these records; the current reader does not observe a
+per-request cache-write TTL. For example:
+
+```json
+{
+  "version": 2,
+  "date": "2026-11-19",
+  "models": [{
+    "id": "claude-haiku-5-5",
+    "provider": "anthropic",
+    "cache_write_ttl": "5m",
+    "tiers": [
+      {"max_prompt_tokens": 100000, "input": "0.10", "cache_read": "0.01", "cache_write": {"5m": "0.125", "1h": "0.20"}, "output": "0.50"},
+      {"max_prompt_tokens": 0, "input": "0.50", "cache_read": "0.05", "cache_write": {"5m": "0.625", "1h": "1"}, "output": "2.50"}
+    ]
+  }]
+}
+```
+
+Version 1 single-row tables remain readable with their prior output. A
+replacement tier must be stated explicitly; an override cannot silently
+extend a bundled model's priced range.
 
 For inclusive input `I`, cache reads `R`, cache writes `W`, and billed output `O`:
 
@@ -139,11 +178,10 @@ earlier ones; replay never adds their totals twice. Conflicting contracts,
 mixed enabled/disabled snapshots and regressions fail before a report is written.
 
 The fixed input histogram retains request counts, token sums and per-request
-extrema. The current price format has one applicable input tier per model.
-Every request in a priced cohort must fit it: source cohorts crossing the tier
-are excluded, and a move crossing the target tier is refused. Fractions do not
-shrink request sizes. No average-based tier selection or higher-tier rate is
-invented.
+extrema. A summary cohort can be priced only when its minimum and maximum
+select the same source and target tier. A cohort spanning tiers needs
+request-level rows; its average cannot select a tier. Fractions do not shrink
+request sizes. Missing higher-tier rates still refuse the move.
 
 Summaries have no model-by-key/team intersections, so scoped moves and workload
 maps require request-level exports. Legacy summaries without `model_usage`

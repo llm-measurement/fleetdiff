@@ -43,7 +43,7 @@ func TestPublicModelIDIgnoresPriceOverridesAndCallerMutation(t *testing.T) {
 	first, omitted := prices.Models[0].ID, prices.Models[1].ID
 	override := prices
 	override.Models = []Price{prices.Models[0]}
-	override.Models[0].Input = "999"
+	override.Models[0].Tiers[0].Input = "999"
 	result, err := OverridePrices(prices, override)
 	if err != nil {
 		t.Fatal(err)

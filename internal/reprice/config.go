@@ -22,15 +22,25 @@ import (
 var Workloads = []string{"qa", "extraction", "coding"}
 
 type Price struct {
-	ID            string `json:"id"`
-	Provider      string `json:"provider"`
-	Input         string `json:"input"`
-	Output        string `json:"output"`
-	CacheRead     string `json:"cache_read"`
-	CacheWrite    string `json:"cache_write"`
-	SourceURL     string `json:"source_url,omitempty"`
-	CacheWriteTTL string `json:"cache_write_ttl,omitempty"`
-	InputTierMax  uint64 `json:"input_tier_max,omitempty"`
+	ID            string      `json:"id"`
+	Provider      string      `json:"provider"`
+	Input         string      `json:"input"`
+	Output        string      `json:"output"`
+	CacheRead     string      `json:"cache_read"`
+	CacheWrite    string      `json:"cache_write"`
+	SourceURL     string      `json:"source_url,omitempty"`
+	CacheWriteTTL string      `json:"cache_write_ttl,omitempty"`
+	InputTierMax  uint64      `json:"input_tier_max,omitempty"`
+	Tiers         []PriceTier `json:"tiers,omitempty"`
+}
+
+// A zero maximum is unbounded and is allowed only on the final tier.
+type PriceTier struct {
+	MaxPromptTokens uint64            `json:"max_prompt_tokens"`
+	Input           string            `json:"input"`
+	Output          string            `json:"output"`
+	CacheRead       string            `json:"cache_read"`
+	CacheWrite      map[string]string `json:"cache_write"`
 }
 
 type Prices struct {
@@ -109,8 +119,8 @@ func validDate(s string) bool {
 }
 
 func validatePrices(p Prices) error {
-	if p.Version != 1 || !validDate(p.Date) || len(p.Models) == 0 || len(p.Models) > 128 {
-		return errors.New("prices need version 1, a date, and 1-128 model prices")
+	if (p.Version != 1 && p.Version != 2) || !validDate(p.Date) || len(p.Models) == 0 || len(p.Models) > 128 {
+		return errors.New("prices need version 1 or 2, a date, and 1-128 model prices")
 	}
 	if p.Currency != "" && p.Currency != "USD" || p.Unit != "" && p.Unit != "per_million_tokens" {
 		return errors.New("prices must use USD per million tokens")
@@ -121,13 +131,42 @@ func validatePrices(p Prices) error {
 			return errors.New("invalid or duplicate model in prices")
 		}
 		seen[m.ID] = true
-		for _, s := range []string{m.Input, m.Output, m.CacheRead, m.CacheWrite} {
-			if _, ok := decimal(s); !ok {
+		if p.Version == 1 || len(m.Tiers) == 0 {
+			if len(m.Tiers) != 0 || !validRates(m.Input, m.Output, m.CacheRead, m.CacheWrite) {
 				return errors.New("each model needs nonnegative decimal input, output, cache-read and cache-write USD prices per million tokens")
 			}
+			continue
+		}
+		if len(m.Tiers) > 8 || m.Input != "" || m.Output != "" || m.CacheRead != "" || m.CacheWrite != "" || m.InputTierMax != 0 || m.CacheWriteTTL == "" {
+			return errors.New("tiered model needs 1-8 tiers and one selected cache-write TTL class")
+		}
+		previous := uint64(0)
+		for i, tier := range m.Tiers {
+			if (tier.MaxPromptTokens == 0 && i != len(m.Tiers)-1) ||
+				(tier.MaxPromptTokens != 0 && tier.MaxPromptTokens <= previous) ||
+				len(tier.CacheWrite) == 0 || len(tier.CacheWrite) > 4 ||
+				!validRates(tier.Input, tier.Output, tier.CacheRead, tier.CacheWrite[m.CacheWriteTTL]) {
+				return errors.New("tier bounds and selected rates must be ordered and complete")
+			}
+			for ttl, rate := range tier.CacheWrite {
+				if !validTTL(ttl) || !validRate(rate) {
+					return errors.New("tier cache-write classes need known TTLs and nonnegative rates")
+				}
+			}
+			previous = tier.MaxPromptTokens
 		}
 	}
 	return nil
+}
+
+func validRate(s string) bool { _, ok := decimal(s); return ok }
+
+func validRates(input, output, read, write string) bool {
+	return validRate(input) && validRate(output) && validRate(read) && validRate(write)
+}
+
+func validTTL(s string) bool {
+	return slices.Contains([]string{"5m", "1h", "30m", "12h"}, s)
 }
 
 // OverridePrices changes rates, not the identity or provider of a known model.
@@ -141,6 +180,9 @@ func OverridePrices(bundled, override Prices) (Prices, error) {
 		i := slices.IndexFunc(bundled.Models, func(b Price) bool { return b.ID == p.ID && b.Provider == p.Provider })
 		if i < 0 {
 			return Prices{}, errors.New("price override names an unknown model or provider; no rates were guessed")
+		}
+		if len(bundled.Models[i].Tiers) > 1 && len(p.Tiers) == 0 && p.InputTierMax == 0 {
+			return Prices{}, errors.New("tiered model override needs explicit tiers or a priced input maximum")
 		}
 		if p.InputTierMax == 0 {
 			override.Models[j].InputTierMax = bundled.Models[i].InputTierMax
