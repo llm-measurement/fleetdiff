@@ -136,7 +136,7 @@ class SessionBudgetTests(unittest.TestCase):
                     self.assertRegex(row["hash"], r"^[0-9a-f]{64}$")
             text = review(FIXTURE, records, output="text", hashes=hashes).stdout.decode()
             self.assertTrue(text.startswith(
-                "3 of 4 sessions with complete recorded spend exceed the supplied USD 1.00 cap."))
+                "3 of 4 sessions with complete recorded spend exceed the supplied $1.00 cap."))
             self.assertIn("Above-cap sessions with no recorded session-budget rejection: 2.", text)
             self.assertIn("keys=2, teams=2, agents=2.", text)
             self.assertIn("session_budget recorded rejections: 1.", text)
