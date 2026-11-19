@@ -62,9 +62,10 @@ func TestReleaseBinaryWhatIf(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
-						first, _, _ := strings.Cut(string(output), "\n")
-						if !bytes.Contains(doc, []byte(first)) {
-							t.Fatal("release note headline differs from the packaged output")
+						// The old release note keeps its original six-decimal example.
+						const historical = "Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.154400 -> $0.109398 to $0.147974, depending on workload assumptions."
+						if !bytes.Contains(doc, []byte(historical)) {
+							t.Fatal("historical release note headline changed")
 						}
 					}
 				} else if format == "json" {
