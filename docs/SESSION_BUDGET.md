@@ -37,7 +37,7 @@ keeps its key-scoped identities and output.
 The result comes first, followed by its scope, for example:
 
 ```text
-3 of 4 sessions with complete recorded spend exceed the supplied USD 1.00 cap.
+3 of 4 sessions with complete recorded spend exceed the supplied $1.00 cap.
 Grouped by session ID alone (LiteLLM v1.104.0 counter unit).
 ```
 
@@ -50,6 +50,11 @@ keyed locally before aggregation; only aliases (or opt-in keyed hashes) appear.
 - Spend is the exact decimal sum of recorded `spend` values, in USD. Sessions
   with missing or invalid spend have a known subtotal and stay out of the
   complete-spend distribution. Calls have their own independent sample count.
+- All text reports display USD with a dollar sign, rounded to cents using
+  half-even on the exact rational value; nonzero amounts below one cent show
+  `<$0.01`. When two different sub-cent amounts are compared and that label
+  would hide the change, the comparison shows enough decimal places to
+  distinguish them. JSON retains the exact values unchanged.
 - Percentiles use exact nearest rank, with `n` printed. They describe observed
   totals, including sessions with recorded budget or iteration rejections.
   Rejection-only sessions are separate from model-call distributions.
@@ -95,9 +100,8 @@ that evidence. Zero or one known agent cannot rule sharing out. Agent coverage
 is separate from `unattributed_rows` and `missing_group_identity`, which concern
 session IDs.
 
-New text lines appear only for missing attribution. Fully attributed reports
-retain their previous output bytes, including JSON: the additive coverage
-fields are omitted for complete scopes. When report-wide coverage is incomplete,
+New attribution text lines appear only for missing attribution. The additive
+JSON coverage fields are omitted for complete scopes. When report-wide coverage is incomplete,
 the JSON call-type breakdown includes both complete and incomplete call types.
 `--top` limits session lists, not the report-wide coverage counts.
 

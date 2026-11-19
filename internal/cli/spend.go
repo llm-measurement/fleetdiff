@@ -293,7 +293,8 @@ func renderSpend(out io.Writer, r spend.Report) {
 	}
 	fmt.Fprintln(out, "  Zero-filled: "+r.ZeroFilled+". Provider origin: "+r.ProviderOrigin+".")
 	if r.Before.RecordedSpend != "" && r.Before.RecordedSpend != "0" || r.After.RecordedSpend != "" && r.After.RecordedSpend != "0" {
-		fmt.Fprintf(out, "  Recorded spend (USD, analyzed calls): %s -> %s.\n", spendNumber(r.Before.RecordedSpend), spendNumber(r.After.RecordedSpend))
+		amounts := usdCompared(r.Before.RecordedSpend, r.After.RecordedSpend)
+		fmt.Fprintf(out, "  Recorded spend (USD, analyzed calls): %s -> %s.\n", amounts[0], amounts[1])
 	}
 	if a.SpendZeroUnknown != 0 || b.SpendZeroUnknown != 0 {
 		problems = true

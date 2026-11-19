@@ -311,7 +311,7 @@ func TestSpendTextQualityOnlyShowsObservedProblems(t *testing.T) {
 		"Total field absent: 3 -> 0.",
 		"Unknown status: 4 -> 0.",
 		"Group identities missing: 5 -> 0.",
-		"Recorded spend (USD, analyzed calls): 1,000.00123400 -> 2,000.00000001.",
+		"Recorded spend (USD, analyzed calls): $1,000.00 -> $2,000.00.",
 		"Missing/invalid cost: 1,000 -> 2,000.",
 		"No other usage problems found.",
 	} {

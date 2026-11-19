@@ -47,8 +47,9 @@ func renderRouting(out io.Writer, r spend.Report) {
 		fmt.Fprintf(out, "  %s\n", label)
 		renderRoutingMeasures(out, "  Cohort", c.Before, c.After)
 		for _, m := range c.Models {
+			amounts := usdCompared(m.Before.RecordedSpend, m.After.RecordedSpend)
 			fmt.Fprintf(out, "    %s: requests %s -> %s; tokens %s -> %s; recorded USD %s -> %s.\n",
-				routingLabel(m.RoutingIdentity), spendNumber(m.Before.Requests), spendNumber(m.After.Requests), spendNumber(m.Before.Tokens), spendNumber(m.After.Tokens), m.Before.RecordedSpend, m.After.RecordedSpend)
+				routingLabel(m.RoutingIdentity), spendNumber(m.Before.Requests), spendNumber(m.After.Requests), spendNumber(m.Before.Tokens), spendNumber(m.After.Tokens), amounts[0], amounts[1])
 			fmt.Fprintf(out, "      Cohort shares: requests %s -> %s; tokens %s -> %s; known recorded spend %s -> %s.\n",
 				routingShare(m.SharesBefore.Requests), routingShare(m.SharesAfter.Requests), routingShare(m.SharesBefore.Tokens), routingShare(m.SharesAfter.Tokens), routingShare(m.SharesBefore.Spend), routingShare(m.SharesAfter.Spend))
 			renderRoutingQuality(out, m.Before, m.After)
@@ -89,8 +90,9 @@ func routingShare(v *string) string {
 }
 
 func renderRoutingMeasures(out io.Writer, label string, a, b spend.RoutingMeasure) {
+	amounts := usdCompared(a.RecordedSpend, b.RecordedSpend)
 	fmt.Fprintf(out, "  %s: %s -> %s requests; %s -> %s recorded tokens; recorded USD %s -> %s.\n",
-		label, spendNumber(a.Requests), spendNumber(b.Requests), spendNumber(a.Tokens), spendNumber(b.Tokens), a.RecordedSpend, b.RecordedSpend)
+		label, spendNumber(a.Requests), spendNumber(b.Requests), spendNumber(a.Tokens), spendNumber(b.Tokens), amounts[0], amounts[1])
 	if a.UnknownModelRows != 0 || b.UnknownModelRows != 0 {
 		fmt.Fprintf(out, "    Served identity unknown: %s -> %s rows (included in share denominators).\n", spendNumber(a.UnknownModelRows), spendNumber(b.UnknownModelRows))
 	}
@@ -147,8 +149,9 @@ func renderRoutingRaw(out io.Writer, label string, pair spend.RoutingRawMeasures
 	if a.Usage.Requests+b.Usage.Requests == 0 {
 		return
 	}
+	amounts := usdCompared(a.RecordedSpend, b.RecordedSpend)
 	fmt.Fprintf(out, "  %s: %s -> %s rows; raw recorded total tokens %s -> %s; recorded USD %s -> %s.\n",
-		label, spendNumber(a.Usage.Requests), spendNumber(b.Usage.Requests), spendCoverageNumber(a.Usage.TotalTokens, a.Usage.TotalTokensOverflow), spendCoverageNumber(b.Usage.TotalTokens, b.Usage.TotalTokensOverflow), a.RecordedSpend, b.RecordedSpend)
+		label, spendNumber(a.Usage.Requests), spendNumber(b.Usage.Requests), spendCoverageNumber(a.Usage.TotalTokens, a.Usage.TotalTokensOverflow), spendCoverageNumber(b.Usage.TotalTokens, b.Usage.TotalTokensOverflow), amounts[0], amounts[1])
 	fmt.Fprintf(out, "    Raw usage missing: %s -> %s rows; invalid: %s -> %s. Spend missing: %s -> %s; invalid: %s -> %s; zero, origin unknown: %s -> %s.\n",
 		spendNumber(a.Usage.MissingUsage), spendNumber(b.Usage.MissingUsage), spendNumber(a.Usage.InvalidUsage), spendNumber(b.Usage.InvalidUsage), spendNumber(a.SpendMissing), spendNumber(b.SpendMissing), spendNumber(a.SpendInvalid), spendNumber(b.SpendInvalid), spendNumber(a.SpendZeroUnknown), spendNumber(b.SpendZeroUnknown))
 }

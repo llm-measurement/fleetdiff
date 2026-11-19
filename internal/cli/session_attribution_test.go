@@ -84,7 +84,7 @@ func TestSessionAttributionCLIUnknownAndLowerBounds(t *testing.T) {
 			}
 			for _, hashes := range []bool{false, true} {
 				text := sessionAttributionCLI(t, rows, "text", hashes)
-				if !strings.HasPrefix(text, "1 of 1 sessions with complete recorded spend exceed the supplied USD 0.50 cap.\n") {
+				if !strings.HasPrefix(text, "1 of 1 sessions with complete recorded spend exceed the supplied $0.50 cap.\n") {
 					t.Fatal(text)
 				}
 				if strings.Contains(text, "Session IDs observed under multiple keys, teams or agents: 1.") != (tc.shared == 1) {

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/llm-measurement/fleetdiff/internal/spend"
@@ -40,21 +39,13 @@ func runSessionBudget(path, period, budget, secret, format, daily string, top in
 	return 0
 }
 
-func sessionUSD(s string) string {
-	whole, fraction, _ := strings.Cut(s, ".")
-	if len(fraction) < 2 {
-		fraction += strings.Repeat("0", 2-len(fraction))
-	}
-	return whole + "." + fraction
-}
-
 func renderSessionBudget(out io.Writer, r spend.SessionReport) {
 	renderRowCoverage(out, r.RowCoverage)
 	if r.UnsupportedRows != 0 {
 		fmt.Fprintf(out, "Session review is incomplete: %s selected records have unsupported call types.\n", spendNumber(r.UnsupportedRows))
 	}
 	if r.BudgetUSD != nil {
-		fmt.Fprintf(out, "%s of %s sessions with complete recorded spend exceed the supplied USD %s cap.\n", spendNumber(r.Exceeding), spendNumber(r.Spend.N), sessionUSD(*r.BudgetUSD))
+		fmt.Fprintf(out, "%s of %s sessions with complete recorded spend exceed the supplied %s cap.\n", spendNumber(r.Exceeding), spendNumber(r.Spend.N), usdText(*r.BudgetUSD))
 	} else {
 		fmt.Fprintf(out, "%s sessions with model calls; %s have complete recorded spend.\n", spendNumber(r.Sessions), spendNumber(r.Spend.N))
 	}
@@ -146,7 +137,7 @@ func renderSessionBudget(out io.Writer, r spend.SessionReport) {
 	}
 	if r.UnattributedRows != 0 {
 		fmt.Fprintf(out, "%s selected rows have no session ID and remain unattributed.\n", spendNumber(r.UnattributedRows))
-		fmt.Fprintf(out, "Unattributed analyzed calls: USD %s known subtotal (%s spend values, %s missing, %s invalid); outside session distributions and cap review.\n", sessionUSD(r.UnattributedSpend), spendNumber(r.UnattributedSpendRows), spendNumber(r.UnattributedMissingSpend), spendNumber(r.UnattributedInvalidSpend))
+		fmt.Fprintf(out, "Unattributed analyzed calls: %s known subtotal (%s spend values, %s missing, %s invalid); outside session distributions and cap review.\n", usdText(r.UnattributedSpend), spendNumber(r.UnattributedSpendRows), spendNumber(r.UnattributedMissingSpend), spendNumber(r.UnattributedInvalidSpend))
 	}
 	fmt.Fprintf(out, "Rejection classification: %s of %s selected rows include the derived column; failure logging completeness is unknown.\n", spendNumber(r.ClassifiedRows), spendNumber(r.SelectedRows))
 	if r.UnclassifiedFailures != 0 {
@@ -177,15 +168,13 @@ func renderSessionDistribution(out io.Writer, name string, d spend.Distribution,
 	}
 	values := []string{*d.P50, *d.P95, *d.Max}
 	if usd {
-		for i := range values {
-			values[i] = sessionUSD(values[i])
-		}
+		values = usdCompared(values...)
 	}
 	fmt.Fprintf(out, "%s: p50 %s; p95 %s; max %s (n=%s, exact nearest-rank).\n", name, values[0], values[1], values[2], spendNumber(d.N))
 }
 
 func renderSessionRow(out io.Writer, s spend.Session) {
-	fmt.Fprintf(out, "  %s: USD %s; calls=%s", s.Alias, sessionUSD(s.RecordedSpend), spendNumber(s.Calls))
+	fmt.Fprintf(out, "  %s: %s; calls=%s", s.Alias, usdText(s.RecordedSpend), spendNumber(s.Calls))
 	if !s.SpendComplete {
 		fmt.Fprint(out, "; incomplete spend subtotal")
 	}

@@ -25,7 +25,7 @@ Whose uncached input grew?
 
 How complete is the export?
   Zero-filled: cannot determine from this export. Provider origin: not declared by the supported SQL projection.
-  Recorded spend (USD, analyzed calls): 0.002 -> 0.002.
+  Recorded spend (USD, analyzed calls): <$0.01 -> <$0.01.
   No usage problems found.
   Rows read: 4.
 

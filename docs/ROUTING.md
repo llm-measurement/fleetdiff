@@ -33,10 +33,10 @@ additive `routing_audit` object. Default reports omit this object and section.
 Example output from the synthetic file below:
 
 ```text
-  Model-request rows: 3 -> 3 requests; 360 -> 360 recorded tokens; recorded USD 0.0017 -> 0.0016.
-    claude-sonnet-5-5: requests 2 -> 1; tokens 240 -> 120; recorded USD 0.0012 -> 0.0006.
+  Model-request rows: 3 -> 3 requests; 360 -> 360 recorded tokens; recorded USD $0.0017 -> $0.0016.
+    claude-sonnet-5-5: requests 2 -> 1; tokens 240 -> 120; recorded USD $0.0012 -> $0.0006.
       Cohort shares: requests 100% -> 50%; tokens 100% -> 50%; known recorded spend 100% -> 54.55%.
-  Classifier routing overhead: 1 -> 1 rows; raw recorded total tokens 21 -> 21; recorded USD 0.00005 -> 0.00005.
+  Classifier routing overhead: 1 -> 1 rows; raw recorded total tokens 21 -> 21; recorded USD <$0.01 -> <$0.01.
 ```
 
 The first route keeps two model requests in each period, but one of its requests

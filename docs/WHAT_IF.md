@@ -27,7 +27,7 @@ output and cache composition. It does not select the largest or cheapest request
 Example output from the checked-in synthetic export:
 
 ```text
-Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.154400 -> $0.109398 to $0.147974, depending on workload assumptions.
+Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.15 -> $0.11 to $0.15, depending on workload assumptions.
 ```
 
 The report gives level 1 at unchanged output verbosity, then QA, extraction and
