@@ -78,7 +78,7 @@ The run stopped when a coding receipt failed final-receipt validation
 or continuation. The retained status establishes a validation failure; its
 underlying provider stop reason is unavailable.
 
-## What the Numbers Mean
+## What The Numbers Mean
 
 The endpoints are approximate intervals for the average verbosity factor,
 specifically the geometric mean estimated through the log mean, not prediction
