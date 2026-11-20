@@ -55,6 +55,8 @@ keyed locally before aggregation; only aliases (or opt-in keyed hashes) appear.
   `<$0.01`. When two different sub-cent amounts are compared and that label
   would hide the change, the comparison shows enough decimal places to
   distinguish them. JSON retains the exact values unchanged.
+  Different amounts at or above one cent can display the same cents; the
+  delta line still shows their change.
 - Percentiles use exact nearest rank, with `n` printed. They describe observed
   totals, including sessions with recorded budget or iteration rejections.
   Rejection-only sessions are separate from model-call distributions.
