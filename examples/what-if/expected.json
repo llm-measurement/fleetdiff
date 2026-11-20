@@ -8,9 +8,9 @@
     "outside_period": 0,
     "gaps": []
   },
-  "price_date": "2026-10-14",
+  "price_date": "2026-11-19",
   "price_source": "bundled",
-  "price_version": 1,
+  "price_version": 2,
   "factor_version": 1,
   "factor_date": "2026-10-14",
   "covered_observations": 3,
@@ -80,6 +80,13 @@
       ],
       "factor_sources": [
         "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#original-fit"
+      ],
+      "target_tiers": [
+        {
+          "tier": 1,
+          "max_prompt_tokens": 272000,
+          "covered_requests": 3
+        }
       ]
     }
   ],

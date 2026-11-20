@@ -6,6 +6,7 @@ package reprice
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"slices"
 	"strings"
@@ -41,6 +42,13 @@ type MoveReport struct {
 	Level2        []WorkloadCost `json:"level2"`
 	FactorSources []string       `json:"factor_sources"`
 	Gap           string         `json:"gap,omitempty"`
+	TargetTiers   []TierUse      `json:"target_tiers,omitempty"`
+}
+
+type TierUse struct {
+	Tier            int     `json:"tier"`
+	MaxPromptTokens *uint64 `json:"max_prompt_tokens,omitempty"`
+	CoveredRequests uint64  `json:"covered_requests"`
 }
 
 type Report struct {
@@ -66,12 +74,20 @@ type Report struct {
 }
 
 type totals struct{ input, output, read, write uint64 }
+type bucketKey struct {
+	workload               string
+	sourceTier, targetTier int
+}
+type pricedBucket struct {
+	totals
+	requests uint64
+}
 type moveState struct {
 	move              Move
 	ratio             *big.Rat
 	input             *big.Rat
 	inputSource       string
-	buckets           map[string]totals
+	buckets           map[bucketKey]pricedBucket
 	covered, excluded uint64
 	scope             *hashedSelector
 }
@@ -106,6 +122,13 @@ func New(prices Prices, factors Factors, scenario Scenario, mapping WorkloadMap)
 	if err := validateFactors(factors); err != nil {
 		return nil, err
 	}
+	prices.Models = slices.Clone(prices.Models)
+	for i := range prices.Models {
+		prices.Models[i].Tiers = slices.Clone(prices.Models[i].Tiers)
+		for j := range prices.Models[i].Tiers {
+			prices.Models[i].Tiers[j].CacheWrite = maps.Clone(prices.Models[i].Tiers[j].CacheWrite)
+		}
+	}
 	c := &Calculator{prices: prices, factors: factors, mapping: map[hashedSelector]string{}, excluded: map[string]uint64{}}
 	for _, move := range scenario.Moves {
 		from, to := c.price(move.From), c.price(move.To)
@@ -129,7 +152,7 @@ func New(prices Prices, factors Factors, scenario Scenario, mapping WorkloadMap)
 				return nil, errors.New("no measured cross-provider input tokenizer factor for this move; no factor was extrapolated")
 			}
 		}
-		c.moves = append(c.moves, moveState{move: move, ratio: ratio, input: input, inputSource: source, buckets: map[string]totals{}})
+		c.moves = append(c.moves, moveState{move: move, ratio: ratio, input: input, inputSource: source, buckets: map[bucketKey]pricedBucket{}})
 	}
 	var err error
 	c.secret, _, err = attribution.Secret("")
@@ -209,6 +232,58 @@ func (c *Calculator) price(id string) *Price {
 		}
 	}
 	return nil
+}
+
+func (p Price) tierIndex(prompt *big.Rat) (int, bool) {
+	if len(p.Tiers) == 0 {
+		if p.InputTierMax == 0 || prompt.Cmp(new(big.Rat).SetInt(new(big.Int).SetUint64(p.InputTierMax))) <= 0 {
+			return 0, true
+		}
+		return 0, false
+	}
+	for i, tier := range p.Tiers {
+		if tier.MaxPromptTokens == 0 || prompt.Cmp(new(big.Rat).SetInt(new(big.Int).SetUint64(tier.MaxPromptTokens))) <= 0 {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+func (p Price) selectedTier(index int) Price {
+	if len(p.Tiers) == 0 {
+		return p
+	}
+	tier := p.Tiers[index]
+	p.Input, p.Output, p.CacheRead = tier.Input, tier.Output, tier.CacheRead
+	p.CacheWrite = tier.CacheWrite[p.CacheWriteTTL]
+	return p
+}
+
+// A summary can be priced only when its complete request-size range selects
+// one tier. Aggregate token totals alone do not reveal how many calls crossed.
+func recordTier(p Price, r Record, factor *big.Rat) (int, string) {
+	if len(p.Tiers) == 0 && p.InputTierMax == 0 || len(p.Tiers) == 1 && p.Tiers[0].MaxPromptTokens == 0 {
+		return 0, ""
+	}
+	if r.Count > 1 && r.InputMin == nil && len(p.Tiers) > 0 {
+		return 0, "mixed"
+	}
+	low, high := r.Input, r.Input
+	if r.InputMin != nil {
+		low, high = r.InputMin, r.InputMax
+	}
+	toPrompt := func(value *uint64) *big.Rat {
+		return new(big.Rat).Mul(new(big.Rat).SetInt(new(big.Int).SetUint64(*value)), factor)
+	}
+	first, okFirst := p.tierIndex(toPrompt(low))
+	last, okLast := p.tierIndex(toPrompt(high))
+	if !okFirst || !okLast {
+		return 0, "missing"
+	}
+	if first != last {
+		return 0, "mixed"
+	}
+	return first, ""
 }
 
 // Add consumes the existing readers' validated records. Fractions select a
@@ -312,6 +387,19 @@ func (c *Calculator) Add(r Record) error {
 	if issue == "" && (*r.CacheRead > *r.Input || *r.CacheWrite > *r.Input-*r.CacheRead) {
 		issue = "invalid_cache_partition"
 	}
+	sourceTier := 0
+	if issue == "" {
+		var sourceProblem string
+		sourceTier, sourceProblem = recordTier(*c.price(r.Model), r, big.NewRat(1, 1))
+		if sourceProblem == "missing" {
+			issue = "outside_price_tier"
+		} else if sourceProblem == "mixed" {
+			if r.InputMin == nil {
+				return errors.New("source request cohort may cross price tiers; supply request-level rows")
+			}
+			return errors.New("source request cohort crosses price tiers; supply request-level rows")
+		}
+	}
 	if issue != "" {
 		if err := addCount(&c.excluded, issue, r.Count); err != nil {
 			return err
@@ -325,17 +413,21 @@ func (c *Calculator) Add(r Record) error {
 		}
 		return nil
 	}
+	targetTiers := make(map[int]int, len(indices))
 	for _, i := range indices {
 		m := &c.moves[i]
 		p := c.price(m.move.To)
-		if p.InputTierMax > 0 {
-			input := new(big.Rat).SetInt(new(big.Int).SetUint64(*requestInput))
-			input.Mul(input, m.input)
-			limit := new(big.Rat).SetInt(new(big.Int).SetUint64(p.InputTierMax))
-			if input.Cmp(limit) > 0 {
-				return errors.New("a move exceeds the target's priced input tier; supply an applicable price table or select a narrower export")
-			}
+		tier, reason := recordTier(*p, r, m.input)
+		if reason == "missing" {
+			return errors.New("a move exceeds the target's priced input tier; supply an applicable price table or select a narrower export")
 		}
+		if reason == "mixed" {
+			if r.InputMin == nil {
+				return errors.New("a move's cohort may cross target price tiers; supply request-level rows")
+			}
+			return errors.New("a move's cohort crosses target price tiers; supply request-level rows")
+		}
+		targetTiers[i] = tier
 	}
 	n, err := accounting.AddBounded(c.covered, r.Count)
 	if err != nil {
@@ -343,7 +435,7 @@ func (c *Calculator) Add(r Record) error {
 	}
 	c.covered = n
 	t := totals{*r.Input, *r.Output, *r.CacheRead, *r.CacheWrite}
-	base, _ := cost(t, *c.price(r.Model), big.NewRat(1, 1), big.NewRat(1, 1))
+	base, _ := cost(t, c.price(r.Model).selectedTier(sourceTier), big.NewRat(1, 1), big.NewRat(1, 1))
 	c.baseline.Add(&c.baseline, base)
 	if len(indices) > 0 && workload == "" {
 		n, err := accounting.AddBounded(c.unmapped, r.Count)
@@ -354,7 +446,8 @@ func (c *Calculator) Add(r Record) error {
 	}
 	for _, i := range indices {
 		m := &c.moves[i]
-		v := m.buckets[workload]
+		key := bucketKey{workload: workload, sourceTier: sourceTier, targetTier: targetTiers[i]}
+		v := m.buckets[key]
 		for _, p := range []struct {
 			dst *uint64
 			src uint64
@@ -365,7 +458,11 @@ func (c *Calculator) Add(r Record) error {
 			}
 			*p.dst = n
 		}
-		m.buckets[workload] = v
+		v.requests, err = accounting.AddBounded(v.requests, r.Count)
+		if err != nil {
+			return err
+		}
+		m.buckets[key] = v
 		n, err := accounting.AddBounded(m.covered, r.Count)
 		if err != nil {
 			return err
@@ -427,6 +524,28 @@ func (c *Calculator) Result(source Source) Report {
 	return r
 }
 
+func targetTierUses(target *Price, buckets map[bucketKey]pricedBucket) []TierUse {
+	if len(target.Tiers) == 0 {
+		return nil
+	}
+	tierCounts := map[int]uint64{}
+	for key, bucket := range buckets {
+		tierCounts[key.targetTier] += bucket.requests
+	}
+	var uses []TierUse
+	for index, tier := range target.Tiers {
+		if count := tierCounts[index]; count != 0 {
+			used := TierUse{Tier: index + 1, CoveredRequests: count}
+			if tier.MaxPromptTokens != 0 {
+				maximum := tier.MaxPromptTokens
+				used.MaxPromptTokens = &maximum
+			}
+			uses = append(uses, used)
+		}
+	}
+	return uses
+}
+
 func (c *Calculator) result(source Source, variants []string) Report {
 	r := Report{Schema: "fleetdiff-what-if/v1", Source: source, PriceDate: c.prices.Date, FactorDate: c.factors.Date, Covered: c.covered, Excluded: c.excluded, Unmapped: c.unmapped, Moves: []MoveReport{}, Level2: []WorkloadCost{},
 		Dominant:    "How output verbosity on your traffic differs from the measured workload averages.",
@@ -465,19 +584,28 @@ func (c *Calculator) result(source Source, variants []string) Report {
 			continue
 		}
 		before, next, out := new(big.Rat), new(big.Rat), new(big.Rat)
-		keys := make([]string, 0, len(m.buckets))
+		keys := make([]bucketKey, 0, len(m.buckets))
 		for k := range m.buckets {
 			keys = append(keys, k)
 		}
-		slices.Sort(keys)
-		for _, w := range keys {
-			t := m.buckets[w]
-			b, _ := cost(t, *c.price(m.move.From), big.NewRat(1, 1), big.NewRat(1, 1))
-			n, o := cost(t, *c.price(m.move.To), m.input, big.NewRat(1, 1))
+		slices.SortFunc(keys, func(a, b bucketKey) int {
+			if order := strings.Compare(a.workload, b.workload); order != 0 {
+				return order
+			}
+			if a.sourceTier != b.sourceTier {
+				return a.sourceTier - b.sourceTier
+			}
+			return a.targetTier - b.targetTier
+		})
+		for _, key := range keys {
+			bucket := m.buckets[key]
+			b, _ := cost(bucket.totals, c.price(m.move.From).selectedTier(key.sourceTier), big.NewRat(1, 1), big.NewRat(1, 1))
+			n, o := cost(bucket.totals, c.price(m.move.To).selectedTier(key.targetTier), m.input, big.NewRat(1, 1))
 			before.Add(before, b)
 			next.Add(next, n)
 			out.Add(out, o)
 		}
+		mr.TargetTiers = targetTierUses(c.price(m.move.To), m.buckets)
 		before.Mul(before, m.ratio)
 		next.Mul(next, m.ratio)
 		out.Mul(out, m.ratio)
@@ -490,8 +618,8 @@ func (c *Calculator) result(source Source, variants []string) Report {
 		for _, variant := range variants {
 			v := triple{new(big.Rat), new(big.Rat), new(big.Rat)}
 			available := true
-			for _, mapped := range keys {
-				w := mapped
+			for _, key := range keys {
+				w := key.workload
 				if w == "" {
 					w = variant
 				}
@@ -507,7 +635,7 @@ func (c *Calculator) result(source Source, variants []string) Report {
 					dst    *big.Rat
 					factor string
 				}{{v.m, f.Output}, {v.l, f.Low}, {v.h, f.High}} {
-					n, _ := cost(m.buckets[mapped], *c.price(m.move.To), m.input, rat(s.factor))
+					n, _ := cost(m.buckets[key].totals, c.price(m.move.To).selectedTier(key.targetTier), m.input, rat(s.factor))
 					s.dst.Add(s.dst, n)
 				}
 			}

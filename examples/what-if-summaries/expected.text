@@ -1,5 +1,5 @@
 Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.80 -> $0.66 to $0.68, depending on workload assumptions.
-Period: Wed 2026-10-07 00:00:00 UTC -> Wed 2026-10-07 00:01:00 UTC (end exclusive). Prices: 2026-10-14 (bundled); measured factors: 2026-10-14.
+Period: Wed 2026-10-07 00:00:00 UTC -> Wed 2026-10-07 00:01:00 UTC (end exclusive). Prices: 2026-11-19 (bundled); measured factors: 2026-10-14.
 
 Level 1, same work and output verbosity: $0.68
 Level 2, qa: $0.66 (propagated mean-interval endpoints $0.66 to $0.66)

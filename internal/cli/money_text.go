@@ -48,7 +48,22 @@ func usdCompared(values ...string) []string {
 		result[i] = usdText(value)
 		numbers[i], _ = new(big.Rat).SetString(value)
 	}
-	needsDetail := false
+	if !subCentCollision(numbers, result) {
+		return result
+	}
+	for digits := 3; ; digits++ {
+		for k, n := range numbers {
+			if n != nil && n.Sign() != 0 && new(big.Rat).Abs(n).Cmp(oneCent) < 0 {
+				result[k] = usdFixed(n, digits)
+			}
+		}
+		if !subCentCollision(numbers, result) {
+			return result
+		}
+	}
+}
+
+func subCentCollision(numbers []*big.Rat, result []string) bool {
 	for i, a := range numbers {
 		if a == nil || a.Sign() == 0 || new(big.Rat).Abs(a).Cmp(oneCent) >= 0 {
 			continue
@@ -56,34 +71,11 @@ func usdCompared(values ...string) []string {
 		for j := i + 1; j < len(numbers); j++ {
 			b := numbers[j]
 			if b != nil && b.Sign() != 0 && new(big.Rat).Abs(b).Cmp(oneCent) < 0 && a.Cmp(b) != 0 && result[i] == result[j] {
-				needsDetail = true
+				return true
 			}
 		}
 	}
-	if needsDetail {
-		for digits := 3; ; digits++ {
-			for k, n := range numbers {
-				if n != nil && n.Sign() != 0 && new(big.Rat).Abs(n).Cmp(oneCent) < 0 {
-					result[k] = usdFixed(n, digits)
-				}
-			}
-			collision := false
-			for i, a := range numbers {
-				if a == nil || a.Sign() == 0 || new(big.Rat).Abs(a).Cmp(oneCent) >= 0 {
-					continue
-				}
-				for j := i + 1; j < len(numbers); j++ {
-					if b := numbers[j]; b != nil && b.Sign() != 0 && new(big.Rat).Abs(b).Cmp(oneCent) < 0 && a.Cmp(b) != 0 && result[i] == result[j] {
-						collision = true
-					}
-				}
-			}
-			if !collision {
-				return result
-			}
-		}
-	}
-	return result
+	return false
 }
 
 func signedUSD(value string) string {

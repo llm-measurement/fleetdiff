@@ -20,6 +20,14 @@ func agentUSD(v *string) string {
 	return usdText(*v)
 }
 
+func agentUSDPair(before, after *string) (string, string) {
+	if before != nil && after != nil {
+		amounts := usdCompared(*before, *after)
+		return amounts[0], amounts[1]
+	}
+	return agentUSD(before), agentUSD(after)
+}
+
 func agentShare(v *string) string {
 	if v == nil {
 		return "unavailable"
@@ -94,13 +102,7 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 	}
 	fmt.Fprintln(w)
 	writeContributor := func(c spend.AgentContributor) {
-		before, after := "unavailable", "unavailable"
-		if c.Before.RecordedUSD != nil && c.After.RecordedUSD != nil {
-			amounts := usdCompared(*c.Before.RecordedUSD, *c.After.RecordedUSD)
-			before, after = amounts[0], amounts[1]
-		} else {
-			before, after = agentUSD(c.Before.RecordedUSD), agentUSD(c.After.RecordedUSD)
-		}
+		before, after := agentUSDPair(c.Before.RecordedUSD, c.After.RecordedUSD)
 		delta := "unavailable"
 		if c.Delta != nil {
 			delta = signedUSD(*c.Delta)
@@ -150,10 +152,6 @@ func renderAgents(out io.Writer, a *spend.AgentReport) {
 		tokens := int64(bucket.after.Tokens) - int64(bucket.before.Tokens)
 		fmt.Fprintf(out, "  %s (not ranked): %d -> %d rows; token change %s; recorded USD change %s.\n", bucket.name, bucket.before.Requests, bucket.after.Requests, signedInterval(compare.Interval{Lower: tokens, Upper: tokens}), delta)
 	}
-	before, after := agentUSD(a.UndisplayedBefore.RecordedUSD), agentUSD(a.UndisplayedAfter.RecordedUSD)
-	if a.UndisplayedBefore.RecordedUSD != nil && a.UndisplayedAfter.RecordedUSD != nil {
-		amounts := usdCompared(*a.UndisplayedBefore.RecordedUSD, *a.UndisplayedAfter.RecordedUSD)
-		before, after = amounts[0], amounts[1]
-	}
+	before, after := agentUSDPair(a.UndisplayedBefore.RecordedUSD, a.UndisplayedAfter.RecordedUSD)
 	fmt.Fprintf(out, "  Known agents not displayed: %d -> %d rows; %d -> %d tokens; %s -> %s recorded USD.\n", a.UndisplayedBefore.Requests, a.UndisplayedAfter.Requests, a.UndisplayedBefore.Tokens, a.UndisplayedAfter.Tokens, before, after)
 }

@@ -1,0 +1,35 @@
+{
+  "schema": "fleetdiff-price-check/v1",
+  "checked_date": "2026-11-19",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "processing": "direct-provider standard/global synchronous text",
+  "selected_cache_write_classes": {"anthropic": "5m", "openai": "30m"},
+  "sources": [
+    {
+      "provider": "anthropic",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "models": ["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5", "claude-fable-5-2"],
+      "rule": "Haiku 5.5 over 100000 input tokens, including cache reads and writes, pays higher rates on every component of that request; other listed models have standard rates through their full context."
+    },
+    {
+      "provider": "openai",
+      "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "models": ["gpt-6.1-sol"],
+      "rule": "Above 272000 input tokens, input and cache rates are doubled and output is 1.5 times the short-context rate for the full request."
+    },
+    {
+      "provider": "openai",
+      "url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+      "models": ["gpt-6-luna"],
+      "rule": "Above 272000 input tokens, input and cache rates are doubled and output is 1.5 times the short-context rate for the full request."
+    },
+    {
+      "provider": "openai",
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "models": ["gpt-6.1-sol", "gpt-6-luna"],
+      "rule": "Standard short-context cache-write rates for 30-minute and 12-hour retention are listed by model."
+    }
+  ],
+  "scope": "No batch, fast, regional, tax, account-specific or negotiated adjustments; the selected write class is a table assumption, not a per-row observed TTL."
+}
