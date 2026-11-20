@@ -11,7 +11,7 @@ from test_spend import WRITER_OBSERVATIONS
 
 
 ROOT = Path(__file__).resolve().parents[2]
-README_RELEASE = "v0.14.1"
+README_RELEASE = "v0.15.0"
 LANGFUSE_FIXTURE_RELEASE = "v0.14.0"
 
 
@@ -91,7 +91,7 @@ class DocumentationTests(unittest.TestCase):
     def test_v014_preparation_and_agent_guide(self):
         readme = (ROOT / "README.md").read_text()
         installer = (ROOT / "scripts/install.sh").read_text()
-        self.assertIn("v0.14.0", installer)
+        self.assertIn(README_RELEASE, installer)
         self.assertNotIn("v0.13.1", installer)
         self.assertIn("https://github.com/llm-measurement/fleetdiff/releases/tag/" + README_RELEASE, readme)
         self.assertNotIn("Until\npublication", readme)

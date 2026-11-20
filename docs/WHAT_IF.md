@@ -5,10 +5,8 @@ with caching, and see how sensitive the result is to output length. The first
 line is Level 1: the same work and output length at the target prices. Benchmark
 verbosity ratios appear separately as sensitivity, not a traffic prediction.
 
-The basic command shipped in **v0.12.0**. Tier-aware results and the checked
-examples below require this source build until v0.15.0 is released; the
-[verified binary](../README.md#1-install-v0141) runs the older single-row
-price-table examples.
+Install the [verified v0.15.0 binary](../README.md#1-install-v0150) before
+running the commands below.
 
 ## Run it on your data
 
@@ -17,7 +15,7 @@ including input, output, cache-read and cache-write columns. Keep the source
 and identity mapping files private. The command reads local files only.
 
 ```sh
-go run ./cmd/fleetdiff what-if --litellm-spend spend.csv --period 2026-10-07 \
+./fleetdiff-install/fleetdiff what-if --litellm-spend spend.csv --period 2026-10-07 \
   --from claude-sonnet-5-5 --to gpt-6.1-sol --fraction 0.5
 ```
 
@@ -45,12 +43,12 @@ and [JSON](../examples/what-if/expected.json).
 
 ## No data handy? Try the sample
 
-From this checkout, with the pinned Go toolchain:
+From a v0.15.0 checkout, using the verified binary installed above:
 
 ```sh
-go run ./cmd/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
+./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
   --period 2026-10-07 --scenario examples/what-if/scenario.json
-go run ./cmd/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
+./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
   --period 2026-10-07 --scenario examples/what-if/scenario.json \
   --workload-map examples/what-if/workload-map.json --format json
 ```
@@ -60,7 +58,7 @@ each side of Haiku 5.5's 100,000-token boundary. Earlier releases cannot run
 its version 2 price table:
 
 ```sh
-go run ./cmd/fleetdiff what-if --litellm-spend examples/what-if/long-prompt.csv \
+./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/long-prompt.csv \
   --period 2026-10-07 --from claude-sonnet-5-5 --to claude-haiku-5-5 \
   --fraction 1 --format json
 ```

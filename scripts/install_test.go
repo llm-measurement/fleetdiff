@@ -15,8 +15,8 @@ import (
 	"testing"
 )
 
-const installTestVersion = "v0.14.0"
-const readmeInstallVersion = "v0.14.1"
+const installTestVersion = "v0.15.0"
+const readmeInstallVersion = "v0.15.0"
 const installTestURL = "https://raw.githubusercontent.com/llm-measurement/fleetdiff/0d7db95c5bb3013f8c564c91fbb07b6235a2664e/scripts/install.sh"
 
 func TestInstallDocumentationVersionPins(t *testing.T) {
@@ -25,15 +25,16 @@ func TestInstallDocumentationVersionPins(t *testing.T) {
 		"../README.md": {"### 1. Install " + readmeInstallVersion, "sh -s -- " + readmeInstallVersion,
 			"cmd/fleetdiff@" + readmeInstallVersion, "docs/releases/" + readmeInstallVersion + ".md", installTestURL,
 			`<a id="1-install-v0140"></a>`,
+			`<a id="1-install-v0141"></a>`,
 			`<a id="1-install-v0120"></a>`,
 			"`gh` need not be signed in", "https://llm-measurement.github.io/litellm-spend.html",
 			"https://llm-measurement.github.io/routing.html", "https://llm-measurement.github.io/row-coverage.html"},
 		"../SECURITY.md":                                 {"`" + strings.Join(parts[:2], ".") + ".x` release line"},
 		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion, installTestURL},
 		"../docs/RELEASING.md":                           {"## After Publishing " + installTestVersion},
-		"../docs/WHAT_IF.md":                             {"The basic command shipped in **v0.12.0**", "../README.md#1-install-v0141"},
+		"../docs/WHAT_IF.md":                             {"verified v0.15.0 binary", "../README.md#1-install-v0150", "./fleetdiff-install/fleetdiff what-if"},
 		"../docs/releases/" + installTestVersion + ".md": {"# fleetdiff " + installTestVersion},
-		"../examples/litellm-spend/README.md":            {"Install [fleetdiff " + installTestVersion + "]"},
+		"../examples/litellm-spend/README.md":            {"Install [fleetdiff v0.14.0]"},
 	} {
 		data, err := os.ReadFile(path)
 		if err != nil {

@@ -4,6 +4,27 @@ Notable user-visible changes are recorded here, newest first.
 
 ## [Unreleased]
 
+## [0.15.0]
+
+See the [release notes](docs/releases/v0.15.0.md).
+
+- Lead what-if text with exact Level 1 repricing at the same work and output
+  length on dated prices. Show benchmark output-length sensitivity separately,
+  not as a forecast of traffic or savings.
+- Add version 2 price tables with request-level prompt tiers and cache-write
+  duration classes. Report target-tier request counts; refuse summary cohorts
+  spanning source or target tiers rather than selecting a tier from averages.
+  Version 1 single-row price tables remain supported.
+- Format text USD with exact cent rounding, visible nonzero sub-cent amounts
+  and extra comparison precision when needed. This presentation change leaves
+  accounting and JSON money strings unchanged; tier-aware what-if results use
+  the selected dated prices and add optional `target_tiers` details.
+- Include opt-in summary-scan token CUSUM diagnostics added since v0.14.1,
+  including independent UTC weekday strata with an explicit matching-week
+  baseline. These measure observed input plus output tokens, not cost, and are
+  uncalibrated diagnostics rather than alert verdicts. Default scan output is
+  unchanged when the option is off.
+
 ## [0.14.1]
 
 See the [release notes](docs/releases/v0.14.1.md).
