@@ -18,31 +18,31 @@
     "missing_split": 1
   },
   "unmapped_moved_observations": 3,
-  "covered_source_cost_usd": "0.154400000",
-  "covered_level1_cost_usd": "0.148703445",
+  "covered_source_cost_usd": "1.544000000",
+  "covered_level1_cost_usd": "1.487034452",
   "level2": [
     {
       "workload": "qa",
-      "central_usd": "0.112531329",
-      "lower_usd": "0.109397643",
-      "upper_usd": "0.116139544"
+      "central_usd": "1.125313292",
+      "lower_usd": "1.093976433",
+      "upper_usd": "1.161395436"
     },
     {
       "workload": "extraction",
-      "central_usd": "0.122061922",
-      "lower_usd": "0.117196065",
-      "upper_usd": "0.127758750"
+      "central_usd": "1.220619217",
+      "lower_usd": "1.171960651",
+      "upper_usd": "1.277587502"
     },
     {
       "workload": "coding",
-      "central_usd": "0.140322904",
-      "lower_usd": "0.133659121",
-      "upper_usd": "0.147974460"
+      "central_usd": "1.403229037",
+      "lower_usd": "1.336591208",
+      "upper_usd": "1.479744596"
     }
   ],
   "workload_envelope": {
-    "lower_usd": "0.109397643",
-    "upper_usd": "0.147974460"
+    "lower_usd": "1.093976433",
+    "upper_usd": "1.479744596"
   },
   "moves": [
     {
@@ -55,27 +55,27 @@
       "excluded_observations": 1,
       "input_tokenizer_factor": "0.668804955",
       "input_factor_source": "https://raw.githubusercontent.com/llm-measurement/fleetdiff/main/evidence/model-mix/source-record.json#descriptive-input-pool",
-      "moved_source_cost_usd": "0.077200000",
-      "moved_level1_cost_usd": "0.071503445",
+      "moved_source_cost_usd": "0.772000000",
+      "moved_level1_cost_usd": "0.715034452",
       "level1_moved_output_cost_share": "0.839120406",
       "level2": [
         {
           "workload": "qa",
-          "central_usd": "0.035331329",
-          "lower_usd": "0.032197643",
-          "upper_usd": "0.038939544"
+          "central_usd": "0.353313292",
+          "lower_usd": "0.321976433",
+          "upper_usd": "0.389395436"
         },
         {
           "workload": "extraction",
-          "central_usd": "0.044861922",
-          "lower_usd": "0.039996065",
-          "upper_usd": "0.050558750"
+          "central_usd": "0.448619217",
+          "lower_usd": "0.399960651",
+          "upper_usd": "0.505587502"
         },
         {
           "workload": "coding",
-          "central_usd": "0.063122904",
-          "lower_usd": "0.056459121",
-          "upper_usd": "0.070774460"
+          "central_usd": "0.631229037",
+          "lower_usd": "0.564591208",
+          "upper_usd": "0.707744596"
         }
       ],
       "factor_sources": [

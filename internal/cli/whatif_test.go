@@ -18,6 +18,18 @@ func whatIfArgs() []string {
 	return []string{"what-if", "--litellm-spend", "../../examples/what-if/spend.csv", "--period", "2026-10-07", "--scenario", "../../examples/what-if/scenario.json"}
 }
 
+func TestWhatIfTargetTierText(t *testing.T) {
+	maximum := uint64(100000)
+	got := targetTierText([]reprice.TierUse{
+		{Tier: 1, MaxPromptTokens: &maximum, CoveredRequests: 22592},
+		{Tier: 2, CoveredRequests: 38404},
+	})
+	want := "Target price tiers: 22,592 requests at or under 100,000 prompt tokens; 38,404 over."
+	if got != want {
+		t.Fatalf("tier split: %q", got)
+	}
+}
+
 func TestWhatIfCheckedExample(t *testing.T) {
 	for _, format := range []string{"text", "json"} {
 		t.Run(format, func(t *testing.T) {

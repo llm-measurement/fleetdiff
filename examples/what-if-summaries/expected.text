@@ -1,14 +1,17 @@
-Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.80 -> $0.66 to $0.68, depending on workload assumptions.
+Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.80 -> $0.68 at the same work and output length, on 2026-11-19 prices.
+Target price tiers: tier 1: 4 requests at or under 272,000 prompt tokens.
 Period: Wed 2026-10-07 00:00:00 UTC -> Wed 2026-10-07 00:01:00 UTC (end exclusive). Prices: 2026-11-19 (bundled); measured factors: 2026-10-14.
 
 Level 1, same work and output verbosity: $0.68
-Level 2, qa: $0.66 (propagated mean-interval endpoints $0.66 to $0.66)
-Level 2, extraction: $0.66 (propagated mean-interval endpoints $0.66 to $0.67)
-Level 2, coding: $0.67 (propagated mean-interval endpoints $0.67 to $0.68)
+
+Output-length sensitivity (benchmark verbosity ratios; a canary on your own traffic measures yours):
+  Output share of moved target cost at level 1: 9.18%
+  qa: $0.66 (propagated mean-interval endpoints $0.66 to $0.66)
+  extraction: $0.66 (propagated mean-interval endpoints $0.66 to $0.67)
+  coding: $0.67 (propagated mean-interval endpoints $0.67 to $0.68)
 
 move-1: 50% of claude-sonnet-5-5 -> gpt-6.1-sol
   Moved traffic, level 1: $0.40 -> $0.27; input tokenizer factor 0.668804955
-  Output share of moved target cost at level 1: 9.18%
   qa: $0.26 ($0.26 to $0.26)
   extraction: $0.26 ($0.26 to $0.26)
   coding: $0.27 ($0.27 to $0.27)

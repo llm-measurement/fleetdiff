@@ -220,7 +220,23 @@ func percent(s string) string {
 	return strings.TrimRight(strings.TrimRight(r.FloatString(2), "0"), ".") + "%"
 }
 
-func renderWhatIf(out io.Writer, r reprice.Report) {
+func targetTierText(tiers []reprice.TierUse) string {
+	if len(tiers) == 2 && tiers[0].MaxPromptTokens != nil && tiers[1].MaxPromptTokens == nil {
+		return fmt.Sprintf("Target price tiers: %s requests at or under %s prompt tokens; %s over.",
+			spendNumber(tiers[0].CoveredRequests), spendNumber(*tiers[0].MaxPromptTokens), spendNumber(tiers[1].CoveredRequests))
+	}
+	parts := make([]string, 0, len(tiers))
+	for _, tier := range tiers {
+		label := fmt.Sprintf("tier %d: %s requests", tier.Tier, spendNumber(tier.CoveredRequests))
+		if tier.MaxPromptTokens != nil {
+			label += fmt.Sprintf(" at or under %s prompt tokens", spendNumber(*tier.MaxPromptTokens))
+		}
+		parts = append(parts, label)
+	}
+	return "Target price tiers: " + strings.Join(parts, "; ") + "."
+}
+
+func writeWhatIfHeadline(out io.Writer, r reprice.Report) {
 	lead := "Covered usage under the model-mix scenario"
 	matched := false
 	for _, m := range r.Moves {
@@ -234,32 +250,50 @@ func renderWhatIf(out io.Writer, r reprice.Report) {
 		fmt.Fprintln(out, "No covered usage can be re-priced from this input.")
 	} else if !matched {
 		fmt.Fprintf(out, "No covered traffic matches the requested moves; covered source cost remains %s.\n", money(*r.Before))
-	} else if r.Envelope != nil {
-		amounts := usdCompared(*r.Before, r.Envelope.Low, r.Envelope.High)
-		fmt.Fprintf(out, "%s: %s -> %s to %s, depending on workload assumptions.\n", lead, amounts[0], amounts[1], amounts[2])
 	} else {
 		amounts := usdCompared(*r.Before, *r.Level1)
-		fmt.Fprintf(out, "%s: %s -> %s at unchanged output verbosity.\n", lead, amounts[0], amounts[1])
+		fmt.Fprintf(out, "%s: %s -> %s at the same work and output length, on %s prices.\n", lead, amounts[0], amounts[1], r.PriceDate)
+	}
+	if len(r.Moves) == 1 && len(r.Moves[0].TargetTiers) > 0 {
+		fmt.Fprintln(out, targetTierText(r.Moves[0].TargetTiers))
 	}
 	fmt.Fprintf(out, "Period: %s -> %s (end exclusive). Prices: %s (%s); measured factors: %s.\n", r.Source.Start.Format("Mon 2006-01-02 15:04:05 MST"), r.Source.End.Format("Mon 2006-01-02 15:04:05 MST"), r.PriceDate, r.PriceSource, r.FactorDate)
-	if r.Level1 != nil {
-		fmt.Fprintf(out, "\nLevel 1, same work and output verbosity: %s\n", money(*r.Level1))
+}
+
+func writeWhatIfSensitivity(out io.Writer, r reprice.Report) {
+	if len(r.Level2) == 0 {
+		return
+	}
+	fmt.Fprintln(out, "\nOutput-length sensitivity (benchmark verbosity ratios; a canary on your own traffic measures yours):")
+	if len(r.Moves) == 1 && r.Moves[0].OutputShare != nil {
+		fmt.Fprintf(out, "  Output share of moved target cost at level 1: %s\n", percent(*r.Moves[0].OutputShare))
 	}
 	for _, w := range r.Level2 {
 		amounts := usdCompared(w.Mean, w.Low, w.High)
-		fmt.Fprintf(out, "Level 2, %s: %s (propagated mean-interval endpoints %s to %s)\n", w.Workload, amounts[0], amounts[1], amounts[2])
+		fmt.Fprintf(out, "  %s: %s (propagated mean-interval endpoints %s to %s)\n", w.Workload, amounts[0], amounts[1], amounts[2])
 	}
+}
+
+func renderWhatIf(out io.Writer, r reprice.Report) {
+	writeWhatIfHeadline(out, r)
+	if r.Level1 != nil {
+		fmt.Fprintf(out, "\nLevel 1, same work and output verbosity: %s\n", money(*r.Level1))
+	}
+	writeWhatIfSensitivity(out, r)
 	for _, m := range r.Moves {
 		fmt.Fprintf(out, "\n%s: %s of %s -> %s", m.Item, percent(m.Fraction), m.From, m.To)
 		if m.Scoped {
 			fmt.Fprint(out, " (selected identity scope)")
 		}
 		fmt.Fprintln(out)
+		if len(r.Moves) > 1 && len(m.TargetTiers) > 0 {
+			fmt.Fprintln(out, "  "+targetTierText(m.TargetTiers))
+		}
 		if m.Level1 != nil {
 			amounts := usdCompared(*m.Before, *m.Level1)
 			fmt.Fprintf(out, "  Moved traffic, level 1: %s -> %s; input tokenizer factor %s\n", amounts[0], amounts[1], m.InputFactor)
 		}
-		if m.OutputShare != nil {
+		if m.OutputShare != nil && (len(r.Moves) != 1 || len(r.Level2) == 0) {
 			fmt.Fprintf(out, "  Output share of moved target cost at level 1: %s\n", percent(*m.OutputShare))
 		}
 		for _, w := range m.Level2 {

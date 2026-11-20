@@ -41,7 +41,7 @@ as `__unmapped__`, never passed through as a public model ID.
 The [verified v0.10.0 binary](../../README.md#2-install-v0100) reports:
 
 ```text
-Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.80 -> $0.66 to $0.68, depending on workload assumptions.
+Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.80 -> $0.68 at the same work and output length, on 2026-11-19 prices.
 ```
 
 Full checked output: [text](expected.text), [JSON](expected.json).

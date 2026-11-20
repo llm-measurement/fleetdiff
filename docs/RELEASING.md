@@ -129,8 +129,8 @@ From an anonymous clone in a fresh directory outside any synced workspace:
    that export. Record failure-logging-disabled behavior: a request absent from
    both tables cannot be found by their count comparison.
 9. Run the [what-if sample](WHAT_IF.md#no-data-handy-try-the-sample) with the
-   installed executable: require $0.15 -> $0.11 to $0.15 under
-   workload assumptions, level 1 $0.15, three covered observations and
+   installed executable: require Level 1 $1.54 -> $1.49 on dated prices,
+   a separate output-length sensitivity band, three covered observations and
    one missing-split exclusion. Repeat in JSON and with the workload map;
    require one mapped result and no raw fixture identities. Reproduce the
    public factors from the tagged checkout with the commands above. Site bumps

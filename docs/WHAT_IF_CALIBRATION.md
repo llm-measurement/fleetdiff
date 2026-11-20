@@ -1,7 +1,13 @@
-# Two of twelve batch-cost cases passed
+# Benchmark verbosity ranges as batch predictors (October 2026)
 
-The fresh-batch check passed for Sol to Luna QA and extraction; the other
-directions and coding cases failed the registered coverage-and-width gates.
+The ranges held for Sol to Luna QA and extraction (19 and 17 of 20 batches),
+the only two of twelve cases that passed the registered batch-cost gates. The
+other cases failed coverage or width, with coding incomplete, so `what-if`
+presents these ranges as sensitivity and points to a canary.
+
+The fitted intervals describe an average factor, but the registered check
+compared them with fresh batch outcomes, which need prediction intervals.
+Coding ratios also shifted between HumanEval fitting and MBPP testing.
 
 <!-- calibration-table:start -->
 | Direction | Workload | Covered / 20 | Wilson 95% | Width rank 10 / 18 | Median signed error USD | Median absolute error USD | Result |
@@ -72,7 +78,7 @@ The run stopped when a coding receipt failed final-receipt validation
 or continuation. The retained status establishes a validation failure; its
 underlying provider stop reason is unavailable.
 
-## What The Numbers Mean
+## What the Numbers Mean
 
 The endpoints are approximate intervals for the average verbosity factor,
 specifically the geometric mean estimated through the log mean, not prediction

@@ -102,7 +102,7 @@ func TestWhatIfFailureJSONAdditiveCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 	v := got.PricedFailures
-	if v == nil || v.Records != 3 || v.Input.String() != "30000" || v.Output.String() != "12000" || v.Total.String() != "42000" || v.CacheRead.String() != "14000" || v.CacheWrite.String() != "2000" {
+	if v == nil || v.Records != 3 || v.Input.String() != "300000" || v.Output.String() != "120000" || v.Total.String() != "420000" || v.CacheRead.String() != "140000" || v.CacheWrite.String() != "20000" {
 		t.Fatalf("priced failure records or token components: %+v", v)
 	}
 	if !reflect.DeepEqual(v.Before, got.Before) || !reflect.DeepEqual(v.Level1, got.Level1) || !reflect.DeepEqual(v.Level2, got.Level2) || !reflect.DeepEqual(v.Envelope, got.Envelope) {
@@ -230,7 +230,7 @@ func TestWhatIfFailureDisclosureEligibility(t *testing.T) {
 					if tc.priced && (!strings.Contains(out.String(), "gateway-recorded tokens, provider/billing finality unknown") || !strings.Contains(out.String(), "Cost contribution already included above:")) {
 						t.Fatal("text did not distinguish recorded contributions from final billing")
 					}
-					if tc.priced && !strings.Contains(out.String(), "Tokens: input 30,000, output 12,000, total 42,000; input includes cache read 14,000 and cache write 2,000.") {
+					if tc.priced && !strings.Contains(out.String(), "Tokens: input 300,000, output 120,000, total 420,000; input includes cache read 140,000 and cache write 20,000.") {
 						t.Fatal("token components did not use the existing number formatter")
 					}
 					if tc.prepriceCount && !strings.Contains(out.String(), "pre-pricing source count, not a priced-failure count") {

@@ -31,7 +31,7 @@ func TestInstallDocumentationVersionPins(t *testing.T) {
 		"../SECURITY.md":                                 {"`" + strings.Join(parts[:2], ".") + ".x` release line"},
 		"../docs/OPERATIONS.md":                          {"version=" + installTestVersion, "sh scripts/install.sh " + installTestVersion, installTestURL},
 		"../docs/RELEASING.md":                           {"## After Publishing " + installTestVersion},
-		"../docs/WHAT_IF.md":                             {"Available in **v0.12.0**", "../README.md#1-install-v0120"},
+		"../docs/WHAT_IF.md":                             {"The basic command shipped in **v0.12.0**", "../README.md#1-install-v0141"},
 		"../docs/releases/" + installTestVersion + ".md": {"# fleetdiff " + installTestVersion},
 		"../examples/litellm-spend/README.md":            {"Install [fleetdiff " + installTestVersion + "]"},
 	} {

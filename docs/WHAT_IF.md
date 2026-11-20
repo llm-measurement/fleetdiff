@@ -1,10 +1,14 @@
-# What would switching models have cost?
+# Model-mix what-if
 
-Re-price a period of recorded usage under a proposed model mix, with the price
-date, measured factors and covered observations shown beside the result.
+Re-price your recorded usage at another model's dated prices, tier by tier and
+with caching, and see how sensitive the result is to output length. The first
+line is Level 1: the same work and output length at the target prices. Benchmark
+verbosity ratios appear separately as sensitivity, not a traffic prediction.
 
-Available in **v0.12.0**. Install the [verified binary](../README.md#1-install-v0120)
-before running the commands below.
+The basic command shipped in **v0.12.0**. Tier-aware results and the checked
+examples below require this source build until v0.15.0 is released; the
+[verified binary](../README.md#1-install-v0141) runs the older single-row
+price-table examples.
 
 ## Run it on your data
 
@@ -13,7 +17,7 @@ including input, output, cache-read and cache-write columns. Keep the source
 and identity mapping files private. The command reads local files only.
 
 ```sh
-./fleetdiff-install/fleetdiff what-if --litellm-spend spend.csv --period 2026-10-07 \
+go run ./cmd/fleetdiff what-if --litellm-spend spend.csv --period 2026-10-07 \
   --from claude-sonnet-5-5 --to gpt-6.1-sol --fraction 0.5
 ```
 
@@ -27,34 +31,36 @@ output and cache composition. It does not select the largest or cheapest request
 Example output from the checked-in synthetic export:
 
 ```text
-Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $0.15 -> $0.11 to $0.15, depending on workload assumptions.
+Moving 50% of claude-sonnet-5-5 traffic to gpt-6.1-sol (covered usage): $1.54 -> $1.49 at the same work and output length, on 2026-11-19 prices.
+Target price tiers: tier 1: 3 requests at or under 272,000 prompt tokens.
 ```
 
-The report gives level 1 at unchanged output verbosity, then QA, extraction and
-coding results with their measured factor intervals. It identifies how much of
-the moved traffic's target cost is output: that is the portion affected by the
-verbosity factor. One example row lacks cache details and is excluded, not
-treated as free usage. Full checked output: [text](../examples/what-if/expected.text)
+The output-length sensitivity section gives QA, extraction and coding rows
+using measured benchmark factors. Its output-share line shows how much of the
+moved cost those factors can affect. Run a canary on your own traffic and use
+`investigate`'s [session review](SESSION_BUDGET.md) to measure the actual
+difference. One example row lacks cache details and is excluded, not treated
+as free usage. Full checked output: [text](../examples/what-if/expected.text)
 and [JSON](../examples/what-if/expected.json).
 
 ## No data handy? Try the sample
 
-From a v0.12.0 checkout, using the verified binary installed above:
+From this checkout, with the pinned Go toolchain:
 
 ```sh
-./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
+go run ./cmd/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
   --period 2026-10-07 --scenario examples/what-if/scenario.json
-./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
+go run ./cmd/fleetdiff what-if --litellm-spend examples/what-if/spend.csv \
   --period 2026-10-07 --scenario examples/what-if/scenario.json \
   --workload-map examples/what-if/workload-map.json --format json
 ```
 
 The [long-prompt sample](../examples/what-if/long-prompt.csv) has one call on
-each side of Haiku 5.5's 100,000-token boundary. It requires a build with
-version 2 price tables; earlier releases cannot run it:
+each side of Haiku 5.5's 100,000-token boundary. Earlier releases cannot run
+its version 2 price table:
 
 ```sh
-./fleetdiff-install/fleetdiff what-if --litellm-spend examples/what-if/long-prompt.csv \
+go run ./cmd/fleetdiff what-if --litellm-spend examples/what-if/long-prompt.csv \
   --period 2026-10-07 --from claude-sonnet-5-5 --to claude-haiku-5-5 \
   --fraction 1 --format json
 ```
