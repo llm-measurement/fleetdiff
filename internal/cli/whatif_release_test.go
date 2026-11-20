@@ -78,7 +78,8 @@ func TestReleaseBinaryWhatIf(t *testing.T) {
 						report.Covered != 3 || report.Excluded["missing_split"] != 1 {
 						t.Fatal("packaged what-if workload mapping or coverage changed")
 					}
-				} else if !bytes.Contains(output, []byte("Level 2, mapped:")) {
+				} else if !bytes.Contains(output, []byte("Output-length sensitivity (benchmark verbosity ratios;")) ||
+					!bytes.Contains(output, []byte("  mapped:")) {
 					t.Fatal("packaged what-if text lacks the mapped result")
 				}
 			})
