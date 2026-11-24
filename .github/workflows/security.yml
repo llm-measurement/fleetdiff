@@ -11,6 +11,8 @@ jobs:
   scan:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -18,16 +20,74 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          # Fixes timed-fuzz cancellation failures: https://go.dev/issue/75804.
-          go-version: '1.27.3'
-      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
+          # Keep this aligned with the release build; the workflow test checks it.
+          go-version: '1.26.11'
+      - name: Record release toolchain
+        id: toolchain
+        run: go version
+      - name: Scan release-toolchain vulnerabilities
+        id: vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 -scan=symbol ./...
       - name: Redacted history secret scan
+        id: history
+        if: ${{ !cancelled() }}
         run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact=100 --verbose --log-opts=--all --no-banner .
+      - name: Race tests
+        id: race
+        if: ${{ !cancelled() }}
+        run: go test -race ./...
+      - name: Security check summary
+        if: always()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          VULNERABILITY_OUTCOME: ${{ steps.vulnerabilities.outcome }}
+          HISTORY_OUTCOME: ${{ steps.history.outcome }}
+          RACE_OUTCOME: ${{ steps.race.outcome }}
+        run: |
+          {
+            printf '## Security scan\n\n'
+            printf 'Run: %s\n\n' "$RUN_URL"
+            printf '| Check | Outcome |\n| --- | --- |\n'
+            printf '| Release-toolchain vulnerability scan | %s |\n' "$VULNERABILITY_OUTCOME"
+            printf '| Redacted history scan | %s |\n' "$HISTORY_OUTCOME"
+            printf '| Race tests | %s |\n\n' "$RACE_OUTCOME"
+            printf 'Failed or skipped checks are not passes.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+  fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # Timed-fuzz cancellation is fixed here; keep scanning the release toolchain.
+          # Revisit consolidation after Go 1.26.12 ships the backport: https://go.dev/issue/82362.
+          go-version: '1.27.4'
+      - name: Record fuzz toolchain
+        id: toolchain
+        run: go version
       - name: Extended malformed-input testing
+        id: fuzz
         run: |
           go test ./internal/compare -run '^$' -fuzz '^FuzzCanonicalSummary$' -fuzztime 2m -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzEmbeddedSketch$' -fuzztime 2m -parallel 2
           go test ./internal/compare -run '^$' -fuzz '^FuzzScanSummary$' -fuzztime 2m -parallel 2
           go test ./internal/diagnose -run '^$' -fuzz '^FuzzDiagnose$' -fuzztime 2m -parallel 2
           go test ./internal/inspect -run '^$' -fuzz '^FuzzTraceRecord$' -fuzztime 2m -parallel 2
-      - run: go test -race ./...
+      - name: Fuzz check summary
+        if: always()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          FUZZ_OUTCOME: ${{ steps.fuzz.outcome }}
+        run: |
+          {
+            printf '## Security fuzz tests\n\n'
+            printf 'Run: %s\n\n' "$RUN_URL"
+            printf '| Check | Outcome |\n| --- | --- |\n'
+            printf '| Malformed-input fuzz tests | %s |\n\n' "$FUZZ_OUTCOME"
+            printf 'Failed or skipped checks are not passes.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
